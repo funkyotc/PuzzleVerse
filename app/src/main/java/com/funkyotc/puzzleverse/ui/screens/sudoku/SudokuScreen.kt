@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -71,7 +72,7 @@ fun SudokuScreen(mode: String?, context: Context = LocalContext.current, sudokuV
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
-        ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo)
+        ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
         NumberPad(onNumberSelected = sudokuViewModel::onNumberInput)
     }
 }
@@ -219,7 +220,7 @@ fun PencilMarks(marks: Set<Int>?) {
 
 
 @Composable
-fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Unit) {
+fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Unit, onErase: () -> Unit) {
     Row(
         modifier = Modifier.padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -234,6 +235,9 @@ fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Uni
                 contentDescription = "Pencil",
                 tint = if (isPencilOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
+        }
+        IconButton(onClick = onErase) {
+            Icon(Icons.Filled.Delete, contentDescription = "Erase")
         }
     }
 }

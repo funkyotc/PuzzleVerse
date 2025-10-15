@@ -68,9 +68,10 @@ class SudokuViewModel(context: Context, private val mode: String?) : ViewModel()
                             } else {
                                 newPencilMarks.add(number)
                             }
-                            it.copy(pencilMarks = newPencilMarks)
+                            it.copy(pencilMarks = newPencilMarks, number = 0)
                         } else {
-                            it.copy(number = number, pencilMarks = emptySet())
+                            val newNumber = if (it.number == number) 0 else number
+                            it.copy(number = newNumber, pencilMarks = emptySet())
                         }
                     } else {
                         it
@@ -82,6 +83,25 @@ class SudokuViewModel(context: Context, private val mode: String?) : ViewModel()
                 boardHistory.add(newBoard)
                 repository.saveBoard(newBoard, boardKey)
                 checkWinCondition(newBoard)
+            }
+        }
+    }
+
+    fun onErase() {
+        _selectedCell.value?.let { cell ->
+            if (!cell.isHint) {
+                val newCells = _board.value.cells.map {
+                    if (it.row == cell.row && it.col == cell.col) {
+                        it.copy(number = 0, pencilMarks = emptySet())
+                    } else {
+                        it
+                    }
+                }
+                val newBoard = validateBoard(SudokuBoard(newCells))
+                _board.value = newBoard
+                _selectedCell.value = newBoard.getCell(cell.row, cell.col)
+                boardHistory.add(newBoard)
+                repository.saveBoard(newBoard, boardKey)
             }
         }
     }
