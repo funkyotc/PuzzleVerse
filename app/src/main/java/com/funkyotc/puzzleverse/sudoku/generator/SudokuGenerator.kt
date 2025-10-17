@@ -5,44 +5,81 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import kotlin.random.Random
 
 class SudokuGenerator {
-    private val puzzles = listOf(
-        listOf(
-            listOf(5, 3, 0, 0, 7, 0, 0, 0, 0),
-            listOf(6, 0, 0, 1, 9, 5, 0, 0, 0),
-            listOf(0, 9, 8, 0, 0, 0, 0, 6, 0),
-            listOf(8, 0, 0, 0, 6, 0, 0, 0, 3),
-            listOf(4, 0, 0, 8, 0, 3, 0, 0, 1),
-            listOf(7, 0, 0, 0, 2, 0, 0, 0, 6),
-            listOf(0, 6, 0, 0, 0, 0, 2, 8, 0),
-            listOf(0, 0, 0, 4, 1, 9, 0, 0, 5),
-            listOf(0, 0, 0, 0, 8, 0, 0, 7, 9)
-        ),
-        listOf(
-            listOf(0, 0, 0, 2, 6, 0, 7, 0, 1),
-            listOf(6, 8, 0, 0, 7, 0, 0, 9, 0),
-            listOf(1, 9, 0, 0, 0, 4, 5, 0, 0),
-            listOf(8, 2, 0, 1, 0, 0, 0, 4, 0),
-            listOf(0, 0, 4, 6, 0, 2, 9, 0, 0),
-            listOf(0, 5, 0, 0, 0, 3, 0, 2, 8),
-            listOf(0, 0, 9, 3, 0, 0, 0, 7, 4),
-            listOf(0, 4, 0, 0, 5, 0, 0, 3, 6),
-            listOf(7, 0, 3, 0, 1, 8, 0, 0, 0)
-        )
-        // TODO: Add more puzzles
-    )
+    private var grid = Array(9) { IntArray(9) }
+    private val numbers = (1..9).toList()
 
-    fun generate(seed: Long = Random.nextLong()): SudokuBoard {
-        val puzzleIndex = (seed % puzzles.size).toInt()
-        val puzzle = puzzles[puzzleIndex]
+    fun generate(seed: Long = Random.nextLong(), difficulty: Int = 45): SudokuBoard {
+        val random = Random(seed)
+        grid = Array(9) { IntArray(9) } // Clear grid
+
+        // Generate a fully solved Sudoku board
+        solve(random)
+
+        // Remove numbers to create the puzzle, based on difficulty
+        var removed = 0
+        val cellsToRemove = (0..80).shuffled(random)
+
+        for (cellIndex in cellsToRemove) {
+            if (removed >= difficulty) break
+
+            val row = cellIndex / 9
+            val col = cellIndex % 9
+
+            if (grid[row][col] != 0) {
+                grid[row][col] = 0
+                removed++
+            }
+        }
 
         val cells = mutableListOf<SudokuCell>()
         for (row in 0..8) {
             for (col in 0..8) {
-                val number = puzzle[row][col]
+                val number = grid[row][col]
                 cells.add(SudokuCell(row, col, number, isHint = number != 0))
             }
         }
 
         return SudokuBoard(cells)
+    }
+
+    private fun solve(random: Random): Boolean {
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (grid[row][col] == 0) {
+                    val shuffledNumbers = numbers.shuffled(random)
+                    for (num in shuffledNumbers) {
+                        if (isSafe(row, col, num)) {
+                            grid[row][col] = num
+                            if (solve(random)) {
+                                return true
+                            }
+                            grid[row][col] = 0 // backtrack
+                        }
+                    }
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    private fun isSafe(row: Int, col: Int, num: Int): Boolean {
+        // Check row
+        for (c in 0..8) {
+            if (grid[row][c] == num) return false
+        }
+        // Check column
+        for (r in 0..8) {
+            if (grid[r][col] == num) return false
+        }
+        // Check 3x3 box
+        val boxRowStart = row - row % 3
+        val boxColStart = col - col % 3
+        for (r in boxRowStart until boxRowStart + 3) {
+            for (c in boxColStart until boxColStart + 3) {
+                if (grid[r][c] == num) return false
+            }
+        }
+        return true
     }
 }

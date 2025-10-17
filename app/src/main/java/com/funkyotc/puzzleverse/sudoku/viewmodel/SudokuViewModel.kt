@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.sudoku.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
@@ -10,7 +11,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 
-class SudokuViewModel(context: Context, private val mode: String?) : ViewModel() {
+class SudokuViewModel(
+    context: Context, 
+    private val mode: String?, 
+    private val forceNewGame: Boolean, 
+    private val streakRepository: StreakRepository
+) : ViewModel() {
 
     private val generator = SudokuGenerator()
     private val repository = SudokuRepository(context)
@@ -38,11 +44,23 @@ class SudokuViewModel(context: Context, private val mode: String?) : ViewModel()
     }
 
     private fun generateInitialBoard(): SudokuBoard {
+        if (forceNewGame) {
+            val newBoard = generateNewBoard()
+            repository.saveBoard(newBoard, boardKey)
+            return newBoard
+        }
+
         val loadedBoard = repository.loadBoard(boardKey)
         if (loadedBoard != null && loadedBoard.cells.isNotEmpty()) {
             return loadedBoard
         }
 
+        val newBoard = generateNewBoard()
+        repository.saveBoard(newBoard, boardKey)
+        return newBoard
+    }
+
+    private fun generateNewBoard(): SudokuBoard {
         return if (mode == "daily") {
             generator.generate(dailyChallengeSeed)
         } else {
@@ -120,54 +138,48 @@ class SudokuViewModel(context: Context, private val mode: String?) : ViewModel()
     }
 
     fun newGame() {
-        val newBoard = if (mode == "daily") generator.generate(dailyChallengeSeed) else generator.generate()
+        val newBoard = generateNewBoard()
         _board.value = newBoard
         boardHistory.clear()
         boardHistory.add(newBoard)
-        repository.saveBoard(_board.value, boardKey)
+        repository.saveBoard(newBoard, boardKey)
         _isGameWon.value = false
         _selectedCell.value = null
     }
 
     private fun validateBoard(board: SudokuBoard): SudokuBoard {
-        val errorPositions = mutableSetOf<Pair<Int, Int>>()
         val cells = board.cells
+        val errorPositions = mutableSetOf<Pair<Int, Int>>()
 
-        // Check rows and columns
+        // Reset all errors before re-validating
+        val cellsWithoutErrors = cells.map { it.copy(isError = false) }
+
         for (i in 0 until 9) {
-            val rowCounts = mutableMapOf<Int, MutableList<Int>>()
-            val colCounts = mutableMapOf<Int, MutableList<Int>>()
-            for (j in 0 until 9) {
-                val rowCell = cells[i * 9 + j]
-                if (rowCell.number != 0) {
-                    rowCounts.getOrPut(rowCell.number) { mutableListOf() }.add(j)
-                }
-                val colCell = cells[j * 9 + i]
-                if (colCell.number != 0) {
-                    colCounts.getOrPut(colCell.number) { mutableListOf() }.add(j)
-                }
+            // Check rows
+            val rowCounts = cellsWithoutErrors.filter { it.row == i && it.number != 0 }.groupBy { it.number }
+            rowCounts.values.filter { it.size > 1 }.flatten().forEach { cell ->
+                errorPositions.add(cell.row to cell.col)
             }
-            rowCounts.values.filter { it.size > 1 }.flatten().forEach { j -> errorPositions.add(i to j) }
-            colCounts.values.filter { it.size > 1 }.flatten().forEach { j -> errorPositions.add(j to i) }
+
+            // Check columns
+            val colCounts = cellsWithoutErrors.filter { it.col == i && it.number != 0 }.groupBy { it.number }
+            colCounts.values.filter { it.size > 1 }.flatten().forEach { cell ->
+                errorPositions.add(cell.row to cell.col)
+            }
         }
 
         // Check 3x3 sub-grids
         for (i in 0 until 9 step 3) {
             for (j in 0 until 9 step 3) {
-                val subgridCounts = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
-                for (row in i until i + 3) {
-                    for (col in j until j + 3) {
-                        val cell = cells[row * 9 + col]
-                        if (cell.number != 0) {
-                            subgridCounts.getOrPut(cell.number) { mutableListOf() }.add(row to col)
-                        }
-                    }
+                val subgrid = cellsWithoutErrors.filter { it.row in i until i + 3 && it.col in j until j + 3 && it.number != 0 }
+                val subgridCounts = subgrid.groupBy { it.number }
+                subgridCounts.values.filter { it.size > 1 }.flatten().forEach { cell ->
+                    errorPositions.add(cell.row to cell.col)
                 }
-                subgridCounts.values.filter { it.size > 1 }.flatten().forEach { errorPositions.add(it) }
             }
         }
 
-        val validatedCells = cells.map {
+        val validatedCells = cellsWithoutErrors.map {
             it.copy(isError = errorPositions.contains(it.row to it.col))
         }
 
@@ -179,9 +191,18 @@ class SudokuViewModel(context: Context, private val mode: String?) : ViewModel()
         val hasNoErrors = board.cells.none { it.isError }
         if (isComplete && hasNoErrors) {
             _isGameWon.value = true
+
             if (mode == "daily") {
-                // For daily challenges, you might want to prevent starting a new game until the next day
-                // Or, you could allow it but with a clear indication that it's the same puzzle
+                val today = LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("sudoku")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newStreak = streak.copy(
+                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                        lastCompletedEpochDay = today
+                    )
+                    streakRepository.saveStreak(newStreak)
+                }
+                repository.saveBoard(SudokuBoard(emptyList()), boardKey) // Clear daily challenge board on win
             } else {
                 // For standard mode, clear the saved board so a new one is generated next time
                 repository.saveBoard(SudokuBoard(emptyList()), boardKey)

@@ -3,11 +3,18 @@ package com.funkyotc.puzzleverse.sudoku.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
-class SudokuViewModelFactory(private val context: Context, private val mode: String?) : ViewModelProvider.Factory {
+class SudokuViewModelFactory(
+    private val context: Context, 
+    private val mode: String?, 
+    private val forceNewGame: Boolean = false, 
+    private val streakRepository: StreakRepository
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SudokuViewModel::class.java)) {
-            return SudokuViewModel(context, mode) as T
+            @Suppress("UNCHECKED_CAST")
+            return SudokuViewModel(context, mode, forceNewGame, streakRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

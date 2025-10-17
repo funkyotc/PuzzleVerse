@@ -14,20 +14,32 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,19 +50,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModel
 import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModelFactory
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SudokuScreen(mode: String?, context: Context = LocalContext.current, sudokuViewModel: SudokuViewModel = viewModel(factory = SudokuViewModelFactory(context, mode))) {
+fun SudokuScreen(
+    navController: NavController, 
+    mode: String?, 
+    forceNewGame: Boolean = false, 
+    context: Context = LocalContext.current,
+    streakRepository: StreakRepository,
+    sudokuViewModel: SudokuViewModel = viewModel(factory = SudokuViewModelFactory(context, mode, forceNewGame, streakRepository))
+) {
     val board by sudokuViewModel.board.collectAsState()
     val selectedCell by sudokuViewModel.selectedCell.collectAsState()
     val isGameWon by sudokuViewModel.isGameWon.collectAsState()
     val isPencilOn by sudokuViewModel.isPencilOn.collectAsState()
-
+    var showNewGameDialog by remember { mutableStateOf(false) }
 
     if (isGameWon) {
         AlertDialog(
@@ -58,22 +80,62 @@ fun SudokuScreen(mode: String?, context: Context = LocalContext.current, sudokuV
             title = { Text(text = "Congratulations!") },
             text = { Text(text = "You solved the puzzle!") },
             confirmButton = {
-                androidx.compose.material3.Button(onClick = { sudokuViewModel.newGame() }) {
+                Button(onClick = { sudokuViewModel.newGame() }) {
                     Text("New Game")
                 }
             }
         )
     }
 
+    if (showNewGameDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewGameDialog = false },
+            title = { Text("New Puzzle") },
+            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    sudokuViewModel.newGame()
+                    showNewGameDialog = false
+                }) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewGameDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
-        ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
-        NumberPad(onNumberSelected = sudokuViewModel::onNumberInput)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Sudoku") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (mode == "standard") {
+                        IconButton(onClick = { showNewGameDialog = true }) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                        }
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            verticalArrangement = Arrangement.SpaceAround,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
+            ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
+            NumberPad(isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
+        }
     }
 }
 
@@ -227,14 +289,20 @@ fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Uni
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onUndo) {
-            Icon(Icons.Filled.Undo, contentDescription = "Undo")
+            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
         }
-        IconButton(onClick = onPencilToggle) {
-            Icon(
-                imageVector = Icons.Filled.Create,
-                contentDescription = "Pencil",
-                tint = if (isPencilOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
+        IconButton(
+            onClick = onPencilToggle,
+            colors = if (isPencilOn) {
+                IconButtonDefaults.iconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            } else {
+                IconButtonDefaults.iconButtonColors()
+            }
+        ) {
+            Icon(Icons.Filled.Create, contentDescription = "Pencil")
         }
         IconButton(onClick = onErase) {
             Icon(Icons.Filled.Delete, contentDescription = "Erase")
@@ -243,18 +311,27 @@ fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Uni
 }
 
 @Composable
-fun NumberPad(onNumberSelected: (Int) -> Unit) {
-    Column(
-        modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+fun NumberPad(isPencilOn: Boolean, onNumberSelected: (Int) -> Unit) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .widthIn(max = 400.dp)
+            .fillMaxWidth()
+            .aspectRatio(1f)
     ) {
-        (0..2).forEach { row ->
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                (1..3).forEach { col ->
-                    val number = row * 3 + col
-                    NumberButton(number = number, onClick = { onNumberSelected(number) })
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            (0..2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    (1..3).forEach { col ->
+                        val number = row * 3 + col
+                        NumberButton(number = number, isPencilOn = isPencilOn, onClick = { onNumberSelected(number) })
+                    }
                 }
             }
         }
@@ -262,9 +339,16 @@ fun NumberPad(onNumberSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun RowScope.NumberButton(number: Int, onClick: () -> Unit) {
+fun RowScope.NumberButton(number: Int, isPencilOn: Boolean, onClick: () -> Unit) {
+    val textStyle = if (isPencilOn) {
+        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+    } else {
+        MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary)
+    }
+
     Surface(
         modifier = Modifier
+            .padding(4.dp)
             .clip(CircleShape)
             .clickable(onClick = onClick)
             .weight(1f)
@@ -276,8 +360,7 @@ fun RowScope.NumberButton(number: Int, onClick: () -> Unit) {
         ) {
             Text(
                 text = number.toString(),
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
+                style = textStyle
             )
         }
     }

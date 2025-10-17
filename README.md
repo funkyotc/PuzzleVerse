@@ -15,7 +15,7 @@ The application will be built using modern, best-practice Android development te
 *   **Five Initial Games:**
     *   **Sudoku:** Classic 9x9 number grid puzzle.
     *   **Bonza:** A word puzzle where users connect word fragments on a grid.
-    *   **Constellations:** A dot-to-dot puzzle where users connect stars to form shapes without crossing lines.
+    *   **Constellations:** Starstruck is a strategic logic game where your goal is to place one star in every row, column, and color region.
     *   **Shapes:** A tangram-style puzzle where users fit geometric pieces into a target silhouette.
     *   **Wordle:** The popular 5-letter word guessing game.
 *   **Local Progress Storage:** User progress for daily challenges and statistics will be saved on the device.

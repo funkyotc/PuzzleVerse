@@ -18,6 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.funkyotc.puzzleverse.bonza.ui.BonzaScreen
@@ -26,6 +28,7 @@ import com.funkyotc.puzzleverse.constellations.ui.ConstellationsScreen
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.settings.ui.SettingsScreen
 import com.funkyotc.puzzleverse.shapes.ui.ShapesScreen
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.ui.screens.detail.GameDetailScreen
 import com.funkyotc.puzzleverse.ui.screens.game.GameScreen
 import com.funkyotc.puzzleverse.ui.screens.home.HomeScreen
@@ -42,9 +45,16 @@ val LocalSoundManager = staticCompositionLocalOf<SoundManager> { error("No Sound
 class MainActivity : ComponentActivity() {
 
     private lateinit var soundManager: SoundManager
+    private var isLoading = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        installSplashScreen().setKeepOnScreenCondition {
+            isLoading
+        }
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         soundManager = SoundManager(this)
         soundManager.loadSounds()
@@ -52,12 +62,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val settingsRepository = remember { SettingsRepository(context) }
+            val streakRepository = remember { StreakRepository(context) }
             val isDarkTheme by settingsRepository.isDarkTheme.collectAsState(initial = false)
 
             PuzzleVerseTheme(darkTheme = isDarkTheme) {
                 CompositionLocalProvider(LocalSoundManager provides soundManager) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        PuzzleVerseNavHost(settingsRepository = settingsRepository)
+                        PuzzleVerseNavHost(settingsRepository = settingsRepository, streakRepository = streakRepository) {
+                            isLoading = false
+                        }
                     }
                 }
             }
@@ -72,7 +85,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun PuzzleVerseNavHost(settingsRepository: SettingsRepository) {
+fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository: StreakRepository, onInitialLoad: () -> Unit) {
     val navController = rememberAnimatedNavController()
     AnimatedNavHost(
         navController = navController, 
@@ -80,7 +93,10 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository) {
         enterTransition = { fadeIn(animationSpec = tween(300)) },
         exitTransition = { fadeOut(animationSpec = tween(300)) }
     ) {
-        composable("home") { HomeScreen(navController) }
+        composable("home") { 
+            onInitialLoad()
+            HomeScreen(navController, streakRepository)
+        }
         composable("settings") { SettingsScreen(settingsRepository) }
         composable(
             "gameDetail/{gameId}",
@@ -102,13 +118,36 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository) {
             val mode = backStackEntry.arguments?.getString("mode")
 
             when (gameId) {
-                "sudoku" -> SudokuScreen(mode = mode)
-                "bonza" -> BonzaScreen(mode = mode)
-                "constellations" -> ConstellationsScreen()
-                "shapes" -> ShapesScreen()
-                "wordle" -> WordleScreen()
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode)
+                "constellations" -> ConstellationsScreen(navController = navController)
+                "shapes" -> ShapesScreen(navController = navController)
+                "wordle" -> WordleScreen(navController = navController)
                 else -> {
                     GameScreen(
+                        navController = navController,
+                        gameId = gameId,
+                        mode = mode
+                    )
+                }
+            }
+        }
+        composable(
+            "game/{gameId}/{mode}/new",
+            arguments = listOf(
+                navArgument("gameId") { type = NavType.StringType },
+                navArgument("mode") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val gameId = backStackEntry.arguments?.getString("gameId")
+            val mode = backStackEntry.arguments?.getString("mode")
+
+            when (gameId) {
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository)
+                else -> {
+                    // For other games, you might want to handle the "new" case differently
+                    GameScreen(
+                        navController = navController,
                         gameId = gameId,
                         mode = mode
                     )

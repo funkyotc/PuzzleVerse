@@ -19,19 +19,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameDetailScreen(navController: NavController, gameId: String?) {
     val soundManager = LocalSoundManager.current
+    val context = LocalContext.current
 
     if (gameId == null) {
         // Handle null gameId, maybe navigate back or show an error
@@ -40,6 +44,8 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
     }
 
     val gameName = gameId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    val sudokuRepository = remember { SudokuRepository(context) }
+    val hasStandardGame = sudokuRepository.loadBoard("standard_sudoku_board") != null
 
     Scaffold(
         topBar = {
@@ -64,14 +70,38 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            MenuCard(text = "Standard") {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                navController.navigate("game/$gameId/standard")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            MenuCard(text = "Daily Challenge") {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                navController.navigate("game/$gameId/daily")
+            if (gameId == "sudoku") {
+                if (hasStandardGame) {
+                    MenuCard(text = "Resume") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/sudoku/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "New Game") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/sudoku/standard/new")
+                    }
+                } else {
+                    MenuCard(text = "New Game") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/sudoku/standard")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                MenuCard(text = "Daily Challenge") {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    navController.navigate("game/sudoku/daily")
+                }
+            } else {
+                MenuCard(text = "Standard") {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    navController.navigate("game/$gameId/standard")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                MenuCard(text = "Daily Challenge") {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    navController.navigate("game/$gameId/daily")
+                }
             }
         }
     }

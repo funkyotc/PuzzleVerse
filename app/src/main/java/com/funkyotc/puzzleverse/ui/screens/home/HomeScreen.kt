@@ -3,18 +3,24 @@ package com.funkyotc.puzzleverse.ui.screens.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -26,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 data class Game(val id: String, val name: String)
 
@@ -39,7 +46,7 @@ val games = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, streakRepository: StreakRepository) {
     val soundManager = LocalSoundManager.current
 
     Scaffold(
@@ -63,9 +70,10 @@ fun HomeScreen(navController: NavController) {
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        ) { 
             items(games) { game ->
-                GameCard(game = game) {
+                val streak = streakRepository.getStreak(game.id)
+                GameCard(game = game, streak = streak.count) {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     navController.navigate("gameDetail/${game.id}")
                 }
@@ -75,7 +83,7 @@ fun HomeScreen(navController: NavController) {
 }
 
 @Composable
-fun GameCard(game: Game, onClick: () -> Unit) {
+fun GameCard(game: Game, streak: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxSize()
@@ -85,7 +93,19 @@ fun GameCard(game: Game, onClick: () -> Unit) {
             modifier = Modifier.padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = game.name, textAlign = TextAlign.Center)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = game.name, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+                if (streak > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Whatshot, contentDescription = "Streak", tint = MaterialTheme.colorScheme.primary)
+                        Text(text = "$streak", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
     }
 }
