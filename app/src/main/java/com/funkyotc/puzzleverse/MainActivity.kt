@@ -22,7 +22,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.funkyotc.puzzleverse.bonza.ui.BonzaScreen
+import com.funkyotc.puzzleverse.ui.screens.bonza.BonzaScreen
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.constellations.ui.ConstellationsScreen
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository

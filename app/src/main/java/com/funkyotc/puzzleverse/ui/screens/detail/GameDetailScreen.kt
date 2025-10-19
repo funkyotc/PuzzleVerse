@@ -27,7 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
-import com.funkyotc.puzzleverse.bonza.data.BonzaRepository
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
 import java.util.Locale
@@ -46,7 +45,6 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
 
     val gameName = gameId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     val sudokuRepository = remember { SudokuRepository(context) }
-    val bonzaRepository = remember { BonzaRepository(context) }
 
     Scaffold(
         topBar = {
@@ -92,22 +90,9 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
                     }
                 }
                 "bonza" -> {
-                    val hasStandardGame = bonzaRepository.loadWords("standard_bonza_words") != null
-                    if (hasStandardGame) {
-                        MenuCard(text = "Resume") {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/bonza/standard")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        MenuCard(text = "New Game") {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/bonza/standard/new")
-                        }
-                    } else {
-                        MenuCard(text = "New Game") {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/bonza/standard")
-                        }
+                    MenuCard(text = "Standard") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/bonza/standard")
                     }
                 }
                 else -> {
