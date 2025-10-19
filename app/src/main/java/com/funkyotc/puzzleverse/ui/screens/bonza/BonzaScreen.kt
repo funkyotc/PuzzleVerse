@@ -28,6 +28,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.bonza.data.BonzaPuzzle
+import com.funkyotc.puzzleverse.bonza.data.ConnectionDirection
 import com.funkyotc.puzzleverse.bonza.viewmodel.BonzaViewModel
 import com.funkyotc.puzzleverse.bonza.viewmodel.BonzaViewModelFactory
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
@@ -95,6 +97,8 @@ fun BonzaScreen(
 fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
     val textMeasurer = rememberTextMeasurer()
     val primaryColor = MaterialTheme.colorScheme.primary
+    val letterBoxSize = 80f
+    val letterBoxCornerRadius = 16f
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -113,35 +117,56 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
             )
         }) {
             puzzle.fragments.forEach { fragment ->
-                val fragmentSize = Size(fragment.text.length * 40f, 80f)
                 val shadowOffset = Offset(5f, 5f)
+                fragment.text.forEachIndexed { index, char ->
+                    val letterOffset =
+                        if (fragment.direction == ConnectionDirection.HORIZONTAL) {
+                            Offset(
+                                fragment.currentPosition.x + index * letterBoxSize,
+                                fragment.currentPosition.y
+                            )
+                        } else {
+                            Offset(
+                                fragment.currentPosition.x,
+                                fragment.currentPosition.y + index * letterBoxSize
+                            )
+                        }
 
-                drawRoundRect(
-                    color = Color.Gray,
-                    topLeft = fragment.currentPosition + shadowOffset,
-                    size = fragmentSize,
-                    cornerRadius = CornerRadius(16f, 16f)
-                )
-
-                drawRoundRect(
-                    color = primaryColor,
-                    topLeft = fragment.currentPosition,
-                    size = fragmentSize,
-                    cornerRadius = CornerRadius(16f, 16f)
-                )
-
-                val textLayoutResult = textMeasurer.measure(
-                    text = fragment.text,
-                    style = TextStyle(color = Color.White, fontSize = 24.sp)
-                )
-
-                drawText(
-                    textLayoutResult,
-                    topLeft = fragment.currentPosition + Offset(
-                        (fragmentSize.width - textLayoutResult.size.width) / 2,
-                        (fragmentSize.height - textLayoutResult.size.height) / 2
+                    drawRoundRect(
+                        color = Color.Gray,
+                        topLeft = letterOffset + shadowOffset,
+                        size = Size(letterBoxSize, letterBoxSize),
+                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
                     )
-                )
+
+                    drawRoundRect(
+                        color = primaryColor,
+                        topLeft = letterOffset,
+                        size = Size(letterBoxSize, letterBoxSize),
+                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
+                    )
+
+                    drawRoundRect(
+                        color = Color.Black,
+                        topLeft = letterOffset,
+                        size = Size(letterBoxSize, letterBoxSize),
+                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
+                        style = Stroke(width = 2f)
+                    )
+
+                    val textLayoutResult = textMeasurer.measure(
+                        text = char.toString(),
+                        style = TextStyle(color = Color.White, fontSize = 24.sp)
+                    )
+
+                    drawText(
+                        textLayoutResult,
+                        topLeft = letterOffset + Offset(
+                            (letterBoxSize - textLayoutResult.size.width) / 2,
+                            (letterBoxSize - textLayoutResult.size.height) / 2
+                        )
+                    )
+                }
             }
         }
     }

@@ -16,7 +16,8 @@ data class WordFragment(
     val id: Int,
     val text: String,
     val initialPosition: Offset,
-    var currentPosition: Offset = initialPosition
+    var currentPosition: Offset = initialPosition,
+    val direction: ConnectionDirection = ConnectionDirection.HORIZONTAL
 )
 
 // Defines a connection between two word fragments.

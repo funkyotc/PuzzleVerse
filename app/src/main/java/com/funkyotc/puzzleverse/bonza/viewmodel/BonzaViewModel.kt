@@ -3,11 +3,13 @@ package com.funkyotc.puzzleverse.bonza.viewmodel
 import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.lifecycle.ViewModel
 import com.funkyotc.puzzleverse.bonza.data.BonzaConnection
 import com.funkyotc.puzzleverse.bonza.data.BonzaPuzzle
 import com.funkyotc.puzzleverse.bonza.data.ConnectionDirection
 import com.funkyotc.puzzleverse.bonza.data.WordFragment
+import com.funkyotc.puzzleverse.bonza.generator.BonzaPuzzleGenerator
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,10 +25,11 @@ class BonzaViewModel(
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon
 
-    private val _puzzle = MutableStateFlow(generateSamplePuzzle())
+    private val _puzzle = MutableStateFlow(BonzaPuzzleGenerator().generate())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
     private var draggedFragment: WordFragment? = null
+    private val letterBoxSize = 80f
 
     init {
         // Initialize Bonza game state here
@@ -68,10 +71,10 @@ class BonzaViewModel(
 
             if (fragment1 != null && fragment2 != null) {
                 val (snapped, newPos) = areFragmentsSnappable(fragment1, fragment2, connection.direction)
-                if(snapped) {
-                    if(draggedFragment.id == fragment1.id) {
+                if (snapped) {
+                    if (draggedFragment.id == fragment1.id) {
                         updateFragmentPosition(fragment1.id, newPos)
-                    } else if(draggedFragment.id == fragment2.id) {
+                    } else if (draggedFragment.id == fragment2.id) {
                         updateFragmentPosition(fragment2.id, newPos)
                     }
                 }
@@ -79,17 +82,29 @@ class BonzaViewModel(
         }
     }
 
-    private fun areFragmentsSnappable(fragment1: WordFragment, fragment2: WordFragment, direction: ConnectionDirection): Pair<Boolean, Offset> {
+    private fun areFragmentsSnappable(
+        fragment1: WordFragment,
+        fragment2: WordFragment,
+        direction: ConnectionDirection
+    ): Pair<Boolean, Offset> {
         val snapThreshold = 50f
         if (direction == ConnectionDirection.HORIZONTAL) {
-            val distance = abs(fragment1.currentPosition.x + fragment1.text.length * 20f - fragment2.currentPosition.x) // Approximate width
+            val fragment1Width = fragment1.text.length * letterBoxSize
+            val newX = fragment2.currentPosition.x - fragment1Width
+            val newPosForF1 = Offset(newX, fragment2.currentPosition.y)
+            val distance = (fragment1.currentPosition - newPosForF1).getDistance()
+
             if (distance < snapThreshold) {
-                return Pair(true, Offset(fragment2.currentPosition.x - fragment1.text.length * 20f, fragment2.currentPosition.y))
+                return Pair(true, newPosForF1)
             }
         } else { // VERTICAL
-            val distance = abs(fragment1.currentPosition.y - (fragment2.currentPosition.y - 40f))
+            val fragment1Height = letterBoxSize
+            val newY = fragment2.currentPosition.y - fragment1Height
+            val newPosForF1 = Offset(fragment2.currentPosition.x, newY)
+
+            val distance = (fragment1.currentPosition - newPosForF1).getDistance()
             if (distance < snapThreshold) {
-                return Pair(true, Offset(fragment1.currentPosition.x, fragment2.currentPosition.y - 40f))
+                return Pair(true, newPosForF1)
             }
         }
         return Pair(false, Offset.Zero)
@@ -113,46 +128,19 @@ class BonzaViewModel(
     }
 
     private fun getFragmentAt(position: Offset): WordFragment? {
-        return _puzzle.value.fragments.find { fragment ->
-            val fragmentRect = Rect(fragment.currentPosition, fragment.currentPosition + Offset(fragment.text.length * 20f, 40f)) // Approximate bounding box
+        return _puzzle.value.fragments.asReversed().find { fragment ->
+            val fragmentSize = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
+                Size(fragment.text.length * letterBoxSize, letterBoxSize)
+            } else {
+                Size(letterBoxSize, fragment.text.length * letterBoxSize)
+            }
+            val fragmentRect = Rect(offset = fragment.currentPosition, size = fragmentSize)
             fragmentRect.contains(position)
         }
     }
 
     fun newGame() {
         _isGameWon.value = false
-        _puzzle.value = generateSamplePuzzle()
-    }
-
-    private fun generateSamplePuzzle(): BonzaPuzzle {
-        val fragments = listOf(
-            WordFragment(1, "APP", Offset(100f, 100f)),
-            WordFragment(2, "LE", Offset(200f, 100f)),
-            WordFragment(3, "BAN", Offset(100f, 200f)),
-            WordFragment(4, "ANA", Offset(200f, 200f)),
-            WordFragment(5, "OR", Offset(100f, 300f)),
-            WordFragment(6, "ANGE", Offset(200f, 300f))
-        )
-
-        val solvedFragments = listOf(
-            WordFragment(1, "APP", Offset(100f, 100f)),
-            WordFragment(2, "LE", Offset(160f, 100f)),
-            WordFragment(3, "BAN", Offset(100f, 140f)),
-            WordFragment(4, "ANA", Offset(160f, 140f)),
-            WordFragment(5, "OR", Offset(100f, 180f)),
-            WordFragment(6, "ANGE", Offset(140f, 180f))
-        )
-
-        return BonzaPuzzle(
-            theme = "Fruits",
-            words = listOf("APPLE", "BANANA", "ORANGE"),
-            fragments = fragments,
-            connections = listOf(
-                BonzaConnection(1, 2, ConnectionDirection.HORIZONTAL),
-                BonzaConnection(3, 4, ConnectionDirection.HORIZONTAL),
-                BonzaConnection(5, 6, ConnectionDirection.HORIZONTAL)
-            ),
-            solvedFragments = solvedFragments
-        )
+        _puzzle.value = BonzaPuzzleGenerator().generate()
     }
 }
