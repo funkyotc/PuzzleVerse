@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.bonza.data.BonzaRepository
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
 import java.util.Locale
@@ -45,7 +46,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
 
     val gameName = gameId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
     val sudokuRepository = remember { SudokuRepository(context) }
-    val hasStandardGame = sudokuRepository.loadBoard("standard_sudoku_board") != null
+    val bonzaRepository = remember { BonzaRepository(context) }
 
     Scaffold(
         topBar = {
@@ -56,7 +57,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.popBackStack()
                     }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -70,38 +71,57 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (gameId == "sudoku") {
-                if (hasStandardGame) {
-                    MenuCard(text = "Resume") {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("game/sudoku/standard")
+            when (gameId) {
+                "sudoku" -> {
+                    val hasStandardGame = sudokuRepository.loadBoard("standard_sudoku_board") != null
+                    if (hasStandardGame) {
+                        MenuCard(text = "Resume") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/sudoku/standard")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "New Game") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/sudoku/standard/new")
+                        }
+                    } else {
+                        MenuCard(text = "New Game") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/sudoku/standard")
+                        }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    MenuCard(text = "New Game") {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("game/sudoku/standard/new")
+                }
+                "bonza" -> {
+                    val hasStandardGame = bonzaRepository.loadWords("standard_bonza_words") != null
+                    if (hasStandardGame) {
+                        MenuCard(text = "Resume") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/bonza/standard")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "New Game") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/bonza/standard/new")
+                        }
+                    } else {
+                        MenuCard(text = "New Game") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/bonza/standard")
+                        }
                     }
-                } else {
-                    MenuCard(text = "New Game") {
+                }
+                else -> {
+                    MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("game/sudoku/standard")
+                        navController.navigate("game/$gameId/standard")
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                MenuCard(text = "Daily Challenge") {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/sudoku/daily")
-                }
-            } else {
-                MenuCard(text = "Standard") {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/$gameId/standard")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                MenuCard(text = "Daily Challenge") {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/$gameId/daily")
-                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            MenuCard(text = "Daily Challenge") {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                navController.navigate("game/$gameId/daily")
             }
         }
     }

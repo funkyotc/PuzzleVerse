@@ -4,62 +4,87 @@
 
 The goal is to create a polished, engaging, and user-friendly native Android application named "PuzzleVerse". The app will serve as a hub for multiple classic puzzle games, each with two modes: a "Standard" mode for casual play and a "Daily Challenge" mode that is consistent for all users each day. The initial game roster will include Sudoku, Bonza, Constellations, Shapes, and Wordle.
 
-The application will be built using modern, best-practice Android development technologies to ensure it is robust, maintainable, and has a high-quality feel.
+The application will be built using modern, best-practice Android development technologies to ensure it is robust, maintainable, and has a high-quality feel. This document reflects the current state of the application, using the Sudoku game as a template for future development.
 
 ### **2. Core Features**
 
 *   **Game Hub:** A central home screen to browse and select from the available puzzle games.
 *   **Dual Game Modes:**
-    *   **Standard Play:** Generate puzzles on-demand for unlimited play.
-    *   **Daily Challenge:** A single, unique puzzle for each game, refreshed every 24 hours. Progress and completion will be tracked.
+    *   **Standard Play:** Generate unique, random puzzles on-demand for unlimited play.
+    *   **Daily Challenge:** A single, unique puzzle for each game, refreshed every 24 hours.
+*   **Resume Puzzle:** For standard games, progress is automatically saved, allowing users to resume an unfinished puzzle.
+*   **Daily Challenge Streak:** The app tracks the number of consecutive days a user has completed a daily challenge for each game. This streak is displayed on the home screen.
 *   **Five Initial Games:**
     *   **Sudoku:** Classic 9x9 number grid puzzle.
     *   **Bonza:** A word puzzle where users connect word fragments on a grid.
-    *   **Constellations:** Starstruck is a strategic logic game where your goal is to place one star in every row, column, and color region.
+    *   **Constellations:** A logic game where the goal is to place stars in every row, column, and color region.
     *   **Shapes:** A tangram-style puzzle where users fit geometric pieces into a target silhouette.
     *   **Wordle:** The popular 5-letter word guessing game.
-*   **Local Progress Storage:** User progress for daily challenges and statistics will be saved on the device.
+*   **Local Progress Storage:** User progress for daily challenges, standard games, and streaks are saved on the device.
+*   **Fullscreen Mode:** The app runs in an immersive fullscreen mode, hiding the system status and navigation bars.
+*   **Launch Animation:** A simple and elegant launch animation using the app's adaptive icon.
 
-### **3. Technology Stack & Architecture**
+### **3. Sudoku - The Template Game**
 
-*   **Language:** **Kotlin** - The official language for modern Android development.
-*   **UI Toolkit:** **Jetpack Compose** - Google's modern, declarative UI framework for building native interfaces. This allows for faster, more interactive UI development.
-*   **Architecture:** **MVVM (Model-View-ViewModel)** - A clean, scalable architecture that separates UI (View), business logic (ViewModel), and data (Model/Repository). This is crucial for managing the state of each complex puzzle game.
-*   **Navigation:** **Compose Navigation** - To handle screen transitions and flow within the app.
-*   **Data Persistence:** **DataStore** or **Room** - For storing user preferences, daily challenge status, and game statistics locally.
+The Sudoku game has been implemented with a polished UI and a robust set of features. It should be used as a template for the design and functionality of all other games in PuzzleVerse.
 
-### **4. UI/UX Design Principles**
+**Sudoku Features:**
+*   **Game Board:** A clean, easy-to-read 9x9 grid with thicker borders for the 3x3 blocks.
+*   **Number Input:** A 3x3 number pad for quick and intuitive number entry.
+*   **Highlighting:**
+    *   The selected cell, row, column, and 3x3 block are highlighted.
+    *   All other instances of the selected number are also highlighted.
+*   **Pencil Mode:** Allows users to enter notes in a cell. The pencil button and number pad are visually distinct when this mode is active.
+*   **Erase Button:** A dedicated button to clear the contents of a selected cell.
+*   **Undo Button:** Reverts the last move.
+*   **Victory Detection:** The app automatically detects when the puzzle is solved and displays a congratulatory message.
+*   **New Puzzle Generation:** For standard mode, users can generate a new, random puzzle at any time via a "Shuffle" button in the title bar, with a confirmation dialog to prevent accidental resets.
+
+### **4. Technology Stack & Architecture**
+
+*   **Language:** **Kotlin**
+*   **UI Toolkit:** **Jetpack Compose**
+*   **Architecture:** **MVVM (Model-View-ViewModel)**
+*   **Navigation:** **Compose Navigation**
+*   **Data Persistence:** **SharedPreferences** with **Gson** for serialization.
+*   **Splash Screen API:** For the launch animation.
+
+### **5. UI/UX Design Principles**
 
 *   **Theme:** A clean, minimalist, and modern aesthetic based on **Material Design 3**.
 *   **User Flow:**
-    1.  **App Launch** -> **Home Screen** (Displays a grid or list of games).
-    2.  **Select a Game** -> **Game Detail Screen** (Presents "Standard Game" and "Daily Challenge" options).
-    3.  **Select a Mode** -> **Game Board Screen** (The interactive puzzle interface).
-*   **Visuals:** Simple, intuitive icons and a consistent color palette across all games to create a unified experience.
+    1.  **App Launch** -> **Splash Screen** -> **Home Screen** (Displays a grid of games with streak counters).
+    2.  **Select a Game** -> **Game Detail Screen** (Presents "Standard Game" (with "Resume" or "New Game" options) and "Daily Challenge" options).
+    3.  **Select a Mode** -> **Game Board Screen**.
+*   **Game Screen Layout:**
+    *   **`Scaffold`:** Each game screen is built using a `Scaffold`.
+    *   **`TopAppBar`:** A `TopAppBar` displays the game's title, a back button, and game-specific actions (e.g., "New Puzzle").
+    *   **Content:** The main game content is displayed in the body of the `Scaffold`, with appropriate padding to account for the system bars.
 
-### **5. Development Plan (Phased Approach)**
+### **6. Development Plan (Updated)**
 
-**Phase 1: Project Foundation & Core UI**
-1.  Set up a new Android Studio project with Kotlin and Jetpack Compose.
-2.  Implement the core navigation structure: Home screen, Game Detail screen, and a placeholder Game Board screen.
-3.  Design and build the main UI components (e.g., game selection cards, buttons) according to the Material Design 3 theme.
+**Phase 1: Project Foundation & Core UI (Complete)**
+*   Project setup with Kotlin and Jetpack Compose.
+*   Core navigation structure implemented.
+*   Main UI components designed and built.
 
-**Phase 2: First Game Implementation - Sudoku**
-1.  Develop the data models for the Sudoku grid.
-2.  Build the game logic: puzzle generation (or loading pre-generated puzzles), input validation (checking rows, columns, and 3x3 squares).
-3.  Create the interactive Sudoku board UI in Jetpack Compose.
-4.  Implement the "Daily Challenge" logic using the current date to seed a puzzle generator or select a pre-defined puzzle.
-5.  Integrate local data storage to save the state of the daily challenge.
+**Phase 2: First Game Implementation - Sudoku (Complete)**
+*   Data models and game logic developed.
+*   Interactive Sudoku board UI created.
+*   "Daily Challenge" and "Standard" modes implemented.
+*   Local data storage for game state and streaks integrated.
+*   Advanced features like pencil mode, highlighting, and undo implemented.
 
 **Phase 3: Implementing the Remaining Games**
-*Using the architecture established in Phase 2 as a template:*
-1.  **Wordle:** Implement the 5x6 grid, keyboard, letter evaluation logic, and a local dictionary of valid words.
-2.  **Bonza:** Design the data structure for word fragments and their connections. Build the drag-and-drop UI to link them.
-3.  **Constellations:** Develop the logic for representing points and connections. Implement the touch-based line drawing on the UI canvas.
-4.  **Shapes:** Create the data models for the geometric pieces and the target silhouette. Implement drag, rotate, and snap-to-grid functionality.
+*Using the Sudoku implementation as a template:*
+1.  **For each game (Wordle, Bonza, Constellations, Shapes):**
+    *   Implement the game's data models and logic within a `ViewModel`.
+    *   Create the interactive game board UI using Jetpack Compose, following the `Scaffold` and `TopAppBar` pattern.
+    *   Implement the `Standard` and `Daily Challenge` modes, using the `ViewModelFactory` to handle puzzle loading and generation.
+    *   Integrate streak tracking for daily challenges.
+    *   Add any game-specific actions (e.g., a "Hint" button) to the `TopAppBar` or an action row at the bottom of the screen.
 
 **Phase 4: Polish, Settings & Refinement**
 1.  Add user settings (e.g., theme selection, sound on/off).
-2.  Implement simple animations and transitions to enhance the user experience.
-3.  Add sound effects for user interactions.
-4.  Conduct thorough testing and bug fixing across all games and devices.
+2.  Add sound effects for user interactions.
+3.  Conduct thorough testing and bug fixing across all games and devices.

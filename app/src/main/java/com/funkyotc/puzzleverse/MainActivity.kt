@@ -119,7 +119,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository)
-                "bonza" -> BonzaScreen(navController = navController, mode = mode)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository)
                 "constellations" -> ConstellationsScreen(navController = navController)
                 "shapes" -> ShapesScreen(navController = navController)
                 "wordle" -> WordleScreen(navController = navController)
@@ -144,6 +144,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
