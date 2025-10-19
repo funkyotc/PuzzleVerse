@@ -28,7 +28,7 @@ class BonzaViewModel(
     private val _puzzle = MutableStateFlow(BonzaPuzzleGenerator().generate())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
-    private var draggedFragment: WordFragment? = null
+    private var draggedFragmentId: Int? = null
     private val letterBoxSize = 80f
 
     init {
@@ -36,28 +36,42 @@ class BonzaViewModel(
     }
 
     fun onDragStart(position: Offset) {
-        draggedFragment = getFragmentAt(position)
+        val fragment = getFragmentAt(position)
+        draggedFragmentId = fragment?.id
     }
 
     fun onDrag(dragAmount: Offset) {
-        draggedFragment?.let { fragment ->
-            val newPosition = fragment.currentPosition + dragAmount
-            updateFragmentPosition(fragment.id, newPosition)
+        draggedFragmentId?.let { fragmentId ->
+            val currentFragment = _puzzle.value.fragments.find { it.id == fragmentId }
+            currentFragment?.let { fragment ->
+                val newPosition = fragment.currentPosition + dragAmount
+                updateFragmentPosition(fragmentId, newPosition)
+            }
         }
     }
 
     fun onDragEnd() {
-        draggedFragment?.let { fragment ->
-            checkForSnapping(fragment)
-            checkWinCondition()
+        draggedFragmentId?.let { fragmentId ->
+            val fragment = _puzzle.value.fragments.find { it.id == fragmentId }
+            fragment?.let {
+                checkForSnapping(it)
+                checkWinCondition()
+            }
         }
-        draggedFragment = null
+        draggedFragmentId = null
     }
 
     private fun checkWinCondition() {
+        val threshold = 20f // Allow some tolerance for "close enough"
+        
         val solved = _puzzle.value.fragments.all { fragment ->
             val solvedFragment = _puzzle.value.solvedFragments.find { it.id == fragment.id }
-            solvedFragment?.currentPosition == fragment.currentPosition
+            if (solvedFragment != null) {
+                val distance = (fragment.currentPosition - solvedFragment.currentPosition).getDistance()
+                distance < threshold
+            } else {
+                false
+            }
         }
 
         if (solved) {
@@ -66,48 +80,89 @@ class BonzaViewModel(
     }
 
     private fun checkForSnapping(draggedFragment: WordFragment) {
+        val snapThreshold = 50f
+        
         _puzzle.value.connections.forEach { connection ->
             val (fragment1, fragment2) = getFragmentsForConnection(connection)
 
             if (fragment1 != null && fragment2 != null) {
-                val (snapped, newPos) = areFragmentsSnappable(fragment1, fragment2, connection.direction)
-                if (snapped) {
-                    if (draggedFragment.id == fragment1.id) {
-                        updateFragmentPosition(fragment1.id, newPos)
-                    } else if (draggedFragment.id == fragment2.id) {
-                        updateFragmentPosition(fragment2.id, newPos)
+                if (draggedFragment.id == fragment1.id) {
+                    // Check if fragment1 should snap to fragment2
+                    val (shouldSnap, snapPosition) = calculateSnapPosition(
+                        fragment1, 
+                        fragment2, 
+                        connection.direction,
+                        isFragment1Primary = true
+                    )
+                    
+                    if (shouldSnap) {
+                        val distance = (fragment1.currentPosition - snapPosition).getDistance()
+                        if (distance < snapThreshold) {
+                            updateFragmentPosition(fragment1.id, snapPosition)
+                        }
+                    }
+                } else if (draggedFragment.id == fragment2.id) {
+                    // Check if fragment2 should snap to fragment1
+                    val (shouldSnap, snapPosition) = calculateSnapPosition(
+                        fragment2, 
+                        fragment1, 
+                        connection.direction,
+                        isFragment1Primary = false
+                    )
+                    
+                    if (shouldSnap) {
+                        val distance = (fragment2.currentPosition - snapPosition).getDistance()
+                        if (distance < snapThreshold) {
+                            updateFragmentPosition(fragment2.id, snapPosition)
+                        }
                     }
                 }
             }
         }
     }
 
-    private fun areFragmentsSnappable(
-        fragment1: WordFragment,
-        fragment2: WordFragment,
-        direction: ConnectionDirection
+    private fun calculateSnapPosition(
+        movingFragment: WordFragment,
+        anchorFragment: WordFragment,
+        direction: ConnectionDirection,
+        isFragment1Primary: Boolean
     ): Pair<Boolean, Offset> {
         val snapThreshold = 50f
-        if (direction == ConnectionDirection.HORIZONTAL) {
-            val fragment1Width = fragment1.text.length * letterBoxSize
-            val newX = fragment2.currentPosition.x - fragment1Width
-            val newPosForF1 = Offset(newX, fragment2.currentPosition.y)
-            val distance = (fragment1.currentPosition - newPosForF1).getDistance()
-
-            if (distance < snapThreshold) {
-                return Pair(true, newPosForF1)
+        
+        return when (direction) {
+            ConnectionDirection.HORIZONTAL -> {
+                if (isFragment1Primary) {
+                    // fragment1 should be to the left of fragment2
+                    val fragment1Width = movingFragment.text.length * letterBoxSize
+                    val targetX = anchorFragment.currentPosition.x - fragment1Width
+                    val targetPosition = Offset(targetX, anchorFragment.currentPosition.y)
+                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
+                    Pair(distance < snapThreshold, targetPosition)
+                } else {
+                    // fragment2 should be to the right of fragment1
+                    val fragment1Width = anchorFragment.text.length * letterBoxSize
+                    val targetX = anchorFragment.currentPosition.x + fragment1Width
+                    val targetPosition = Offset(targetX, anchorFragment.currentPosition.y)
+                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
+                    Pair(distance < snapThreshold, targetPosition)
+                }
             }
-        } else { // VERTICAL
-            val fragment1Height = letterBoxSize
-            val newY = fragment2.currentPosition.y - fragment1Height
-            val newPosForF1 = Offset(fragment2.currentPosition.x, newY)
-
-            val distance = (fragment1.currentPosition - newPosForF1).getDistance()
-            if (distance < snapThreshold) {
-                return Pair(true, newPosForF1)
+            ConnectionDirection.VERTICAL -> {
+                if (isFragment1Primary) {
+                    // fragment1 should be above fragment2
+                    val targetY = anchorFragment.currentPosition.y - letterBoxSize
+                    val targetPosition = Offset(anchorFragment.currentPosition.x, targetY)
+                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
+                    Pair(distance < snapThreshold, targetPosition)
+                } else {
+                    // fragment2 should be below fragment1
+                    val targetY = anchorFragment.currentPosition.y + letterBoxSize
+                    val targetPosition = Offset(anchorFragment.currentPosition.x, targetY)
+                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
+                    Pair(distance < snapThreshold, targetPosition)
+                }
             }
         }
-        return Pair(false, Offset.Zero)
     }
 
     private fun getFragmentsForConnection(connection: BonzaConnection): Pair<WordFragment?, WordFragment?> {
@@ -128,6 +183,7 @@ class BonzaViewModel(
     }
 
     private fun getFragmentAt(position: Offset): WordFragment? {
+        // Check fragments in reverse order so top fragments are selected first
         return _puzzle.value.fragments.asReversed().find { fragment ->
             val fragmentSize = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
                 Size(fragment.text.length * letterBoxSize, letterBoxSize)
