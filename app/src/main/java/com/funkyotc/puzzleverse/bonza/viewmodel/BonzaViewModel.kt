@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.bonza.viewmodel
 
 import android.content.Context
+import android.graphics.Rect
 import androidx.lifecycle.ViewModel
 import com.funkyotc.puzzleverse.bonza.data.BonzaRepository
 import com.funkyotc.puzzleverse.bonza.data.DraggableWord
@@ -37,6 +38,8 @@ class BonzaViewModel(
     private val _puzzleClue = MutableStateFlow("")
     val puzzleClue: StateFlow<String> = _puzzleClue
 
+    private var puzzleWordCount = 0
+
     init {
         _draggableWords.value = generateInitialPuzzle(forceNewGame)
     }
@@ -49,6 +52,7 @@ class BonzaViewModel(
         val loadedWords = repository.loadWords(wordsKey)
         if (loadedWords?.isNotEmpty() == true) {
             _puzzleClue.value = repository.loadClue(clueKey) ?: ""
+            puzzleWordCount = loadedWords.size
             _isGameWon.value = false
             return loadedWords
         }
@@ -63,63 +67,61 @@ class BonzaViewModel(
             generator.generate()
         }
         _puzzleClue.value = puzzle.clue
+        puzzleWordCount = puzzle.words.size
 
         val draggableWords = puzzle.words.map { DraggableWord(bonzaWord = it) }
 
-        // 1. Build adjacency list for the puzzle's solved state
         val adj = mutableMapOf<String, MutableList<String>>()
-        for (word1 in draggableWords) {
-            adj.putIfAbsent(word1.id, mutableListOf())
-            for (word2 in draggableWords) {
-                if (word1.id != word2.id && areWordsTouching(word1, word2)) {
+        draggableWords.forEach { word -> adj[word.id] = mutableListOf() }
+
+        for (i in draggableWords.indices) {
+            for (j in i + 1 until draggableWords.indices) {
+                val word1 = draggableWords[i]
+                val word2 = draggableWords[j]
+                if (areWordsTouching(word1, word2)) {
                     adj[word1.id]?.add(word2.id)
+                    adj[word2.id]?.add(word1.id)
                 }
             }
         }
 
-        // 2. Randomly remove some edges to create fragments (break connections)
         val adjCopy = adj.mapValues { it.value.toMutableList() }
-        for ((u, neighbors) in adjCopy) {
+        adjCopy.forEach { (u, neighbors) ->
             neighbors.forEach { v ->
-                if (u < v) { // Process each edge only once to avoid double removal
-                    if (Random.nextFloat() < 0.5f) { // 50% chance of removing an edge
-                        adj[u]?.remove(v)
-                        adj[v]?.remove(u)
-                    }
+                if (u < v && Random.nextFloat() < 0.5f) {
+                    adj[u]?.remove(v)
+                    adj[v]?.remove(u)
                 }
             }
         }
 
-        // 3. Find connected components (these will be our groups)
         val visited = mutableSetOf<String>()
         val wordToGroup = mutableMapOf<String, String>()
         var groupCount = 0
-        for (word in draggableWords) {
+        draggableWords.forEach { word ->
             if (word.id !in visited) {
                 val groupId = "group_${groupCount++}"
-                val stack = ArrayDeque<String>()
-                stack.add(word.id)
+                val queue = ArrayDeque<String>().apply { add(word.id) }
                 visited.add(word.id)
 
-                while (stack.isNotEmpty()) {
-                    val currentWordId = stack.removeLast()
+                while (queue.isNotEmpty()) {
+                    val currentWordId = queue.removeFirst()
                     wordToGroup[currentWordId] = groupId
                     adj[currentWordId]?.forEach { neighborId ->
                         if (neighborId !in visited) {
                             visited.add(neighborId)
-                            stack.add(neighborId)
+                            queue.add(neighborId)
                         }
                     }
                 }
             }
         }
 
-        // 4. Assign random offsets to each group, not each word
         val groupOffsets = mutableMapOf<String, Pair<Float, Float>>()
         val newDraggableWords = draggableWords.map { word ->
-            val groupId = wordToGroup[word.id] ?: word.id
+            val groupId = wordToGroup[word.id]!!
             val (offsetX, offsetY) = groupOffsets.getOrPut(groupId) {
-                Pair(Random.nextInt(-500, 500).toFloat(), Random.nextInt(-500, 500).toFloat())
+                Pair(Random.nextInt(-800, 800).toFloat(), Random.nextInt(-800, 800).toFloat())
             }
             word.copy(groupId = groupId, offsetX = offsetX, offsetY = offsetY)
         }
@@ -130,22 +132,11 @@ class BonzaViewModel(
         return newDraggableWords
     }
 
-
-    private fun findNeighbors(word: DraggableWord, others: List<DraggableWord>): List<DraggableWord> {
-        val neighbors = mutableListOf<DraggableWord>()
-        for (other in others) {
-            if (areWordsTouching(word, other)) {
-                neighbors.add(other)
-            }
-        }
-        return neighbors
-    }
-
     private fun areWordsTouching(word1: DraggableWord, word2: DraggableWord): Boolean {
-        // Check if words intersect or are adjacent
         val rect1 = word1.bonzaWord.getRect()
         val rect2 = word2.bonzaWord.getRect()
-        return rect1.intersects(rect2.left - 1, rect2.top - 1, rect2.right + 1, rect2.bottom + 1)
+        val expandedRect2 = Rect(rect2.left - 1, rect2.top - 1, rect2.right + 1, rect2.bottom + 1)
+        return Rect.intersects(rect1, expandedRect2)
     }
 
     fun onDrag(wordId: String, dragAmountX: Float, dragAmountY: Float) {
@@ -170,20 +161,21 @@ class BonzaViewModel(
         val dragGroupId = draggedWord.groupId
 
         var didConnect = false
-        val otherWords = _draggableWords.value.filter { it.groupId != dragGroupId }
-
-        for (otherWord in otherWords) {
-            val intersection = findIntersection(draggedWord, otherWord, tileSizePx)
-            if (intersection != null) {
-                snapToIntersection(draggedWord, otherWord, intersection, tileSizePx)
-                mergeGroups(draggedWord, otherWord)
-                didConnect = true
+        for (wordInGroup in _draggableWords.value.filter { it.groupId == dragGroupId }) {
+            for (otherWord in _draggableWords.value.filter { it.groupId != dragGroupId }) {
+                val intersection = findIntersection(wordInGroup, otherWord, tileSizePx)
+                if (intersection != null) {
+                    snapToIntersection(wordInGroup, otherWord, intersection, tileSizePx)
+                    mergeGroups(dragGroupId, otherWord.groupId)
+                    didConnect = true
+                    break
+                }
             }
+            if (didConnect) break
         }
 
-        val finalGroupId = _draggableWords.value.find { it.id == wordId }?.groupId ?: return
-        if (!didConnect) { // Only snap to grid if no connection was made
-            snapGroupToGrid(finalGroupId, tileSizePx)
+        if (!didConnect) {
+            snapGroupToGrid(dragGroupId, tileSizePx)
         }
 
         repository.saveWords(_draggableWords.value, wordsKey)
@@ -195,9 +187,14 @@ class BonzaViewModel(
         if (groupWords.isEmpty()) return
 
         val firstWord = groupWords.first()
-        val snappedWord = snapToGrid(firstWord, tileSize)
-        val dx = snappedWord.offsetX - firstWord.offsetX
-        val dy = snappedWord.offsetY - firstWord.offsetY
+        val currentX = firstWord.bonzaWord.x * tileSize + firstWord.offsetX
+        val currentY = firstWord.bonzaWord.y * tileSize + firstWord.offsetY
+
+        val snappedGridX = (currentX / tileSize).roundToInt()
+        val snappedGridY = (currentY / tileSize).roundToInt()
+
+        val dx = snappedGridX * tileSize - currentX
+        val dy = snappedGridY * tileSize - currentY
 
         if (dx != 0f || dy != 0f) {
             _draggableWords.value = _draggableWords.value.map {
@@ -210,40 +207,27 @@ class BonzaViewModel(
         }
     }
 
-    private fun snapToGrid(word: DraggableWord, tileSize: Float): DraggableWord {
-        val currentX = word.bonzaWord.x * tileSize + word.offsetX
-        val currentY = word.bonzaWord.y * tileSize + word.offsetY
-
-        val snappedGridX = (currentX / tileSize).roundToInt()
-        val snappedGridY = (currentY / tileSize).roundToInt()
-
-        val snappedX = snappedGridX * tileSize
-        val snappedY = snappedGridY * tileSize
-
-        val newOffsetX = snappedX - (word.bonzaWord.x * tileSize)
-        val newOffsetY = snappedY - (word.bonzaWord.y * tileSize)
-
-        return word.copy(offsetX = newOffsetX, offsetY = newOffsetY)
-    }
-
     private fun findIntersection(word1: DraggableWord, word2: DraggableWord, tileSize: Float): Pair<Int, Int>? {
         if (word1.bonzaWord.isHorizontal == word2.bonzaWord.isHorizontal) return null
 
-        val hWord = if (word1.bonzaWord.isHorizontal) word1 else word2
-        val vWord = if (word1.bonzaWord.isHorizontal) word2 else word1
+        val hWordDraggable = if (word1.bonzaWord.isHorizontal) word1 else word2
+        val vWordDraggable = if (word1.bonzaWord.isHorizontal) word2 else word1
 
-        for (hIndex in hWord.bonzaWord.letters.indices) {
-            for (vIndex in vWord.bonzaWord.letters.indices) {
-                if (hWord.bonzaWord.letters[hIndex] == vWord.bonzaWord.letters[vIndex]) {
-                    val hWordLetterX = (hWord.bonzaWord.x + hIndex) * tileSize + hWord.offsetX
-                    val hWordLetterY = hWord.bonzaWord.y * tileSize + hWord.offsetY
-                    val vWordLetterX = vWord.bonzaWord.x * tileSize + vWord.offsetX
-                    val vWordLetterY = (vWord.bonzaWord.y + vIndex) * tileSize + vWord.offsetY
+        val hWord = hWordDraggable.bonzaWord
+        val vWord = vWordDraggable.bonzaWord
+
+        for (hIndex in hWord.letters.indices) {
+            for (vIndex in vWord.letters.indices) {
+                if (hWord.letters[hIndex] == vWord.letters[vIndex]) {
+                    val hWordLetterX = (hWord.x + hIndex) * tileSize + hWordDraggable.offsetX
+                    val hWordLetterY = hWord.y * tileSize + hWordDraggable.offsetY
+                    val vWordLetterX = vWord.x * tileSize + vWordDraggable.offsetX
+                    val vWordLetterY = (vWord.y + vIndex) * tileSize + vWordDraggable.offsetY
 
                     val distance = sqrt((hWordLetterX - vWordLetterX).pow(2) + (hWordLetterY - vWordLetterY).pow(2))
 
-                    if (distance < tileSize * 0.5) {
-                        return if (hWord == word1) Pair(hIndex, vIndex) else Pair(vIndex, hIndex)
+                    if (distance < tileSize * 0.8) {
+                        return if (word1.bonzaWord.isHorizontal) Pair(hIndex, vIndex) else Pair(vIndex, hIndex)
                     }
                 }
             }
@@ -251,30 +235,25 @@ class BonzaViewModel(
         return null
     }
 
-    private fun snapToIntersection(draggedWord: DraggableWord, otherWord: DraggableWord, intersection: Pair<Int, Int>, tileSize: Float) {
+    private fun snapToIntersection(draggedWordInGroup: DraggableWord, otherWord: DraggableWord, intersection: Pair<Int, Int>, tileSize: Float) {
         val (draggedIndex, otherIndex) = intersection
-        val newOffsetX: Float
-        val newOffsetY: Float
 
-        val draggedGroupId = draggedWord.groupId
-
-        if (draggedWord.bonzaWord.isHorizontal) {
-            val hWord = draggedWord
-            val vWord = otherWord
-            newOffsetX = vWord.offsetX + (vWord.bonzaWord.x - (hWord.bonzaWord.x + draggedIndex)) * tileSize
-            newOffsetY = vWord.offsetY + ((vWord.bonzaWord.y + otherIndex) - hWord.bonzaWord.y) * tileSize
+        val targetOffsetX = if (draggedWordInGroup.bonzaWord.isHorizontal) {
+            otherWord.offsetX + (otherWord.bonzaWord.x - (draggedWordInGroup.bonzaWord.x + draggedIndex)) * tileSize
         } else {
-            val vWord = draggedWord
-            val hWord = otherWord
-            newOffsetX = hWord.offsetX + ((hWord.bonzaWord.x + otherIndex) - vWord.bonzaWord.x) * tileSize
-            newOffsetY = hWord.offsetY + (hWord.bonzaWord.y - (vWord.bonzaWord.y + draggedIndex)) * tileSize
+            otherWord.offsetX + ((otherWord.bonzaWord.x + otherIndex) - draggedWordInGroup.bonzaWord.x) * tileSize
+        }
+        val targetOffsetY = if (draggedWordInGroup.bonzaWord.isHorizontal) {
+            otherWord.offsetY + ((otherWord.bonzaWord.y + otherIndex) - draggedWordInGroup.bonzaWord.y) * tileSize
+        } else {
+            otherWord.offsetY + (otherWord.bonzaWord.y - (draggedWordInGroup.bonzaWord.y + draggedIndex)) * tileSize
         }
 
-        val dx = newOffsetX - draggedWord.offsetX
-        val dy = newOffsetY - draggedWord.offsetY
+        val dx = targetOffsetX - draggedWordInGroup.offsetX
+        val dy = targetOffsetY - draggedWordInGroup.offsetY
 
         _draggableWords.value = _draggableWords.value.map {
-            if (it.groupId == draggedGroupId) {
+            if (it.groupId == draggedWordInGroup.groupId) {
                 it.copy(offsetX = it.offsetX + dx, offsetY = it.offsetY + dy)
             } else {
                 it
@@ -282,38 +261,29 @@ class BonzaViewModel(
         }
     }
 
-    private fun mergeGroups(word1: DraggableWord, word2: DraggableWord) {
-        val group1Id = _draggableWords.value.find { it.id == word1.id }?.groupId ?: return
-        val group2Id = _draggableWords.value.find { it.id == word2.id }?.groupId ?: return
-
+    private fun mergeGroups(group1Id: String, group2Id: String) {
         if (group1Id == group2Id) return
-
         _draggableWords.value = _draggableWords.value.map {
-            if (it.groupId == group2Id) {
-                it.copy(groupId = group1Id)
-            } else {
-                it
-            }
+            if (it.groupId == group2Id) it.copy(groupId = group1Id) else it
         }
     }
 
     private fun checkWinCondition() {
-        if (_draggableWords.value.isEmpty()) return
+        if (_draggableWords.value.isEmpty() || _isGameWon.value) return
+
         val firstGroupId = _draggableWords.value.first().groupId
-        val allConnected = _draggableWords.value.all { it.groupId == firstGroupId }
+        val allInOneGroup = _draggableWords.value.all { it.groupId == firstGroupId }
 
-        if (allConnected && !_isGameWon.value) {
+        if (allInOneGroup && _draggableWords.value.size == puzzleWordCount) {
             _isGameWon.value = true
-
             if (mode == "daily") {
                 val today = LocalDate.now().toEpochDay()
                 val streak = streakRepository.getStreak("bonza")
                 if (streak.lastCompletedEpochDay != today) {
-                    val newStreak = streak.copy(
+                    streakRepository.saveStreak(streak.copy(
                         count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
                         lastCompletedEpochDay = today
-                    )
-                    streakRepository.saveStreak(newStreak)
+                    ))
                 }
             }
             repository.saveWords(null, wordsKey)
