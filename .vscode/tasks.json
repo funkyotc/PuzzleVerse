@@ -1,0 +1,70 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Emulator",
+            "type": "shell",
+            "command": "emulator",
+            "args": [
+                "-avd",
+                "Medium_Phone_API_36.0",
+                "-netdelay",
+                "none",
+                "-netspeed",
+                "full"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": [
+                    {
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                    }
+                ],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": ".*",
+                    "endsPattern": ".*boot completed.*"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Wait for Emulator",
+            "type": "shell",
+            "command": "adb wait-for-device",
+            "dependsOn": [
+                "Start Emulator"
+            ],
+            "windows": {
+                "command": "adb wait-for-device"
+            }
+        },
+        {
+            "label": "installDebug",
+            "type": "shell",
+            "command": "./gradlew installDebug",
+            "group": "build",
+            "dependsOn": [
+                "Wait for Emulator"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Android App Task",
+            "dependsOn": [
+                "Start Emulator",
+                "installDebug"
+            ],
+            "dependsOrder": "sequence",
+            "type": "shell",
+            "command": "adb shell am start -n com.funkyotc.puzzleverse/.MainActivity",
+            "problemMatcher": []
+        }
+    ]
+}

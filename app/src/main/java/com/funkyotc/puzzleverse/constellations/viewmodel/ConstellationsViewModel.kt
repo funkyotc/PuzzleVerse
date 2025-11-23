@@ -1,24 +1,22 @@
 package com.funkyotc.puzzleverse.constellations.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.funkyotc.puzzleverse.constellations.data.Cell
+import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPuzzle
-import com.funkyotc.puzzleverse.constellations.data.Star
 import com.funkyotc.puzzleverse.constellations.generator.ConstellationsPuzzleGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlin.math.abs
 
 class ConstellationsViewModel : ViewModel() {
 
     private val _puzzle = MutableStateFlow<ConstellationsPuzzle?>(null)
-    val puzzle: StateFlow<ConstellationsPuzzle?> = _puzzle
-
-    private val _drawnConnections = MutableStateFlow<Set<Pair<Int, Int>>>(emptySet())
-    val drawnConnections: StateFlow<Set<Pair<Int, Int>>> = _drawnConnections
-
-    private var selectedStar: Star? = null
+    val puzzle: StateFlow<ConstellationsPuzzle?> = _puzzle.asStateFlow()
 
     private val _isGameWon = MutableStateFlow(false)
-    val isGameWon: StateFlow<Boolean> = _isGameWon
+    val isGameWon: StateFlow<Boolean> = _isGameWon.asStateFlow()
 
     private val generator = ConstellationsPuzzleGenerator()
 
@@ -27,68 +25,159 @@ class ConstellationsViewModel : ViewModel() {
     }
 
     fun loadNewPuzzle() {
-        val newPuzzle = generator.generate()
-        _puzzle.value = newPuzzle
-        _drawnConnections.value = emptySet()
+        _puzzle.value = generator.generate()
         _isGameWon.value = false
     }
 
-    fun onStarClicked(starId: Int) {
-        val clickedStar = _puzzle.value?.stars?.find { it.id == starId } ?: return
+    fun onCellClicked(row: Int, col: Int) {
+        val currentPuzzle = _puzzle.value ?: return
+        if (_isGameWon.value) return
 
-        if (selectedStar == null) {
-            selectedStar = clickedStar
-        } else {
-            val currentSelectedStar = selectedStar!!
-            if (currentSelectedStar.id != clickedStar.id) {
-                val newConnection = Pair(currentSelectedStar.id, clickedStar.id)
-                if (!isConnectionCrossing(newConnection)) {
-                    _drawnConnections.value = _drawnConnections.value + newConnection
-                    checkWinCondition()
+        // Cycle: EMPTY -> CROSS -> STAR -> EMPTY
+        // Note: If it's an AUTO_CROSS, it behaves like CROSS, so next is STAR.
+        
+        val currentCell = currentPuzzle.cells[row][col]
+        val newState = when (currentCell.state) {
+            CellState.EMPTY -> CellState.CROSS
+            CellState.CROSS -> CellState.STAR
+            CellState.STAR -> CellState.EMPTY
+        }
+
+        // If we are changing state, we need to update the cell.
+        // If we are setting to CROSS manually, isAuto should be false.
+        // If we are setting to STAR, isAuto is false.
+        // If we are setting to EMPTY, isAuto is false.
+        
+        updateCellState(row, col, newState, isAuto = false)
+    }
+
+    fun onDragStart(row: Int, col: Int) {
+        // For now, just treat as drag over
+        onDragOver(row, col)
+    }
+
+    fun onDragOver(row: Int, col: Int) {
+        val currentPuzzle = _puzzle.value ?: return
+        if (_isGameWon.value) return
+        
+        val cell = currentPuzzle.cells[row][col]
+        // Only change if it's EMPTY or AUTO_CROSS. Don't overwrite existing manual CROSS or STAR.
+        // User said "add lots of crosses easily".
+        if (cell.state == CellState.EMPTY || (cell.state == CellState.CROSS && cell.isAuto)) {
+            updateCellState(row, col, CellState.CROSS, isAuto = false)
+        }
+    }
+
+    private fun updateCellState(row: Int, col: Int, newState: CellState, isAuto: Boolean) {
+        val currentPuzzle = _puzzle.value ?: return
+        
+        // 1. Update the specific cell
+        // We need a mutable copy of the grid to work with
+        val newCells = currentPuzzle.cells.map { it.map { cell -> cell.copy() }.toMutableList() }.toMutableList()
+        
+        newCells[row][col].state = newState
+        newCells[row][col].isAuto = isAuto
+
+        // 2. Recalculate Auto Crosses
+        // First, clear all existing AUTO crosses to EMPTY
+        for (r in newCells.indices) {
+            for (c in newCells[r].indices) {
+                if (newCells[r][c].isAuto) {
+                    newCells[r][c].state = CellState.EMPTY
+                    newCells[r][c].isAuto = false
                 }
             }
-            selectedStar = null
         }
-    }
 
-    private fun isConnectionCrossing(newConnection: Pair<Int, Int>): Boolean {
-        val stars = _puzzle.value?.stars ?: return false
-        val fromStar = stars.find { it.id == newConnection.first }!!
-        val toStar = stars.find { it.id == newConnection.second }!!
-
-        for (connection in _drawnConnections.value) {
-            val existingFromStar = stars.find { it.id == connection.first }!!
-            val existingToStar = stars.find { it.id == connection.second }!!
-
-            if (doLinesIntersect(fromStar, toStar, existingFromStar, existingToStar)) {
-                return true
+        // Find all stars
+        val stars = mutableListOf<Cell>()
+        for (r in newCells.indices) {
+            for (c in newCells[r].indices) {
+                if (newCells[r][c].state == CellState.STAR) {
+                    stars.add(newCells[r][c])
+                }
             }
         }
-        return false
+
+        // Apply auto crosses based on stars
+        val size = currentPuzzle.size
+        for (star in stars) {
+            // Row
+            for (c in 0 until size) crossOut(newCells, star.row, c)
+            // Col
+            for (r in 0 until size) crossOut(newCells, r, star.col)
+            // Region
+            val regionCells = currentPuzzle.regions[star.regionId] ?: emptyList()
+            for ((r, c) in regionCells) crossOut(newCells, r, c)
+            // Neighbors
+            for (dr in -1..1) {
+                for (dc in -1..1) {
+                    crossOut(newCells, star.row + dr, star.col + dc)
+                }
+            }
+        }
+
+        _puzzle.value = currentPuzzle.copy(cells = newCells)
+        checkWinCondition(newCells, size, currentPuzzle.regions)
     }
 
-    private fun doLinesIntersect(p1: Star, q1: Star, p2: Star, q2: Star): Boolean {
-        val o1 = orientation(p1, q1, p2)
-        val o2 = orientation(p1, q1, q2)
-        val o3 = orientation(p2, q2, p1)
-        val o4 = orientation(p2, q2, q1)
-
-        return o1 != o2 && o3 != o4
-
-        // Special cases for co-linear points can be added here if needed
+    private fun crossOut(cells: MutableList<MutableList<Cell>>, r: Int, c: Int) {
+        val size = cells.size
+        if (r in 0 until size && c in 0 until size) {
+            val cell = cells[r][c]
+            // Only overwrite if EMPTY. 
+            // Do NOT overwrite STAR (that would be a conflict, we show it as is).
+            // Do NOT overwrite manual CROSS (user decision).
+            if (cell.state == CellState.EMPTY) {
+                cell.state = CellState.CROSS
+                cell.isAuto = true
+            }
+        }
     }
 
-    private fun orientation(p: Star, q: Star, r: Star): Int {
-        val value = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y)
-        if (value == 0f) return 0 // Co-linear
-        return if (value > 0) 1 else 2 // Clockwise or counter-clockwise
-    }
+    private fun checkWinCondition(cells: List<List<Cell>>, size: Int, regions: Map<Int, List<Pair<Int, Int>>>) {
+        // 1. Check Rows: Exactly one star per row
+        for (r in 0 until size) {
+            if (cells[r].count { it.state == CellState.STAR } != 1) return
+        }
 
+        // 2. Check Cols: Exactly one star per col
+        for (c in 0 until size) {
+            var starCount = 0
+            for (r in 0 until size) {
+                if (cells[r][c].state == CellState.STAR) starCount++
+            }
+            if (starCount != 1) return
+        }
 
-    private fun checkWinCondition() {
-        val puzzleValue = _puzzle.value ?: return
-        val requiredConnections = puzzleValue.connections.map { Pair(it.from, it.to) }.toSet()
-        _isGameWon.value = _drawnConnections.value.size == requiredConnections.size &&
-                _drawnConnections.value.all { requiredConnections.contains(it) || requiredConnections.contains(it.second to it.first) }
+        // 3. Check Regions: Exactly one star per region
+        for (regionCells in regions.values) {
+            var starCount = 0
+            for ((r, c) in regionCells) {
+                if (cells[r][c].state == CellState.STAR) starCount++
+            }
+            if (starCount != 1) return
+        }
+
+        // 4. Check Adjacency: No two stars touch (including diagonals)
+        for (r in 0 until size) {
+            for (c in 0 until size) {
+                if (cells[r][c].state == CellState.STAR) {
+                    // Check neighbors
+                    for (dr in -1..1) {
+                        for (dc in -1..1) {
+                            if (dr == 0 && dc == 0) continue
+                            val nr = r + dr
+                            val nc = c + dc
+                            if (nr in 0 until size && nc in 0 until size) {
+                                if (cells[nr][nc].state == CellState.STAR) return
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        _isGameWon.value = true
     }
 }
