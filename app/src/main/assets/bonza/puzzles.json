@@ -1,0 +1,10 @@
+[
+  {
+    "theme": "Fruits",
+    "words": ["APPLE", "BANANA", "ORANGE", "GRAPE", "PEAR", "MANGO"]
+  },
+  {
+    "theme": "Animals",
+    "words": ["LION", "TIGER", "BEAR", "ELEPHANT", "MONKEY", "ZEBRA"]
+  }
+]
