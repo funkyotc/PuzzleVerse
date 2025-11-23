@@ -97,7 +97,9 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             onInitialLoad()
             HomeScreen(navController, streakRepository)
         }
-        composable("settings") { SettingsScreen(settingsRepository) }
+        composable("settings") { 
+            SettingsScreen(settingsRepository, onBackPress = { navController.popBackStack() })
+        }
         composable(
             "gameDetail/{gameId}",
             arguments = listOf(navArgument("gameId") { type = NavType.StringType })

@@ -19,13 +19,14 @@ class BonzaViewModel(
     context: Context,
     private val mode: String?,
     private val forceNewGame: Boolean,
-    private val streakRepository: StreakRepository
+    private val streakRepository: StreakRepository,
+    private val puzzleGenerator: BonzaPuzzleGenerator
 ) : ViewModel() {
 
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon
 
-    private val _puzzle = MutableStateFlow(BonzaPuzzleGenerator().generate())
+    private val _puzzle = MutableStateFlow(puzzleGenerator.generate())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
     private var draggedFragmentId: Int? = null
@@ -67,7 +68,7 @@ class BonzaViewModel(
         val solved = _puzzle.value.fragments.all { fragment ->
             val solvedFragment = _puzzle.value.solvedFragments.find { it.id == fragment.id }
             if (solvedFragment != null) {
-                val distance = (fragment.currentPosition - solvedFragment.currentPosition).getDistance()
+                val distance = (fragment.currentPosition - solvedFragment.solvedPosition!!).getDistance()
                 distance < threshold
             } else {
                 false
@@ -128,41 +129,29 @@ class BonzaViewModel(
         isFragment1Primary: Boolean
     ): Pair<Boolean, Offset> {
         val snapThreshold = 50f
-        
-        return when (direction) {
-            ConnectionDirection.HORIZONTAL -> {
-                if (isFragment1Primary) {
-                    // fragment1 should be to the left of fragment2
+        val movingFragmentSolved = _puzzle.value.solvedFragments.find { it.id == movingFragment.id }
+        val anchorFragmentSolved = _puzzle.value.solvedFragments.find { it.id == anchorFragment.id }
+
+        if (movingFragmentSolved != null && anchorFragmentSolved != null) {
+            val targetPosition = if (isFragment1Primary) {
+                if (direction == ConnectionDirection.HORIZONTAL) {
                     val fragment1Width = movingFragment.text.length * letterBoxSize
-                    val targetX = anchorFragment.currentPosition.x - fragment1Width
-                    val targetPosition = Offset(targetX, anchorFragment.currentPosition.y)
-                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
-                    Pair(distance < snapThreshold, targetPosition)
+                    Offset(anchorFragment.currentPosition.x - fragment1Width, anchorFragment.currentPosition.y)
                 } else {
-                    // fragment2 should be to the right of fragment1
+                    Offset(anchorFragment.currentPosition.x, anchorFragment.currentPosition.y - letterBoxSize)
+                }
+            } else {
+                if (direction == ConnectionDirection.HORIZONTAL) {
                     val fragment1Width = anchorFragment.text.length * letterBoxSize
-                    val targetX = anchorFragment.currentPosition.x + fragment1Width
-                    val targetPosition = Offset(targetX, anchorFragment.currentPosition.y)
-                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
-                    Pair(distance < snapThreshold, targetPosition)
-                }
-            }
-            ConnectionDirection.VERTICAL -> {
-                if (isFragment1Primary) {
-                    // fragment1 should be above fragment2
-                    val targetY = anchorFragment.currentPosition.y - letterBoxSize
-                    val targetPosition = Offset(anchorFragment.currentPosition.x, targetY)
-                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
-                    Pair(distance < snapThreshold, targetPosition)
+                    Offset(anchorFragment.currentPosition.x + fragment1Width, anchorFragment.currentPosition.y)
                 } else {
-                    // fragment2 should be below fragment1
-                    val targetY = anchorFragment.currentPosition.y + letterBoxSize
-                    val targetPosition = Offset(anchorFragment.currentPosition.x, targetY)
-                    val distance = (movingFragment.currentPosition - targetPosition).getDistance()
-                    Pair(distance < snapThreshold, targetPosition)
+                    Offset(anchorFragment.currentPosition.x, anchorFragment.currentPosition.y + letterBoxSize)
                 }
             }
+            val distance = (movingFragment.currentPosition - targetPosition).getDistance()
+            return Pair(distance < snapThreshold, targetPosition)
         }
+        return Pair(false, Offset.Zero)
     }
 
     private fun getFragmentsForConnection(connection: BonzaConnection): Pair<WordFragment?, WordFragment?> {
@@ -197,6 +186,6 @@ class BonzaViewModel(
 
     fun newGame() {
         _isGameWon.value = false
-        _puzzle.value = BonzaPuzzleGenerator().generate()
+        _puzzle.value = puzzleGenerator.generate()
     }
 }
