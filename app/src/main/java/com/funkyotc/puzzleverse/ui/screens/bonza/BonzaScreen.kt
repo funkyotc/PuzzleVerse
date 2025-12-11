@@ -37,7 +37,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -131,11 +131,15 @@ fun BonzaScreen(
 fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
     val textMeasurer = rememberTextMeasurer()
     val primaryColor = MaterialTheme.colorScheme.primary
-    val letterBoxSize = 80f
+    
+    // Scale configuration
+    val density = LocalDensity.current
+    val letterBoxSizeDp = 48.dp
+    val letterBoxSizePx = with(density) { letterBoxSizeDp.toPx() }
     val letterBoxCornerRadius = 16f
-
+    
     // Transformable state for Pan and Zoom
-    var scale by remember { mutableStateOf(0.5f) } // Start zoomed out slightly
+    var scale by remember { mutableStateOf(1f) } 
     var offset by remember { mutableStateOf(Offset.Zero) }
     val state = rememberTransformableState { zoomChange, offsetChange, _ ->
         scale *= zoomChange
@@ -149,14 +153,14 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { position ->
-                        // Convert screen position to puzzle space
-                        val puzzlePos = (position - offset) / scale
+                        // Convert screen position to puzzle space (Grid Units)
+                        val puzzlePos = (position - offset) / scale / letterBoxSizePx
                         viewModel.onDragStart(puzzlePos)
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        // Drag amount in puzzle space
-                        viewModel.onDrag(dragAmount / scale)
+                        // Drag amount in puzzle space (Grid Units)
+                        viewModel.onDrag(dragAmount / scale / letterBoxSizePx)
                     },
                     onDragEnd = { viewModel.onDragEnd() }
                 )
@@ -168,37 +172,33 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                     puzzle.fragments.forEach { fragment ->
                         val shadowOffset = Offset(5f, 5f)
                         fragment.text.forEachIndexed { index, char ->
-                            val letterOffset =
-                                if (fragment.direction == ConnectionDirection.HORIZONTAL) {
-                                    Offset(
-                                        fragment.currentPosition.x + index * letterBoxSize,
-                                        fragment.currentPosition.y
-                                    )
-                                } else {
-                                    Offset(
-                                        fragment.currentPosition.x,
-                                        fragment.currentPosition.y + index * letterBoxSize
-                                    )
-                                }
+                            // Current position is in Grid Units. Convert to Pixels for drawing.
+                            val gridPos = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
+                               Offset(fragment.currentPosition.x + index, fragment.currentPosition.y)
+                            } else {
+                               Offset(fragment.currentPosition.x, fragment.currentPosition.y + index)
+                            }
+                            
+                            val letterOffset = gridPos * letterBoxSizePx
 
                             drawRoundRect(
                                 color = Color.Gray,
                                 topLeft = letterOffset + shadowOffset,
-                                size = Size(letterBoxSize, letterBoxSize),
+                                size = Size(letterBoxSizePx, letterBoxSizePx),
                                 cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
                             )
 
                             drawRoundRect(
                                 color = primaryColor,
                                 topLeft = letterOffset,
-                                size = Size(letterBoxSize, letterBoxSize),
+                                size = Size(letterBoxSizePx, letterBoxSizePx),
                                 cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
                             )
 
                             drawRoundRect(
                                 color = Color.Black,
                                 topLeft = letterOffset,
-                                size = Size(letterBoxSize, letterBoxSize),
+                                size = Size(letterBoxSizePx, letterBoxSizePx),
                                 cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
                                 style = Stroke(width = 2f)
                             )
@@ -211,8 +211,8 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                             drawText(
                                 textLayoutResult,
                                 topLeft = letterOffset + Offset(
-                                    (letterBoxSize - textLayoutResult.size.width) / 2,
-                                    (letterBoxSize - textLayoutResult.size.height) / 2
+                                    (letterBoxSizePx - textLayoutResult.size.width) / 2,
+                                    (letterBoxSizePx - textLayoutResult.size.height) / 2
                                 )
                             )
                         }

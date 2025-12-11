@@ -30,7 +30,8 @@ class BonzaViewModel(
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
     private var draggedFragmentGroupId: Int? = null
-    private val letterBoxSize = 80f
+    // Logical size of a letter box in grid units is always 1.0
+    private val letterBoxSize = 1.0f
 
     init {
         // Initialize Bonza game state here
@@ -101,7 +102,7 @@ class BonzaViewModel(
         anchorFrag: WordFragment,
         connection: BonzaConnection
     ): Pair<Boolean, Offset> {
-        val snapThreshold = 50f
+        val snapThreshold = 0.4f // Snap if within 0.4 grid units
         
         // Target position for movingFrag based on anchorFrag's current position and solved relative position
         val movingSolved = movingFrag.solvedPosition ?: return Pair(false, Offset.Zero)
@@ -148,7 +149,7 @@ class BonzaViewModel(
         // 2. Check relative positions
         // Pick the first fragment as the anchor
         val anchor = fragments.first()
-        val threshold = 10f // Tight tolerance for win check
+        val threshold = 0.1f // Tight tolerance for win check (0.1 grid units)
 
         val isSolved = fragments.all { fragment ->
             if (fragment.id == anchor.id) true
