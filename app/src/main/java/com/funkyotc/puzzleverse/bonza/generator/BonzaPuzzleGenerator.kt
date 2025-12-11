@@ -103,9 +103,9 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
                 val frag2Id = fragmentIdCounter++
 
                 val solvedPos1 = if (bonzaWord.direction == ConnectionDirection.HORIZONTAL) {
-                    Offset(pos1.x + splitIndex, pos1.y) * 80f
+                    Offset(bonzaWord.position.x + splitIndex, bonzaWord.position.y) * 80f
                 } else {
-                    Offset(pos1.x, pos1.y + splitIndex) * 80f
+                    Offset(bonzaWord.position.x, bonzaWord.position.y + splitIndex) * 80f
                 }
                 
                 // Scale initial word position too for solvedPosition
