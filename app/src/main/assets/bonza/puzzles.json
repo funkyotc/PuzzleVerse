@@ -7,7 +7,11 @@
       "ORANGE",
       "GRAPE",
       "PEAR",
-      "MANGO"
+      "MANGO",
+      "KIWI",
+      "MELON",
+      "LEMON",
+      "LIME"
     ]
   },
   {
@@ -18,7 +22,11 @@
       "BEAR",
       "ELEPHANT",
       "MONKEY",
-      "ZEBRA"
+      "ZEBRA",
+      "GIRAFFE",
+      "HIPPO",
+      "RHINO",
+      "PANDA"
     ]
   },
   {
@@ -44,7 +52,12 @@
       "PURPLE",
       "ORANGE",
       "INDIGO",
-      "VIOLET"
+      "VIOLET",
+      "CYAN",
+      "MAGENTA",
+      "BROWN",
+      "BLACK",
+      "WHITE"
     ]
   },
   {
@@ -59,7 +72,312 @@
       "GERMANY",
       "INDIA",
       "JAPAN",
-      "KENYA"
+      "KENYA",
+      "MEXICO",
+      "NORWAY",
+      "SPAIN",
+      "CHINA",
+      "ITALY"
+    ]
+  },
+  {
+    "theme": "Vegetables",
+    "words": [
+      "CARROT",
+      "POTATO",
+      "ONION",
+      "CORN",
+      "PEAS",
+      "BEANS",
+      "LETTUCE",
+      "SPINACH",
+      "BROCCOLI",
+      "PEPPER"
+    ]
+  },
+  {
+    "theme": "Shapes",
+    "words": [
+      "CIRCLE",
+      "SQUARE",
+      "TRIANGLE",
+      "OVAL",
+      "STAR",
+      "RECTANGLE",
+      "DIAMOND",
+      "HEXAGON",
+      "PENTAGON",
+      "CUBE"
+    ]
+  },
+  {
+    "theme": "Sports",
+    "words": [
+      "SOCCER",
+      "TENNIS",
+      "GOLF",
+      "RUGBY",
+      "CRICKET",
+      "HOCKEY",
+      "BASEBALL",
+      "BOXING",
+      "JUDO",
+      "KARATE"
+    ]
+  },
+  {
+    "theme": "Insects",
+    "words": [
+      "ANT",
+      "BEE",
+      "WASP",
+      "FLY",
+      "MOTH",
+      "BEETLE",
+      "SPIDER",
+      "WORM",
+      "SNAIL",
+      "SLUG"
+    ]
+  },
+  {
+    "theme": "Furniture",
+    "words": [
+      "CHAIR",
+      "TABLE",
+      "SOFA",
+      "BED",
+      "DESK",
+      "LAMP",
+      "RUG",
+      "SHELF",
+      "STOOL",
+      "BENCH"
+    ]
+  },
+  {
+    "theme": "Vehicles",
+    "words": [
+      "CAR",
+      "BUS",
+      "TRUCK",
+      "BIKE",
+      "TRAIN",
+      "BOAT",
+      "SHIP",
+      "PLANE",
+      "JET",
+      "TAXI"
+    ]
+  },
+  {
+    "theme": "Flowers",
+    "words": [
+      "ROSE",
+      "LILY",
+      "TULIP",
+      "DAISY",
+      "POPPY",
+      "LOTUS",
+      "ORCHID",
+      "VIOLET",
+      "IRIS",
+      "PANSY"
+    ]
+  },
+  {
+    "theme": "Ocean",
+    "words": [
+      "FISH",
+      "SHARK",
+      "WHALE",
+      "CRAB",
+      "SEAL",
+      "CORAL",
+      "WAVE",
+      "SAND",
+      "SHELL",
+      "KELP"
+    ]
+  },
+  {
+    "theme": "Weather",
+    "words": [
+      "SUN",
+      "RAIN",
+      "SNOW",
+      "WIND",
+      "STORM",
+      "CLOUD",
+      "FOG",
+      "HAIL",
+      "MIST",
+      "HEAT"
+    ]
+  },
+  {
+    "theme": "Tools",
+    "words": [
+      "HAMMER",
+      "SAW",
+      "DRILL",
+      "WRENCH",
+      "PLIERS",
+      "NAIL",
+      "SCREW",
+      "BOLT",
+      "AXE",
+      "FILE"
+    ]
+  },
+  {
+    "theme": "Clothing",
+    "words": [
+      "SHIRT",
+      "PANTS",
+      "DRESS",
+      "SKIRT",
+      "HAT",
+      "SOCK",
+      "SHOE",
+      "COAT",
+      "VEST",
+      "TIE"
+    ]
+  },
+  {
+    "theme": "Body Parts",
+    "words": [
+      "HEAD",
+      "EYE",
+      "EAR",
+      "NOSE",
+      "MOUTH",
+      "ARM",
+      "HAND",
+      "LEG",
+      "FOOT",
+      "KNEE"
+    ]
+  },
+  {
+    "theme": "Family",
+    "words": [
+      "MOM",
+      "DAD",
+      "SISTER",
+      "BROTHER",
+      "AUNT",
+      "UNCLE",
+      "COUSIN",
+      "GRANNY",
+      "SON",
+      "NIES"
+    ]
+  },
+  {
+    "theme": "School",
+    "words": [
+      "BOOK",
+      "PEN",
+      "PENCIL",
+      "DESK",
+      "RULER",
+      "PAPER",
+      "GLUE",
+      "CHALK",
+      "CLASS",
+      "MATH"
+    ]
+  },
+  {
+    "theme": "Music",
+    "words": [
+      "DRUM",
+      "GUITAR",
+      "PIANO",
+      "FLUTE",
+      "HORN",
+      "VIOLIN",
+      "CELLO",
+      "HARP",
+      "BASS",
+      "SONG"
+    ]
+  },
+  {
+    "theme": "Kitchen",
+    "words": [
+      "FORK",
+      "SPOON",
+      "KNIFE",
+      "PLATE",
+      "BOWL",
+      "CUP",
+      "MUG",
+      "POT",
+      "PAN",
+      "OVEN"
+    ]
+  },
+  {
+    "theme": "Computer",
+    "words": [
+      "MOUSE",
+      "KEYS",
+      "SCREEN",
+      "CHIP",
+      "CODE",
+      "DATA",
+      "WEB",
+      "NET",
+      "WIFI",
+      "LINK"
+    ]
+  },
+  {
+    "theme": "Jobs",
+    "words": [
+      "DOCTOR",
+      "NURSE",
+      "VET",
+      "CHEF",
+      "FARMER",
+      "BAKER",
+      "JUDGE",
+      "PILOT",
+      "ACTOR",
+      "GUARD"
+    ]
+  },
+  {
+    "theme": "Camping",
+    "words": [
+      "TENT",
+      "FIRE",
+      "WOOD",
+      "HIKE",
+      "BOOT",
+      "MAP",
+      "ROPE",
+      "BAG",
+      "SWIM",
+      "FISH"
+    ]
+  },
+  {
+    "theme": "Christmas",
+    "words": [
+      "SANTA",
+      "ELF",
+      "GIFT",
+      "TOY",
+      "TREE",
+      "BELL",
+      "STAR",
+      "SNOW",
+      "SLED",
+      "DEER"
     ]
   }
 ]
