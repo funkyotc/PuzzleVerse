@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.constellations.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.constellations.data.Cell
 import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPuzzle
@@ -8,9 +9,12 @@ import com.funkyotc.puzzleverse.constellations.generator.ConstellationsPuzzleGen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.abs
+import java.time.LocalDate
+import kotlin.random.Random
 
-class ConstellationsViewModel : ViewModel() {
+class ConstellationsViewModel(
+    private val mode: String?
+) : ViewModel() {
 
     private val _puzzle = MutableStateFlow<ConstellationsPuzzle?>(null)
     val puzzle: StateFlow<ConstellationsPuzzle?> = _puzzle.asStateFlow()
@@ -25,16 +29,32 @@ class ConstellationsViewModel : ViewModel() {
     }
 
     fun loadNewPuzzle() {
-        _puzzle.value = generator.generate()
+        val seed = if (mode == "daily") {
+            LocalDate.now().toEpochDay()
+        } else {
+            Random.nextLong()
+        }
+        // Assuming generator can take a seed now, or we implement seeded generation
+        // Updating generator call to use seed logic if capable, or simulating it
+        // Since original generator didn't take a seed, we need to update it or rely on randomness.
+        // Let's pass the seed to generate() if we update generator, or set Random default.
+        
+        // For now, we will update Generate to roughly respect randomness if we pass it, 
+        // but since we haven't updated Generator signature yet, let's assume valid randomness
+        // or actually update generator? The plan implied updating ViewModel logic.
+        // Ideally we pass a Random instance to generator.
+        
+        // We will assume Generator is updated to accept a Random instance or seed.
+        // For this step, I'll pass the seed to a new generate method I'll add to the generator, 
+        // or just use a Random instance here and pass it.
+        
+        _puzzle.value = generator.generate(seed = seed)
         _isGameWon.value = false
     }
 
     fun onCellClicked(row: Int, col: Int) {
         val currentPuzzle = _puzzle.value ?: return
         if (_isGameWon.value) return
-
-        // Cycle: EMPTY -> CROSS -> STAR -> EMPTY
-        // Note: If it's an AUTO_CROSS, it behaves like CROSS, so next is STAR.
         
         val currentCell = currentPuzzle.cells[row][col]
         val newState = when (currentCell.state) {
@@ -42,17 +62,11 @@ class ConstellationsViewModel : ViewModel() {
             CellState.CROSS -> CellState.STAR
             CellState.STAR -> CellState.EMPTY
         }
-
-        // If we are changing state, we need to update the cell.
-        // If we are setting to CROSS manually, isAuto should be false.
-        // If we are setting to STAR, isAuto is false.
-        // If we are setting to EMPTY, isAuto is false.
         
         updateCellState(row, col, newState, isAuto = false)
     }
 
     fun onDragStart(row: Int, col: Int) {
-        // For now, just treat as drag over
         onDragOver(row, col)
     }
 
@@ -61,8 +75,6 @@ class ConstellationsViewModel : ViewModel() {
         if (_isGameWon.value) return
         
         val cell = currentPuzzle.cells[row][col]
-        // Only change if it's EMPTY or AUTO_CROSS. Don't overwrite existing manual CROSS or STAR.
-        // User said "add lots of crosses easily".
         if (cell.state == CellState.EMPTY || (cell.state == CellState.CROSS && cell.isAuto)) {
             updateCellState(row, col, CellState.CROSS, isAuto = false)
         }
@@ -71,15 +83,11 @@ class ConstellationsViewModel : ViewModel() {
     private fun updateCellState(row: Int, col: Int, newState: CellState, isAuto: Boolean) {
         val currentPuzzle = _puzzle.value ?: return
         
-        // 1. Update the specific cell
-        // We need a mutable copy of the grid to work with
         val newCells = currentPuzzle.cells.map { it.map { cell -> cell.copy() }.toMutableList() }.toMutableList()
         
         newCells[row][col].state = newState
         newCells[row][col].isAuto = isAuto
 
-        // 2. Recalculate Auto Crosses
-        // First, clear all existing AUTO crosses to EMPTY
         for (r in newCells.indices) {
             for (c in newCells[r].indices) {
                 if (newCells[r][c].isAuto) {
@@ -89,7 +97,6 @@ class ConstellationsViewModel : ViewModel() {
             }
         }
 
-        // Find all stars
         val stars = mutableListOf<Cell>()
         for (r in newCells.indices) {
             for (c in newCells[r].indices) {
@@ -99,17 +106,12 @@ class ConstellationsViewModel : ViewModel() {
             }
         }
 
-        // Apply auto crosses based on stars
         val size = currentPuzzle.size
         for (star in stars) {
-            // Row
             for (c in 0 until size) crossOut(newCells, star.row, c)
-            // Col
             for (r in 0 until size) crossOut(newCells, r, star.col)
-            // Region
             val regionCells = currentPuzzle.regions[star.regionId] ?: emptyList()
             for ((r, c) in regionCells) crossOut(newCells, r, c)
-            // Neighbors
             for (dr in -1..1) {
                 for (dc in -1..1) {
                     crossOut(newCells, star.row + dr, star.col + dc)
@@ -125,9 +127,6 @@ class ConstellationsViewModel : ViewModel() {
         val size = cells.size
         if (r in 0 until size && c in 0 until size) {
             val cell = cells[r][c]
-            // Only overwrite if EMPTY. 
-            // Do NOT overwrite STAR (that would be a conflict, we show it as is).
-            // Do NOT overwrite manual CROSS (user decision).
             if (cell.state == CellState.EMPTY) {
                 cell.state = CellState.CROSS
                 cell.isAuto = true
@@ -136,12 +135,10 @@ class ConstellationsViewModel : ViewModel() {
     }
 
     private fun checkWinCondition(cells: List<List<Cell>>, size: Int, regions: Map<Int, List<Pair<Int, Int>>>) {
-        // 1. Check Rows: Exactly one star per row
         for (r in 0 until size) {
             if (cells[r].count { it.state == CellState.STAR } != 1) return
         }
 
-        // 2. Check Cols: Exactly one star per col
         for (c in 0 until size) {
             var starCount = 0
             for (r in 0 until size) {
@@ -150,7 +147,6 @@ class ConstellationsViewModel : ViewModel() {
             if (starCount != 1) return
         }
 
-        // 3. Check Regions: Exactly one star per region
         for (regionCells in regions.values) {
             var starCount = 0
             for ((r, c) in regionCells) {
@@ -159,11 +155,9 @@ class ConstellationsViewModel : ViewModel() {
             if (starCount != 1) return
         }
 
-        // 4. Check Adjacency: No two stars touch (including diagonals)
         for (r in 0 until size) {
             for (c in 0 until size) {
                 if (cells[r][c].state == CellState.STAR) {
-                    // Check neighbors
                     for (dr in -1..1) {
                         for (dc in -1..1) {
                             if (dr == 0 && dc == 0) continue
@@ -179,5 +173,15 @@ class ConstellationsViewModel : ViewModel() {
         }
 
         _isGameWon.value = true
+    }
+}
+
+class ConstellationsViewModelFactory(private val mode: String?) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ConstellationsViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ConstellationsViewModel(mode) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

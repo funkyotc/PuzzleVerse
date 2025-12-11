@@ -3,44 +3,70 @@ package com.funkyotc.puzzleverse.shapes.viewmodel
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.shapes.model.PuzzlePiece
 import com.funkyotc.puzzleverse.shapes.model.ShapesPuzzle
 import com.funkyotc.puzzleverse.shapes.model.TargetShape
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDate
+import kotlin.random.Random
 
-class ShapesViewModel : ViewModel() {
+class ShapesViewModel(
+    private val mode: String?
+) : ViewModel() {
 
     private val _puzzle = MutableStateFlow<ShapesPuzzle?>(null)
-    val puzzle: StateFlow<ShapesPuzzle?> = _puzzle
+    val puzzle: StateFlow<ShapesPuzzle?> = _puzzle.asStateFlow()
 
     private val _isGameWon = MutableStateFlow(false)
-    val isGameWon: StateFlow<Boolean> = _isGameWon
+    val isGameWon: StateFlow<Boolean> = _isGameWon.asStateFlow()
 
     init {
         loadNewPuzzle()
     }
 
     fun loadNewPuzzle() {
-        // Create a simple puzzle: A square target made of two triangles.
-        // Target: Square (0,0) to (200,200) at position (300, 300)
-        // Pieces: Two triangles that form the square.
+        val seed = if (mode == "daily") {
+            LocalDate.now().toEpochDay()
+        } else {
+            Random.nextLong()
+        }
+        val random = Random(seed)
+
+        // Create the puzzle
+        // To provide variety with just one hardcoded puzzle, we will:
+        // 1. Randomize the initial positions of pieces more effectively
+        // 2. Randomize the initial rotation of pieces
+        // 3. (Optional) Flip the whole puzzle geometry randomly?
         
-        // Define pieces in local coordinates around their approximate center
-        val triangle1 = listOf(Offset(-50f, -50f), Offset(50f, -50f), Offset(-50f, 50f)) // Top-Left Triangle
-        val triangle2 = listOf(Offset(50f, 50f), Offset(-50f, 50f), Offset(50f, -50f)) // Bottom-Right Triangle
-        
-        // Let's make it simpler for initial verif: Split 100x100 square
-        // Triangle 1: (0,0), (100,0), (0,100) -> Center approx (33, 33)
-        // Local: (-33, -33), (67, -33), (-33, 67)
-        
+        // Define Local Shapes
         val p1Local = listOf(Offset(-33f, -33f), Offset(67f, -33f), Offset(-33f, 67f))
         val p2Local = listOf(Offset(33f, 33f), Offset(-67f, 33f), Offset(33f, -67f))
 
         val pieces = listOf(
-            PuzzlePiece(1, p1Local, Offset(100f, 400f), 0f, color = Color.Red),
-            PuzzlePiece(2, p2Local, Offset(250f, 400f), 90f, color = Color.Green) // Rotated initially
+            PuzzlePiece(
+                id = 1, 
+                initialVertices = p1Local, 
+                position = Offset(
+                    random.nextFloat() * 600f + 50f, 
+                    random.nextFloat() * 400f + 400f
+                ), 
+                rotation = random.nextInt(4) * 90f, 
+                color = Color.Red
+            ),
+            PuzzlePiece(
+                id = 2, 
+                initialVertices = p2Local, 
+                position = Offset(
+                    random.nextFloat() * 600f + 50f, 
+                    random.nextFloat() * 400f + 400f
+                ), 
+                rotation = random.nextInt(4) * 90f,
+                color = Color.Green
+            ) 
         )
 
         // Target: a 100x100 square at (100, 100)
@@ -78,7 +104,6 @@ class ShapesViewModel : ViewModel() {
 
            val updatedPieces = currentPuzzle.pieces.map {
                 if (it.id == pieceId && !it.isLocked) {
-                    // Snap to 45 degree increments? Or 90? Plan said 90.
                     val newRotation = (it.rotation + angle) % 360f
                     it.copy(rotation = newRotation)
                 } else {
@@ -110,7 +135,6 @@ class ShapesViewModel : ViewModel() {
         val currentPuzzle = _puzzle.value ?: return
         
         // 1. Check if ANY piece overlaps with ANY OTHER piece (strictTangram rules)
-        // Usually tangram rules are: pieces must not overlap.
         for (i in currentPuzzle.pieces.indices) {
              for (j in i + 1 until currentPuzzle.pieces.size) {
                  if (GeometryUtils.doPolygonsIntersect(
@@ -129,12 +153,18 @@ class ShapesViewModel : ViewModel() {
         }
 
         if (allInside) {
-             // 3. (Optional) Check total area covered matches target area? 
-             // If they don't overlap and are all inside, and the sum of their areas == target area, then it's filled.
-             // Or simpler: Just check if they non-overlap and inside. If the puzzle set is constructed to perfectly fill, this triggers win.
-             
              _isGameWon.value = true
              _puzzle.value = currentPuzzle.copy(isComplete = true)
         }
+    }
+}
+
+class ShapesViewModelFactory(private val mode: String?) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ShapesViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ShapesViewModel(mode) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

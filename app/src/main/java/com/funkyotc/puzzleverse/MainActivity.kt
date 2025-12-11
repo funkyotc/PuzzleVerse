@@ -122,9 +122,9 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository)
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository)
-                "constellations" -> ConstellationsScreen(navController = navController)
-                "shapes" -> ShapesScreen(navController = navController)
-                "wordle" -> WordleScreen(navController = navController)
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode)
+                "shapes" -> ShapesScreen(navController = navController, mode = mode)
+                "wordle" -> WordleScreen(navController = navController) // Wordle stub doesn't use mode yet, that's fine
                 else -> {
                     GameScreen(
                         navController = navController,

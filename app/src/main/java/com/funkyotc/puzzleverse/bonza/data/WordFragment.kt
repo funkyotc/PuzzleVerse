@@ -8,5 +8,6 @@ data class WordFragment(
     val initialPosition: Offset,
     var currentPosition: Offset,
     val solvedPosition: Offset? = null,
-    val direction: ConnectionDirection = ConnectionDirection.HORIZONTAL
+    val direction: ConnectionDirection = ConnectionDirection.HORIZONTAL,
+    var groupId: Int = id
 )

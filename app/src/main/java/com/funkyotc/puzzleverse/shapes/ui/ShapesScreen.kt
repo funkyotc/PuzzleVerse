@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,8 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,29 +23,35 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.funkyotc.puzzleverse.shapes.model.PuzzlePiece
-import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
+import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
+import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShapesScreen(navController: NavController, viewModel: ShapesViewModel = viewModel()) {
+fun ShapesScreen(
+    navController: NavController, 
+    mode: String? = "standard",
+    viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode))
+) {
     val puzzle by viewModel.puzzle.collectAsState()
     val isGameWon by viewModel.isGameWon.collectAsState()
     var selectedPieceId by remember { mutableStateOf<Int?>(null) }
+    var showNewGameDialog by remember { mutableStateOf(false) }
 
     if (isGameWon) {
         AlertDialog(
@@ -60,6 +65,28 @@ fun ShapesScreen(navController: NavController, viewModel: ShapesViewModel = view
             }
         )
     }
+    
+    if (showNewGameDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewGameDialog = false },
+            title = { Text("New Puzzle") },
+            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.loadNewPuzzle()
+                    showNewGameDialog = false
+                    selectedPieceId = null // Deselect on new game
+                }) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewGameDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -67,12 +94,14 @@ fun ShapesScreen(navController: NavController, viewModel: ShapesViewModel = view
                 title = { Text("Shapes") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadNewPuzzle() }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Reset")
+                    if (mode != "daily") {
+                        IconButton(onClick = { showNewGameDialog = true }) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                        }
                     }
                 }
             )
@@ -162,7 +191,7 @@ fun ShapesScreen(navController: NavController, viewModel: ShapesViewModel = view
                             close()
                         }
                     }
-                    // Draw fill or outline? Usually a filled "Shadow" is nice.
+                    
                     drawPath(targetPath, Color.LightGray.copy(alpha = 0.5f), style = Fill)
                     drawPath(targetPath, Color.Black, style = Stroke(width = 3f))
 

@@ -29,7 +29,7 @@ class BonzaViewModel(
     private val _puzzle = MutableStateFlow(puzzleGenerator.generate())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
-    private var draggedFragmentId: Int? = null
+    private var draggedFragmentGroupId: Int? = null
     private val letterBoxSize = 80f
 
     init {
@@ -38,137 +38,130 @@ class BonzaViewModel(
 
     fun onDragStart(position: Offset) {
         val fragment = getFragmentAt(position)
-        draggedFragmentId = fragment?.id
+        draggedFragmentGroupId = fragment?.groupId
     }
 
     fun onDrag(dragAmount: Offset) {
-        draggedFragmentId?.let { fragmentId ->
-            val currentFragment = _puzzle.value.fragments.find { it.id == fragmentId }
-            currentFragment?.let { fragment ->
-                val newPosition = fragment.currentPosition + dragAmount
-                updateFragmentPosition(fragmentId, newPosition)
+        draggedFragmentGroupId?.let { groupId ->
+            val updatedFragments = _puzzle.value.fragments.map { fragment ->
+                if (fragment.groupId == groupId) {
+                    fragment.copy(currentPosition = fragment.currentPosition + dragAmount)
+                } else {
+                    fragment
+                }
             }
+            _puzzle.value = _puzzle.value.copy(fragments = updatedFragments)
         }
     }
 
     fun onDragEnd() {
-        draggedFragmentId?.let { fragmentId ->
-            val fragment = _puzzle.value.fragments.find { it.id == fragmentId }
-            fragment?.let {
-                checkForSnapping(it)
-                checkWinCondition()
-            }
-        }
-        draggedFragmentId = null
-    }
+        draggedFragmentGroupId?.let { groupId ->
+            // Check for snapping for *any* fragment in the dragged group against *any* fragment NOT in the group
+            var groupSnapped = false
+            val currentPuzzle = _puzzle.value
+            val draggedGroupFragments = currentPuzzle.fragments.filter { it.groupId == groupId }
+            val otherFragments = currentPuzzle.fragments.filter { it.groupId != groupId }
 
-    private fun checkWinCondition() {
-        val threshold = 20f // Allow some tolerance for "close enough"
-        
-        val solved = _puzzle.value.fragments.all { fragment ->
-            val solvedFragment = _puzzle.value.solvedFragments.find { it.id == fragment.id }
-            if (solvedFragment != null) {
-                val distance = (fragment.currentPosition - solvedFragment.solvedPosition!!).getDistance()
-                distance < threshold
-            } else {
-                false
-            }
-        }
+            // Find valid connection between a dragged fragment and an other fragment
+            for (draggedFrag in draggedGroupFragments) {
+                if (groupSnapped) break
 
-        if (solved) {
-            _isGameWon.value = true
-        }
-    }
-
-    private fun checkForSnapping(draggedFragment: WordFragment) {
-        val snapThreshold = 50f
-        
-        _puzzle.value.connections.forEach { connection ->
-            val (fragment1, fragment2) = getFragmentsForConnection(connection)
-
-            if (fragment1 != null && fragment2 != null) {
-                if (draggedFragment.id == fragment1.id) {
-                    // Check if fragment1 should snap to fragment2
-                    val (shouldSnap, snapPosition) = calculateSnapPosition(
-                        fragment1, 
-                        fragment2, 
-                        connection.direction,
-                        isFragment1Primary = true
-                    )
-                    
-                    if (shouldSnap) {
-                        val distance = (fragment1.currentPosition - snapPosition).getDistance()
-                        if (distance < snapThreshold) {
-                            updateFragmentPosition(fragment1.id, snapPosition)
-                        }
-                    }
-                } else if (draggedFragment.id == fragment2.id) {
-                    // Check if fragment2 should snap to fragment1
-                    val (shouldSnap, snapPosition) = calculateSnapPosition(
-                        fragment2, 
-                        fragment1, 
-                        connection.direction,
-                        isFragment1Primary = false
-                    )
-                    
-                    if (shouldSnap) {
-                        val distance = (fragment2.currentPosition - snapPosition).getDistance()
-                        if (distance < snapThreshold) {
-                            updateFragmentPosition(fragment2.id, snapPosition)
-                        }
-                    }
+                for (otherFrag in otherFragments) {
+                     // Check if these two fragments have a defined connection
+                     val connection = currentPuzzle.connections.find { 
+                         (it.fragment1Id == draggedFrag.id && it.fragment2Id == otherFrag.id) ||
+                         (it.fragment1Id == otherFrag.id && it.fragment2Id == draggedFrag.id)
+                     }
+                     
+                     if (connection != null) {
+                         // Check snap
+                         val (shouldSnap, moveDelta) = calculateSnapDelta(draggedFrag, otherFrag, connection)
+                         if (shouldSnap) {
+                             // Snap the ENTIRE dragged group by the calculated delta
+                             snapGroup(groupId, moveDelta, otherFrag.groupId)
+                             groupSnapped = true
+                             break
+                         }
+                     }
                 }
             }
+            
+            if (!groupSnapped) {
+               // Optional: Visual bounce back or just leave it
+            }
+            
+            checkWinCondition()
         }
+        draggedFragmentGroupId = null
     }
-
-    private fun calculateSnapPosition(
-        movingFragment: WordFragment,
-        anchorFragment: WordFragment,
-        direction: ConnectionDirection,
-        isFragment1Primary: Boolean
+    
+    // Returns Pair(ShouldSnap, DeltaToMoveDraggedFragment)
+    private fun calculateSnapDelta(
+        movingFrag: WordFragment,
+        anchorFrag: WordFragment,
+        connection: BonzaConnection
     ): Pair<Boolean, Offset> {
         val snapThreshold = 50f
-        val movingFragmentSolved = _puzzle.value.solvedFragments.find { it.id == movingFragment.id }
-        val anchorFragmentSolved = _puzzle.value.solvedFragments.find { it.id == anchorFragment.id }
-
-        if (movingFragmentSolved != null && anchorFragmentSolved != null) {
-            val targetPosition = if (isFragment1Primary) {
-                if (direction == ConnectionDirection.HORIZONTAL) {
-                    val fragment1Width = movingFragment.text.length * letterBoxSize
-                    Offset(anchorFragment.currentPosition.x - fragment1Width, anchorFragment.currentPosition.y)
-                } else {
-                    Offset(anchorFragment.currentPosition.x, anchorFragment.currentPosition.y - letterBoxSize)
-                }
-            } else {
-                if (direction == ConnectionDirection.HORIZONTAL) {
-                    val fragment1Width = anchorFragment.text.length * letterBoxSize
-                    Offset(anchorFragment.currentPosition.x + fragment1Width, anchorFragment.currentPosition.y)
-                } else {
-                    Offset(anchorFragment.currentPosition.x, anchorFragment.currentPosition.y + letterBoxSize)
-                }
-            }
-            val distance = (movingFragment.currentPosition - targetPosition).getDistance()
-            return Pair(distance < snapThreshold, targetPosition)
+        
+        // Target position for movingFrag based on anchorFrag's current position and solved relative position
+        val movingSolved = movingFrag.solvedPosition ?: return Pair(false, Offset.Zero)
+        val anchorSolved = anchorFrag.solvedPosition ?: return Pair(false, Offset.Zero)
+        
+        // Relative vector from anchor to moving in solved state
+        val relativeVector = movingSolved - anchorSolved
+        
+        // Target position in current state
+        val targetPosition = anchorFrag.currentPosition + relativeVector
+        
+        val distance = (movingFrag.currentPosition - targetPosition).getDistance()
+        
+        return if (distance < snapThreshold) {
+            Pair(true, targetPosition - movingFrag.currentPosition)
+        } else {
+            Pair(false, Offset.Zero)
         }
-        return Pair(false, Offset.Zero)
     }
 
-    private fun getFragmentsForConnection(connection: BonzaConnection): Pair<WordFragment?, WordFragment?> {
-        val fragment1 = _puzzle.value.fragments.find { it.id == connection.fragment1Id }
-        val fragment2 = _puzzle.value.fragments.find { it.id == connection.fragment2Id }
-        return Pair(fragment1, fragment2)
-    }
-
-    private fun updateFragmentPosition(fragmentId: Int, newPosition: Offset) {
-        val updatedFragments = _puzzle.value.fragments.map {
-            if (it.id == fragmentId) {
-                it.copy(currentPosition = newPosition)
+    private fun snapGroup(movingGroupId: Int, moveDelta: Offset, targetGroupId: Int) {
+        val updatedFragments = _puzzle.value.fragments.map { fragment ->
+            if (fragment.groupId == movingGroupId) {
+                // Move and update Group ID to merge
+                fragment.copy(
+                    currentPosition = fragment.currentPosition + moveDelta,
+                    groupId = targetGroupId
+                )
             } else {
-                it
+                fragment
             }
         }
         _puzzle.value = _puzzle.value.copy(fragments = updatedFragments)
+    }
+
+    private fun checkWinCondition() {
+        val fragments = _puzzle.value.fragments
+        if (fragments.isEmpty()) return
+
+        // 1. Check if all fragments belong to the same group
+        val firstGroupId = fragments.first().groupId
+        if (fragments.any { it.groupId != firstGroupId }) return
+
+        // 2. Check relative positions
+        // Pick the first fragment as the anchor
+        val anchor = fragments.first()
+        val threshold = 10f // Tight tolerance for win check
+
+        val isSolved = fragments.all { fragment ->
+            if (fragment.id == anchor.id) true
+            else {
+                val expectedRelative = (fragment.solvedPosition ?: Offset.Zero) - (anchor.solvedPosition ?: Offset.Zero)
+                val actualRelative = fragment.currentPosition - anchor.currentPosition
+                (expectedRelative - actualRelative).getDistance() < threshold
+            }
+        }
+
+        if (isSolved) {
+            _isGameWon.value = true
+        }
     }
 
     private fun getFragmentAt(position: Offset): WordFragment? {

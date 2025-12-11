@@ -102,23 +102,25 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
                 val frag1Id = fragmentIdCounter++
                 val frag2Id = fragmentIdCounter++
 
-                val pos1 = bonzaWord.position
-                val pos2 = if (bonzaWord.direction == ConnectionDirection.HORIZONTAL) {
-                    Offset(pos1.x + splitIndex, pos1.y)
+                val solvedPos1 = if (bonzaWord.direction == ConnectionDirection.HORIZONTAL) {
+                    Offset(pos1.x + splitIndex, pos1.y) * 80f
                 } else {
-                    Offset(pos1.x, pos1.y + splitIndex)
+                    Offset(pos1.x, pos1.y + splitIndex) * 80f
                 }
+                
+                // Scale initial word position too for solvedPosition
+                val solvedOrigin = bonzaWord.position * 80f
 
                 solvedFragments.add(
                     WordFragment(
                         id = frag1Id, text = text1, initialPosition = Offset.Zero, currentPosition = Offset.Zero,
-                        solvedPosition = pos1, direction = bonzaWord.direction
+                        solvedPosition = solvedOrigin, direction = bonzaWord.direction
                     )
                 )
                 solvedFragments.add(
                     WordFragment(
                         id = frag2Id, text = text2, initialPosition = Offset.Zero, currentPosition = Offset.Zero,
-                        solvedPosition = pos2, direction = bonzaWord.direction
+                        solvedPosition = solvedPos1, direction = bonzaWord.direction
                     )
                 )
                 connections.add(BonzaConnection(frag1Id, frag2Id, bonzaWord.direction))
@@ -126,7 +128,7 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
                 solvedFragments.add(
                     WordFragment(
                         id = fragmentIdCounter++, text = bonzaWord.word, initialPosition = Offset.Zero,
-                        currentPosition = Offset.Zero, solvedPosition = bonzaWord.position, direction = bonzaWord.direction
+                        currentPosition = Offset.Zero, solvedPosition = bonzaWord.position * 80f, direction = bonzaWord.direction
                     )
                 )
             }

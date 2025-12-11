@@ -3,9 +3,9 @@ package com.funkyotc.puzzleverse.ui.screens.bonza
 import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -34,6 +34,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -101,7 +103,7 @@ fun BonzaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Bonza") },
+                title = { Text("Bonza - ${puzzle.theme}") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -115,7 +117,7 @@ fun BonzaScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)){
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             BonzaBoard(
                 puzzle = puzzle,
                 viewModel = bonzaViewModel
@@ -132,72 +134,89 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
     val letterBoxSize = 80f
     val letterBoxCornerRadius = 16f
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    // Transformable state for Pan and Zoom
+    var scale by remember { mutableStateOf(0.5f) } // Start zoomed out slightly
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+        scale *= zoomChange
+        offset += offsetChange
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .transformable(state = state)
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragStart = { position ->
+                        // Convert screen position to puzzle space
+                        val puzzlePos = (position - offset) / scale
+                        viewModel.onDragStart(puzzlePos)
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        // Drag amount in puzzle space
+                        viewModel.onDrag(dragAmount / scale)
+                    },
+                    onDragEnd = { viewModel.onDragEnd() }
+                )
+            }
     ) {
-        Text(text = puzzle.theme, style = MaterialTheme.typography.headlineMedium)
-        Canvas(modifier = Modifier.fillMaxSize().pointerInput(Unit) {
-            detectDragGestures(
-                onDragStart = { offset -> viewModel.onDragStart(offset) },
-                onDrag = { change, dragAmount ->
-                    change.consume()
-                    viewModel.onDrag(dragAmount)
-                },
-                onDragEnd = { viewModel.onDragEnd() }
-            )
-        }) {
-            puzzle.fragments.forEach { fragment ->
-                val shadowOffset = Offset(5f, 5f)
-                fragment.text.forEachIndexed { index, char ->
-                    val letterOffset =
-                        if (fragment.direction == ConnectionDirection.HORIZONTAL) {
-                            Offset(
-                                fragment.currentPosition.x + index * letterBoxSize,
-                                fragment.currentPosition.y
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            translate(offset.x, offset.y) {
+                scale(scale, pivot = Offset.Zero) {
+                    puzzle.fragments.forEach { fragment ->
+                        val shadowOffset = Offset(5f, 5f)
+                        fragment.text.forEachIndexed { index, char ->
+                            val letterOffset =
+                                if (fragment.direction == ConnectionDirection.HORIZONTAL) {
+                                    Offset(
+                                        fragment.currentPosition.x + index * letterBoxSize,
+                                        fragment.currentPosition.y
+                                    )
+                                } else {
+                                    Offset(
+                                        fragment.currentPosition.x,
+                                        fragment.currentPosition.y + index * letterBoxSize
+                                    )
+                                }
+
+                            drawRoundRect(
+                                color = Color.Gray,
+                                topLeft = letterOffset + shadowOffset,
+                                size = Size(letterBoxSize, letterBoxSize),
+                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
                             )
-                        } else {
-                            Offset(
-                                fragment.currentPosition.x,
-                                fragment.currentPosition.y + index * letterBoxSize
+
+                            drawRoundRect(
+                                color = primaryColor,
+                                topLeft = letterOffset,
+                                size = Size(letterBoxSize, letterBoxSize),
+                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
+                            )
+
+                            drawRoundRect(
+                                color = Color.Black,
+                                topLeft = letterOffset,
+                                size = Size(letterBoxSize, letterBoxSize),
+                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
+                                style = Stroke(width = 2f)
+                            )
+
+                            val textLayoutResult = textMeasurer.measure(
+                                text = char.toString(),
+                                style = TextStyle(color = Color.White, fontSize = 24.sp)
+                            )
+
+                            drawText(
+                                textLayoutResult,
+                                topLeft = letterOffset + Offset(
+                                    (letterBoxSize - textLayoutResult.size.width) / 2,
+                                    (letterBoxSize - textLayoutResult.size.height) / 2
+                                )
                             )
                         }
-
-                    drawRoundRect(
-                        color = Color.Gray,
-                        topLeft = letterOffset + shadowOffset,
-                        size = Size(letterBoxSize, letterBoxSize),
-                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
-                    )
-
-                    drawRoundRect(
-                        color = primaryColor,
-                        topLeft = letterOffset,
-                        size = Size(letterBoxSize, letterBoxSize),
-                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
-                    )
-
-                    drawRoundRect(
-                        color = Color.Black,
-                        topLeft = letterOffset,
-                        size = Size(letterBoxSize, letterBoxSize),
-                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
-                        style = Stroke(width = 2f)
-                    )
-
-                    val textLayoutResult = textMeasurer.measure(
-                        text = char.toString(),
-                        style = TextStyle(color = Color.White, fontSize = 24.sp)
-                    )
-
-                    drawText(
-                        textLayoutResult,
-                        topLeft = letterOffset + Offset(
-                            (letterBoxSize - textLayoutResult.size.width) / 2,
-                            (letterBoxSize - textLayoutResult.size.height) / 2
-                        )
-                    )
+                    }
                 }
             }
         }

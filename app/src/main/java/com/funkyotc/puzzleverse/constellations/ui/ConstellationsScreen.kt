@@ -1,5 +1,6 @@
 package com.funkyotc.puzzleverse.constellations.ui
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -12,8 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,27 +38,56 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModel
+import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConstellationsScreen(navController: NavController, constellationsViewModel: ConstellationsViewModel = viewModel()) {
+fun ConstellationsScreen(
+    navController: NavController, 
+    mode: String? = "standard",
+    context: Context = LocalContext.current,
+    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode))
+) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
     val isGameWon by constellationsViewModel.isGameWon.collectAsState()
+    var showNewGameDialog by remember { mutableStateOf(false) }
 
     if (isGameWon) {
         AlertDialog(
-            onDismissRequest = { constellationsViewModel.loadNewPuzzle() },
+            onDismissRequest = { /* Do nothing, wait for user entry */ },
             title = { Text(text = "Congratulations!") },
             text = { Text(text = "You solved the puzzle!") },
             confirmButton = {
                 Button(onClick = { constellationsViewModel.loadNewPuzzle() }) {
                     Text("New Game")
+                }
+            }
+        )
+    }
+    
+    if (showNewGameDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewGameDialog = false },
+            title = { Text("New Puzzle") },
+            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    constellationsViewModel.loadNewPuzzle()
+                    showNewGameDialog = false
+                }) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNewGameDialog = false }) {
+                    Text("Cancel")
                 }
             }
         )
@@ -67,12 +99,14 @@ fun ConstellationsScreen(navController: NavController, constellationsViewModel: 
                 title = { Text("Constellations") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    Button(onClick = { constellationsViewModel.loadNewPuzzle() }) {
-                        Text("Reset")
+                    if (mode != "daily") {
+                        IconButton(onClick = { showNewGameDialog = true }) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                        }
                     }
                 }
             )

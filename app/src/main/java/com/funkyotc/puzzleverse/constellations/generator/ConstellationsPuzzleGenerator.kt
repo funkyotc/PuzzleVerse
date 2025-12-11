@@ -7,34 +7,35 @@ import kotlin.random.Random
 
 class ConstellationsPuzzleGenerator {
 
-    fun generate(size: Int = 8): ConstellationsPuzzle {
+    fun generate(size: Int = 8, seed: Long = Random.nextLong()): ConstellationsPuzzle {
+        val random = Random(seed)
         // 1. Place Stars
-        val starPositions = placeStars(size)
+        val starPositions = placeStars(size, random)
 
         // 2. Generate Regions
-        val (cells, regions) = generateRegions(size, starPositions)
+        val (cells, regions) = generateRegions(size, starPositions, random)
 
         return ConstellationsPuzzle(size, cells, regions)
     }
 
-    private fun placeStars(size: Int): List<Pair<Int, Int>> {
+    private fun placeStars(size: Int, random: Random): List<Pair<Int, Int>> {
         // Backtracking to place stars satisfying row, col, and adjacency constraints
         val stars = mutableListOf<Pair<Int, Int>>()
-        if (solveStars(size, 0, stars)) {
+        if (solveStars(size, 0, stars, random)) {
             return stars
         }
         // Fallback (should rarely happen for small sizes, but good to have)
         return emptyList()
     }
 
-    private fun solveStars(size: Int, row: Int, stars: MutableList<Pair<Int, Int>>): Boolean {
+    private fun solveStars(size: Int, row: Int, stars: MutableList<Pair<Int, Int>>, random: Random): Boolean {
         if (row == size) return true
 
-        val cols = (0 until size).toList().shuffled()
+        val cols = (0 until size).toList().shuffled(random)
         for (col in cols) {
             if (isValidStarPlacement(row, col, stars)) {
                 stars.add(row to col)
-                if (solveStars(size, row + 1, stars)) {
+                if (solveStars(size, row + 1, stars, random)) {
                     return true
                 }
                 stars.removeAt(stars.size - 1)
@@ -56,7 +57,7 @@ class ConstellationsPuzzleGenerator {
         return true
     }
 
-    private fun generateRegions(size: Int, starPositions: List<Pair<Int, Int>>): Pair<List<List<Cell>>, Map<Int, List<Pair<Int, Int>>>> {
+    private fun generateRegions(size: Int, starPositions: List<Pair<Int, Int>>, random: Random): Pair<List<List<Cell>>, Map<Int, List<Pair<Int, Int>>>> {
         val grid = Array(size) { r -> Array(size) { c -> Cell(r, c, -1) } }
         val regions = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
 
@@ -100,7 +101,7 @@ class ConstellationsPuzzleGenerator {
         }
 
         while (frontier.isNotEmpty()) {
-            val index = Random.nextInt(frontier.size)
+            val index = random.nextInt(frontier.size)
             val (r, c, regionId) = frontier[index]
 
             // Find unvisited neighbors
