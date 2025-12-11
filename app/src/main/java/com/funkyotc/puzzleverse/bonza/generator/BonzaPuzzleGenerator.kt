@@ -13,7 +13,58 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
 
     fun generate(seed: Long = Random.nextLong()): BonzaPuzzle {
         val random = Random(seed)
-        val puzzle = generatePuzzle(random)
+        return generatePuzzle(random)
+    }
+
+    private fun generatePuzzle(random: Random): BonzaPuzzle {
+        val puzzleTheme = puzzleThemes.random(random)
+        val theme = puzzleTheme.theme
+        val words = puzzleTheme.words
+
+        val placedWords = mutableListOf<BonzaWord>()
+        val grid = mutableMapOf<Pair<Int, Int>, Char>()
+
+        // Place the first word
+        val firstWord = words.first()
+        val firstWordDirection = if (random.nextBoolean()) ConnectionDirection.HORIZONTAL else ConnectionDirection.VERTICAL
+        placeWord(firstWord, 0, 0, firstWordDirection, grid)
+        placedWords.add(
+            BonzaWord(
+                word = firstWord, fragments = emptyList(),
+                position = Offset(0f, 0f), direction = firstWordDirection
+            )
+        )
+
+        // Place remaining words
+        for (i in 1 until words.size) {
+            val wordToPlace = words[i]
+            var placed = false
+            var attempts = 0
+            while (!placed && attempts < 100) {
+                val intersectingWord = placedWords.random(random)
+                val intersection = findIntersection(wordToPlace, intersectingWord.word)
+                if (intersection != null) {
+                    val (charIndexInWord, charIndexInPlacedWord) = intersection
+                    val newDirection = if (intersectingWord.direction == ConnectionDirection.HORIZONTAL) ConnectionDirection.VERTICAL else ConnectionDirection.HORIZONTAL
+
+                    val (newX, newY) = calculatePosition(
+                        intersectingWord, charIndexInPlacedWord, charIndexInWord
+                    )
+
+                    if (canPlaceWord(wordToPlace, newX, newY, newDirection, grid)) {
+                        placeWord(wordToPlace, newX, newY, newDirection, grid)
+                        placedWords.add(
+                            BonzaWord(
+                                word = wordToPlace, fragments = emptyList(),
+                                position = Offset(newX.toFloat(), newY.toFloat()), direction = newDirection
+                            )
+                        )
+                        placed = true
+                    }
+                }
+                attempts++
+            }
+        }
 
         // Create fragments and connections
         val solvedFragments = mutableListOf<WordFragment>()
