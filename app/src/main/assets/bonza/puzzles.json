@@ -1,10 +1,65 @@
 [
   {
     "theme": "Fruits",
-    "words": ["APPLE", "BANANA", "ORANGE", "GRAPE", "PEAR", "MANGO"]
+    "words": [
+      "APPLE",
+      "BANANA",
+      "ORANGE",
+      "GRAPE",
+      "PEAR",
+      "MANGO"
+    ]
   },
   {
     "theme": "Animals",
-    "words": ["LION", "TIGER", "BEAR", "ELEPHANT", "MONKEY", "ZEBRA"]
+    "words": [
+      "LION",
+      "TIGER",
+      "BEAR",
+      "ELEPHANT",
+      "MONKEY",
+      "ZEBRA"
+    ]
+  },
+  {
+    "theme": "Planets",
+    "words": [
+      "MERCURY",
+      "VENUS",
+      "EARTH",
+      "MARS",
+      "JUPITER",
+      "SATURN",
+      "URANUS",
+      "NEPTUNE"
+    ]
+  },
+  {
+    "theme": "Colors",
+    "words": [
+      "RED",
+      "BLUE",
+      "GREEN",
+      "YELLOW",
+      "PURPLE",
+      "ORANGE",
+      "INDIGO",
+      "VIOLET"
+    ]
+  },
+  {
+    "theme": "Countries",
+    "words": [
+      "AUSTRALIA",
+      "BRAZIL",
+      "CANADA",
+      "DENMARK",
+      "EGYPT",
+      "FRANCE",
+      "GERMANY",
+      "INDIA",
+      "JAPAN",
+      "KENYA"
+    ]
   }
 ]
