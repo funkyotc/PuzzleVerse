@@ -257,8 +257,39 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
     ): Boolean {
         for (i in word.indices) {
             val (x, y) = if (direction == ConnectionDirection.HORIZONTAL) Pair(startX + i, startY) else Pair(startX, startY + i)
-            if (grid.containsKey(Pair(x, y)) && grid[Pair(x, y)] != word[i]) {
-                return false // Collision
+            
+            if (grid.containsKey(Pair(x, y))) {
+                // Intersection point: Must match
+                if (grid[Pair(x, y)] != word[i]) {
+                    return false // Collision
+                }
+            } else {
+                // Empty cell: Must not touch other letters unless they are part of the word flow
+                val neighbors = listOf(
+                    Pair(x + 1, y), Pair(x - 1, y),
+                    Pair(x, y + 1), Pair(x, y - 1)
+                )
+
+                for (neighbor in neighbors) {
+                    if (grid.containsKey(neighbor)) {
+                        var isAllowed = false
+                        
+                        // Check if neighbor is the Previous letter position
+                        if (i > 0) {
+                            val prevPos = if (direction == ConnectionDirection.HORIZONTAL) Pair(x - 1, y) else Pair(x, y - 1)
+                            if (neighbor == prevPos) isAllowed = true
+                        }
+                        
+                        // Check if neighbor is the Next letter position
+                        if (i < word.length - 1) {
+                            val nextPos = if (direction == ConnectionDirection.HORIZONTAL) Pair(x + 1, y) else Pair(x, y + 1)
+                            if (neighbor == nextPos) isAllowed = true
+                        }
+                        
+                        // Neighbor is occupied and not part of our word flow -> Illegal Touch
+                        if (!isAllowed) return false
+                    }
+                }
             }
         }
         return true
