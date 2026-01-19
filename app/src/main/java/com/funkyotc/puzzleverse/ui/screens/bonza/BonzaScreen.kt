@@ -52,6 +52,9 @@ import com.funkyotc.puzzleverse.bonza.data.ConnectionDirection
 import com.funkyotc.puzzleverse.bonza.viewmodel.BonzaViewModel
 import com.funkyotc.puzzleverse.bonza.viewmodel.BonzaViewModelFactory
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import kotlinx.coroutines.launch
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.BoxWithConstraints
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,82 +143,152 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
     val letterBoxCornerRadius = 16f
     
     // Transformable state for Pan and Zoom
-    var scale by remember { mutableStateOf(1f) } 
-    var offset by remember { mutableStateOf(Offset.Zero) }
-    val state = rememberTransformableState { zoomChange, offsetChange, _ ->
-        scale *= zoomChange
-        offset += offsetChange
+    val scale = remember { Animatable(1f) }
+    val offsetX = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(0f) }
+    
+    // Track dragging state to prevent auto-zoom during interaction
+    var isDragging by remember { mutableStateOf(false) }
+    
+    // Auto-Fit Logic
+    androidx.compose.runtime.LaunchedEffect(puzzle, isDragging) {
+        // Don't auto-fit while dragging
+        if (isDragging) return@LaunchedEffect
+
+        val bounds = viewModel.getPuzzleBounds()
+        if (bounds.isEmpty) return@LaunchedEffect
+        
+        // Calculate needed scale to fit bounds
+        // ... (rest of logic needs to be inside BoxWithConstraints or layout phase)
+        // Actually, the main logic is in the second LaunchedEffect below. 
+        // We can just keep this one empty or remove it if redundant. 
+        // The one inside BoxWithConstraints is the active one.
     }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .transformable(state = state)
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { position ->
-                        // Convert screen position to puzzle space (Grid Units)
-                        val puzzlePos = (position - offset) / scale / letterBoxSizePx
-                        viewModel.onDragStart(puzzlePos)
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        // Drag amount in puzzle space (Grid Units)
-                        viewModel.onDrag(dragAmount / scale / letterBoxSizePx)
-                    },
-                    onDragEnd = { viewModel.onDragEnd() }
-                )
+    
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenWidth = constraints.maxWidth.toFloat()
+        val screenHeight = constraints.maxHeight.toFloat()
+        
+        androidx.compose.runtime.LaunchedEffect(puzzle, isDragging, screenWidth, screenHeight) {
+            if (isDragging) return@LaunchedEffect
+            
+            val bounds = viewModel.getPuzzleBounds()
+            if (!bounds.isEmpty && screenWidth > 0 && screenHeight > 0) {
+                 val boundsWidthPx = bounds.width * letterBoxSizePx
+                 val boundsHeightPx = bounds.height * letterBoxSizePx
+                 
+                 // Target scale to fit
+                 val paddingFactor = 0.8f
+                 val targetScale = minOf(
+                     screenWidth / boundsWidthPx,
+                     screenHeight / boundsHeightPx
+                 ) * paddingFactor
+                 
+                 // Target center in Pixel Space (if scale was 1)
+                 val boundsCenterPx = bounds.center * letterBoxSizePx
+                 
+                 // We want boundsCenterPx * targetScale + offset = screenCenter
+                 // offset = screenCenter - (boundsCenterPx * targetScale)
+                 val screenCenter = Offset(screenWidth / 2, screenHeight / 2)
+                 val targetOffset = screenCenter - (boundsCenterPx * targetScale)
+                 
+                 launch {
+                     scale.animateTo(targetScale)
+                 }
+                 launch {
+                     offsetX.animateTo(targetOffset.x)
+                 }
+                 launch {
+                     offsetY.animateTo(targetOffset.y)
+                 }
             }
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            translate(offset.x, offset.y) {
-                scale(scale, pivot = Offset.Zero) {
-                    puzzle.fragments.forEach { fragment ->
-                        val shadowOffset = Offset(5f, 5f)
-                        fragment.text.forEachIndexed { index, char ->
-                            // Current position is in Grid Units. Convert to Pixels for drawing.
-                            val gridPos = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
-                               Offset(fragment.currentPosition.x + index, fragment.currentPosition.y)
-                            } else {
-                               Offset(fragment.currentPosition.x, fragment.currentPosition.y + index)
-                            }
-                            
-                            val letterOffset = gridPos * letterBoxSizePx
+        }
+        
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+        
+        val state = rememberTransformableState { zoomChange, offsetChange, _ ->
+             coroutineScope.launch {
+                 scale.snapTo(scale.value * zoomChange)
+                 offsetX.snapTo(offsetX.value + offsetChange.x)
+                 offsetY.snapTo(offsetY.value + offsetChange.y)
+             }
+        }
 
-                            drawRoundRect(
-                                color = Color.Gray,
-                                topLeft = letterOffset + shadowOffset,
-                                size = Size(letterBoxSizePx, letterBoxSizePx),
-                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
-                            )
-
-                            drawRoundRect(
-                                color = primaryColor,
-                                topLeft = letterOffset,
-                                size = Size(letterBoxSizePx, letterBoxSizePx),
-                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
-                            )
-
-                            drawRoundRect(
-                                color = Color.Black,
-                                topLeft = letterOffset,
-                                size = Size(letterBoxSizePx, letterBoxSizePx),
-                                cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
-                                style = Stroke(width = 2f)
-                            )
-
-                            val textLayoutResult = textMeasurer.measure(
-                                text = char.toString(),
-                                style = TextStyle(color = Color.White, fontSize = 24.sp)
-                            )
-
-                            drawText(
-                                textLayoutResult,
-                                topLeft = letterOffset + Offset(
-                                    (letterBoxSizePx - textLayoutResult.size.width) / 2,
-                                    (letterBoxSizePx - textLayoutResult.size.height) / 2
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .transformable(state = state)
+                .pointerInput(Unit) {
+                    detectDragGestures(
+                        onDragStart = { position ->
+                            isDragging = true
+                            // Convert screen position to puzzle space (Grid Units)
+                            val currentScale = scale.value
+                            val currentOffset = Offset(offsetX.value, offsetY.value)
+                            val puzzlePos = (position - currentOffset) / currentScale / letterBoxSizePx
+                            viewModel.onDragStart(puzzlePos)
+                        },
+                        onDrag = { change, dragAmount ->
+                            change.consume()
+                            val currentScale = scale.value
+                            // Drag amount in puzzle space (Grid Units)
+                            viewModel.onDrag(dragAmount / currentScale / letterBoxSizePx)
+                        },
+                        onDragEnd = { 
+                            isDragging = false
+                            viewModel.onDragEnd() 
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                            viewModel.onDragEnd()
+                        }
+                    )
+                }
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                translate(offsetX.value, offsetY.value) {
+                    scale(scale.value, pivot = Offset.Zero) {
+                        puzzle.fragments.forEach { fragment ->
+                            // Shadow removed for flat look
+                            fragment.text.forEachIndexed { index, char ->
+                                // Current position is in Grid Units. Convert to Pixels for drawing.
+                                val gridPos = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
+                                   Offset(fragment.currentPosition.x + index, fragment.currentPosition.y)
+                                } else {
+                                   Offset(fragment.currentPosition.x, fragment.currentPosition.y + index)
+                                }
+                                
+                                val letterOffset = gridPos * letterBoxSizePx
+                                // Shadow drawing removed
+    
+                                drawRoundRect(
+                                    color = primaryColor,
+                                    topLeft = letterOffset,
+                                    size = Size(letterBoxSizePx, letterBoxSizePx),
+                                    cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
                                 )
-                            )
+    
+                                drawRoundRect(
+                                    color = Color.Black,
+                                    topLeft = letterOffset,
+                                    size = Size(letterBoxSizePx, letterBoxSizePx),
+                                    cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
+                                    style = Stroke(width = 2f)
+                                )
+    
+                                val textLayoutResult = textMeasurer.measure(
+                                    text = char.toString(),
+                                    style = TextStyle(color = Color.White, fontSize = 24.sp)
+                                )
+    
+                                drawText(
+                                    textLayoutResult,
+                                    topLeft = letterOffset + Offset(
+                                        (letterBoxSizePx - textLayoutResult.size.width) / 2,
+                                        (letterBoxSizePx - textLayoutResult.size.height) / 2
+                                    )
+                                )
+                            }
                         }
                     }
                 }

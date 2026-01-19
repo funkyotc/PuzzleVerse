@@ -178,6 +178,31 @@ class BonzaViewModel(
         }
     }
 
+    fun getPuzzleBounds(): Rect {
+        val fragments = _puzzle.value.fragments
+        if (fragments.isEmpty()) return Rect.Zero
+
+        var minX = Float.MAX_VALUE
+        var minY = Float.MAX_VALUE
+        var maxX = Float.MIN_VALUE
+        var maxY = Float.MIN_VALUE
+
+        fragments.forEach { fragment ->
+            val x = fragment.currentPosition.x
+            val y = fragment.currentPosition.y
+            val width = if (fragment.direction == ConnectionDirection.HORIZONTAL) fragment.text.length.toFloat() else 1f
+            val height = if (fragment.direction == ConnectionDirection.VERTICAL) fragment.text.length.toFloat() else 1f
+
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (x + width > maxX) maxX = x + width
+            if (y + height > maxY) maxY = y + height
+        }
+        
+        // Add a small padding in grid units (e.g., 1 unit)
+        return Rect(minX - 1, minY - 1, maxX + 1, maxY + 1)
+    }
+
     fun newGame() {
         _isGameWon.value = false
         _puzzle.value = puzzleGenerator.generate()
