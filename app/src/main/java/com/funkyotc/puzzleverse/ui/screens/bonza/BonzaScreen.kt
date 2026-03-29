@@ -169,6 +169,8 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
         val screenWidth = constraints.maxWidth.toFloat()
         val screenHeight = constraints.maxHeight.toFloat()
         
+        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+
         androidx.compose.runtime.LaunchedEffect(puzzle, isDragging, screenWidth, screenHeight) {
             if (isDragging) return@LaunchedEffect
             
@@ -192,19 +194,17 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                  val screenCenter = Offset(screenWidth / 2, screenHeight / 2)
                  val targetOffset = screenCenter - (boundsCenterPx * targetScale)
                  
-                 launch {
+                 coroutineScope.launch {
                      scale.animateTo(targetScale)
                  }
-                 launch {
+                 coroutineScope.launch {
                      offsetX.animateTo(targetOffset.x)
                  }
-                 launch {
+                 coroutineScope.launch {
                      offsetY.animateTo(targetOffset.y)
                  }
             }
         }
-        
-        val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
         
         val state = rememberTransformableState { zoomChange, offsetChange, _ ->
              coroutineScope.launch {

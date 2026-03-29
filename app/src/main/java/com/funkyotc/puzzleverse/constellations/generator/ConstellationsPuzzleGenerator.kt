@@ -1,7 +1,6 @@
 package com.funkyotc.puzzleverse.constellations.generator
 
 import com.funkyotc.puzzleverse.constellations.data.Cell
-import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPuzzle
 import kotlin.random.Random
 
@@ -61,40 +60,7 @@ class ConstellationsPuzzleGenerator {
         val grid = Array(size) { r -> Array(size) { c -> Cell(r, c, -1) } }
         val regions = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
 
-        // Initialize regions with stars
-        val queue = ArrayDeque<Triple<Int, Int, Int>>() // row, col, regionId
-        
-        starPositions.forEachIndexed { index, (r, c) ->
-            grid[r][c] = grid[r][c].copy(regionId = index)
-            regions[index] = mutableListOf(r to c)
-            queue.add(Triple(r, c, index))
-        }
-
-        // Grow regions (BFS)
-        // To make it more irregular, we can shuffle neighbors or use a priority queue with random weights
-        while (queue.isNotEmpty()) {
-            // Randomly pick from queue to make growth irregular? 
-            // Standard BFS gives diamond shapes. Let's try to randomize the queue processing slightly or just shuffle neighbors.
-            // For better shapes, we can collect all candidates and pick random.
-            
-            // Let's use a list of candidates instead of a queue for randomness
-            val candidates = queue.toMutableList()
-            queue.clear() // We will process all current frontier, then add next layer
-            
-            // Actually, standard BFS with shuffled neighbors is okay, but "Voronoi" style is better.
-            // Let's stick to a randomized flood fill.
-            
-            // Re-implementing with a randomized approach:
-            // 1. Put all star cells in a "frontier" list.
-            // 2. Loop until grid is full:
-            //    a. Pick a random cell from frontier.
-            //    b. Try to expand to a random unvisited neighbor.
-            //    c. If expanded, add neighbor to frontier.
-            //    d. If no unvisited neighbors, remove from frontier.
-            break // Breaking out to restart logic below
-        }
-
-        // Better Region Growth:
+        // Initialize regions with stars - one region per star
         val frontier = mutableListOf<Triple<Int, Int, Int>>() // r, c, regionId
         starPositions.forEachIndexed { index, (r, c) ->
             frontier.add(Triple(r, c, index))

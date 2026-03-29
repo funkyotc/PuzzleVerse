@@ -5,7 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -46,24 +46,36 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModel
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModelFactory
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConstellationsScreen(
-    navController: NavController, 
+    navController: NavController,
     mode: String? = "standard",
     context: Context = LocalContext.current,
-    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode))
+    streakRepository: StreakRepository,
+    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode, streakRepository))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
     val isGameWon by constellationsViewModel.isGameWon.collectAsState()
+    val moveCount by constellationsViewModel.moveCount.collectAsState()
+    val elapsedTime by constellationsViewModel.elapsedTime.collectAsState()
+    val showErrorHighlight by constellationsViewModel.showErrorHighlight.collectAsState()
+    val hintPosition by constellationsViewModel.hintPosition.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
 
     if (isGameWon) {
         AlertDialog(
             onDismissRequest = { /* Do nothing, wait for user entry */ },
             title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle!") },
+            text = {
+                Column {
+                    Text(text = "You solved the puzzle!")
+                    Text(text = "Moves: $moveCount")
+                    Text(text = "Time: ${elapsedTime / 60}:${"%02d".format(elapsedTime % 60)}")
+                }
+            },
             confirmButton = {
                 Button(onClick = { constellationsViewModel.loadNewPuzzle() }) {
                     Text("New Game")
@@ -71,7 +83,7 @@ fun ConstellationsScreen(
             }
         )
     }
-    
+
     if (showNewGameDialog) {
         AlertDialog(
             onDismissRequest = { showNewGameDialog = false },
@@ -103,6 +115,24 @@ fun ConstellationsScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { constellationsViewModel.getHint()?.let { (row, col) ->
+                            // Hint is already stored in ViewModel, UI will react to hintPosition change
+                        } },
+                        enabled = !isGameWon
+                    ) {
+                        Icon(Icons.Filled.Shuffle, contentDescription = "Hint")
+                    }
+                    IconButton(
+                        onClick = { constellationsViewModel.checkForErrors() },
+                        enabled = !isGameWon
+                    ) {
+                        Icon(
+                            Icons.Filled.Close,
+                            contentDescription = "Check Errors",
+                            tint = if (showErrorHighlight) Color.Red else Color.Unspecified
+                        )
+                    }
                     if (mode != "daily") {
                         IconButton(onClick = { showNewGameDialog = true }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
@@ -117,8 +147,24 @@ fun ConstellationsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Timer and move counter
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Moves: $moveCount",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "${elapsedTime / 60}:${"%02d".format(elapsedTime % 60)}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+
             puzzle?.let { p ->
                 val regionColors = rememberRegionColors(p.regions.keys)
                 var gridSize by remember { mutableStateOf(IntSize.Zero) }
@@ -161,7 +207,12 @@ fun ConstellationsScreen(
                                             .weight(1f)
                                             .aspectRatio(1f)
                                             .background(regionColors[cell.regionId] ?: Color.LightGray)
-                                            .border(1.dp, Color.Black),
+                                            .border(1.dp, Color.Black)
+                                            .alpha(if (showErrorHighlight && cell.isAuto) 0.5f else 1.0f)
+                                            .border(
+                                                width = if (hintPosition != null && hintPosition.first == row && hintPosition.second == col) 3.dp else 0.dp,
+                                                color = Color.Yellow
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         when (cell.state) {

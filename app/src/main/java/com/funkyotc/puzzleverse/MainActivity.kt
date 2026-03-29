@@ -116,15 +116,16 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 navArgument("mode") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val context = LocalContext.current
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository)
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository)
-                "constellations" -> ConstellationsScreen(navController = navController, mode = mode)
-                "shapes" -> ShapesScreen(navController = navController, mode = mode)
-                "wordle" -> WordleScreen(navController = navController) // Wordle stub doesn't use mode yet, that's fine
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, streakRepository = streakRepository)
+                "shapes" -> ShapesScreen(navController = navController, mode = mode, context = context, streakRepository = streakRepository)
+                "wordle" -> WordleScreen(navController = navController)
                 else -> {
                     GameScreen(
                         navController = navController,

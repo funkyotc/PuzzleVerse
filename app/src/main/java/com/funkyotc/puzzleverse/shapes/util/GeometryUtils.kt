@@ -91,25 +91,21 @@ object GeometryUtils {
     }
 
     private fun doSegmentsIntersect(p1: Offset, p2: Offset, q1: Offset, q2: Offset): Boolean {
-        // Standard segment intersection
-        // ... (implementation omitted for brevity in first pass, can use java.awt.geom.Line2D or manual math)
-        // Implementing manual math for cross product approach
-        
         fun crossProduct(a: Offset, b: Offset, c: Offset): Float {
             return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
         }
 
-        // Check if endpoints of one segment are on opposite sides of the other line
-        // BUT strict intersection only, touching is allowed?
-        // Usually for "inside" check, touching boundary is fine.
-        // Crossing is bad.
-        
-        // This is complex to get right quickly. 
-        // Strategy B: Ray casing for every point on the edge?
-        // Let's rely on vertex check + no intersection with other pieces for now. 
-        // For Target vs Piece, if Piece is inside Target, we usually just need to check vertices + no edge crossing.
-        
-        return false // Placeholder, to be implemented if needed.
+        val d1 = crossProduct(q1, q2, p1)
+        val d2 = crossProduct(q1, q2, p2)
+        val d3 = crossProduct(p1, p2, q1)
+        val d4 = crossProduct(p1, p2, q2)
+
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+            return true
+        }
+
+        return false
     }
 
     fun transformPolygon(
