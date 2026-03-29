@@ -9,6 +9,10 @@ import com.funkyotc.puzzleverse.constellations.generator.ConstellationsPuzzleGen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import kotlin.random.Random
 
@@ -21,6 +25,14 @@ class ConstellationsViewModel(
 
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon.asStateFlow()
+
+    private val _elapsedSeconds = MutableStateFlow(0)
+    val elapsedSeconds: StateFlow<Int> = _elapsedSeconds.asStateFlow()
+
+    private val _moves = MutableStateFlow(0)
+    val moves: StateFlow<Int> = _moves.asStateFlow()
+
+    private var timerJob: Job? = null
 
     private val generator = ConstellationsPuzzleGenerator()
 
@@ -50,6 +62,19 @@ class ConstellationsViewModel(
         
         _puzzle.value = generator.generate(seed = seed)
         _isGameWon.value = false
+        _moves.value = 0
+        _elapsedSeconds.value = 0
+        startTimer()
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                _elapsedSeconds.value++
+            }
+        }
     }
 
     fun onCellClicked(row: Int, col: Int) {
@@ -64,6 +89,43 @@ class ConstellationsViewModel(
         }
         
         updateCellState(row, col, newState, isAuto = false)
+    }
+
+    fun hint() {
+        if (_isGameWon.value) return
+        val currentPuzzle = _puzzle.value ?: return
+        
+        val missingStar = currentPuzzle.solution.firstOrNull { (r, c) ->
+            currentPuzzle.cells[r][c].state != CellState.STAR
+        }
+        
+        if (missingStar != null) {
+            val (r, c) = missingStar
+            updateCellState(r, c, CellState.STAR, isAuto = false)
+        }
+    }
+
+    fun errorCheck() {
+        if (_isGameWon.value) return
+        val currentPuzzle = _puzzle.value ?: return
+        
+        var hasError = false
+        val newCells = currentPuzzle.cells.map { it.map { cell -> cell.copy() }.toMutableList() }.toMutableList()
+        
+        for (r in newCells.indices) {
+            for (c in newCells[r].indices) {
+                if (newCells[r][c].state == CellState.STAR) {
+                    if (!currentPuzzle.solution.contains(Pair(r, c))) {
+                        newCells[r][c].isError = true
+                        hasError = true
+                    }
+                }
+            }
+        }
+        
+        if (hasError) {
+            _puzzle.value = currentPuzzle.copy(cells = newCells)
+        }
     }
 
     fun onDragStart(row: Int, col: Int) {
@@ -83,7 +145,12 @@ class ConstellationsViewModel(
     private fun updateCellState(row: Int, col: Int, newState: CellState, isAuto: Boolean) {
         val currentPuzzle = _puzzle.value ?: return
         
-        val newCells = currentPuzzle.cells.map { it.map { cell -> cell.copy() }.toMutableList() }.toMutableList()
+        if (!isAuto) {
+            _moves.value++
+        }
+        
+        // This clears any existing isError state implicitly on any move action
+        val newCells = currentPuzzle.cells.map { it.map { cell -> cell.copy(isError = false) }.toMutableList() }.toMutableList()
         
         newCells[row][col].state = newState
         newCells[row][col].isAuto = isAuto
@@ -172,6 +239,7 @@ class ConstellationsViewModel(
             }
         }
 
+        timerJob?.cancel()
         _isGameWon.value = true
     }
 }

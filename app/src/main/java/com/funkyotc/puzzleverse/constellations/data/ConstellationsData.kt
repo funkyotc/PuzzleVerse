@@ -11,11 +11,13 @@ data class Cell(
     val col: Int,
     val regionId: Int,
     var state: CellState = CellState.EMPTY,
-    var isAuto: Boolean = false
+    var isAuto: Boolean = false,
+    var isError: Boolean = false
 )
 
 data class ConstellationsPuzzle(
     val size: Int,
     val cells: List<List<Cell>>, // 2D grid
-    val regions: Map<Int, List<Pair<Int, Int>>> // regionId -> list of (row, col) coordinates
+    val regions: Map<Int, List<Pair<Int, Int>>>, // regionId -> list of (row, col) coordinates
+    val solution: List<Pair<Int, Int>>
 )

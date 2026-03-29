@@ -15,7 +15,7 @@ class ConstellationsPuzzleGenerator {
         // 2. Generate Regions
         val (cells, regions) = generateRegions(size, starPositions, random)
 
-        return ConstellationsPuzzle(size, cells, regions)
+        return ConstellationsPuzzle(size, cells, regions, starPositions)
     }
 
     private fun placeStars(size: Int, random: Random): List<Pair<Int, Int>> {

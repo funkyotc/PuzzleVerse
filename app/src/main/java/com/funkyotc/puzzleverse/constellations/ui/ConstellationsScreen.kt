@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +60,8 @@ fun ConstellationsScreen(
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
     val isGameWon by constellationsViewModel.isGameWon.collectAsState()
+    val elapsedSeconds by constellationsViewModel.elapsedSeconds.collectAsState()
+    val moves by constellationsViewModel.moves.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
 
     if (isGameWon) {
@@ -103,6 +108,12 @@ fun ConstellationsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { constellationsViewModel.hint() }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Hint")
+                    }
+                    IconButton(onClick = { constellationsViewModel.errorCheck() }) {
+                        Icon(Icons.Filled.Warning, contentDescription = "Check Errors")
+                    }
                     if (mode != "daily") {
                         IconButton(onClick = { showNewGameDialog = true }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
@@ -119,6 +130,14 @@ fun ConstellationsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val timeFormatted = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp, start = 8.dp, end = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Time: $timeFormatted")
+                Text(text = "Moves: $moves")
+            }
             puzzle?.let { p ->
                 val regionColors = rememberRegionColors(p.regions.keys)
                 var gridSize by remember { mutableStateOf(IntSize.Zero) }
@@ -168,7 +187,7 @@ fun ConstellationsScreen(
                                             CellState.STAR -> Icon(
                                                 Icons.Filled.Star,
                                                 contentDescription = "Star",
-                                                tint = Color.Black
+                                                tint = if (cell.isError) Color.Red else Color.Black
                                             )
                                             CellState.CROSS -> Icon(
                                                 Icons.Filled.Close,
