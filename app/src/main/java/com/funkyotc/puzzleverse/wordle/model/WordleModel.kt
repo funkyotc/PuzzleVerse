@@ -8,8 +8,14 @@ enum class LetterState {
     EMPTY    // Not yet guessed
 }
 
+enum class GameStatus {
+    PLAYING,
+    WON,
+    LOST
+}
+
 // Represents a single cell on the Wordle grid
-data class WordleLetter(val char: Char, val state: LetterState)
+data class WordleLetter(val char: Char, val state: LetterState = LetterState.EMPTY)
 
 // Represents a single guess (a row on the grid)
 data class WordleGuess(val letters: List<WordleLetter>)
@@ -18,5 +24,8 @@ data class WordleGuess(val letters: List<WordleLetter>)
 data class WordleState(
     val guesses: List<WordleGuess>,
     val solution: String,
-    val currentGuessIndex: Int
+    val currentGuessIndex: Int,
+    val gameStatus: GameStatus = GameStatus.PLAYING,
+    val keyboardState: Map<Char, LetterState> = emptyMap(),
+    val missingFeedback: String? = null
 )
