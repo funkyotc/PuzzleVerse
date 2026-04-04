@@ -210,6 +210,15 @@ fun ShapesScreen(
                             }
                         }
                         
+                        if (isSelected) {
+                            // Draw a shadow for selected piece to give depth
+                            drawPath(
+                                piecePath,
+                                Color.Black.copy(alpha = 0.3f),
+                                style = Stroke(width = 12f)
+                            )
+                        }
+
                         drawPath(piecePath, piece.color, style = Fill)
                         drawPath(
                             piecePath, 

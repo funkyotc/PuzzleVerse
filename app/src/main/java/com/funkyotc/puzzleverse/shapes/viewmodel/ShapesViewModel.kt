@@ -24,6 +24,8 @@ class ShapesViewModel(
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon.asStateFlow()
 
+    private var currentLevel = 0
+
     init {
         loadNewPuzzle()
     }
@@ -36,50 +38,9 @@ class ShapesViewModel(
         }
         val random = Random(seed)
 
-        // Create the puzzle
-        // To provide variety with just one hardcoded puzzle, we will:
-        // 1. Randomize the initial positions of pieces more effectively
-        // 2. Randomize the initial rotation of pieces
-        // 3. (Optional) Flip the whole puzzle geometry randomly?
-        
-        // Define Local Shapes
-        val p1Local = listOf(Offset(-33f, -33f), Offset(67f, -33f), Offset(-33f, 67f))
-        val p2Local = listOf(Offset(33f, 33f), Offset(-67f, 33f), Offset(33f, -67f))
-
-        val pieces = listOf(
-            PuzzlePiece(
-                id = 1, 
-                initialVertices = p1Local, 
-                position = Offset(
-                    random.nextInt(61) * 10f + 50f, 
-                    random.nextInt(41) * 10f + 400f
-                ), 
-                rotation = random.nextInt(4) * 90f, 
-                color = Color.Red
-            ),
-            PuzzlePiece(
-                id = 2, 
-                initialVertices = p2Local, 
-                position = Offset(
-                    random.nextInt(61) * 10f + 50f, 
-                    random.nextInt(41) * 10f + 400f
-                ), 
-                rotation = random.nextInt(4) * 90f,
-                color = Color.Green
-            ) 
-        )
-
-        // Target: a 100x100 square at (100, 100)
-        val targetVertices = listOf(
-             Offset(100f, 100f),
-             Offset(200f, 100f),
-             Offset(200f, 200f),
-             Offset(100f, 200f)
-        )
-        val target = TargetShape(targetVertices)
-
-        _puzzle.value = ShapesPuzzle(pieces, target)
+        _puzzle.value = com.funkyotc.puzzleverse.shapes.util.ShapesLevels.generateLevel(currentLevel, random)
         _isGameWon.value = false
+        currentLevel++
     }
 
     fun movePiece(pieceId: Int, newPosition: Offset) {
