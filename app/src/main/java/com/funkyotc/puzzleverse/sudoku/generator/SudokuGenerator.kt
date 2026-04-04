@@ -82,4 +82,19 @@ class SudokuGenerator {
         }
         return true
     }
+
+    fun getSolutionGrid(currentBoard: SudokuBoard): Array<IntArray>? {
+        val tempGrid = Array(9) { IntArray(9) }
+        for (cell in currentBoard.cells) {
+            tempGrid[cell.row][cell.col] = cell.number
+        }
+        
+        // Use backtracking to find the solution starting from tempGrid
+        val tempGenerator = SudokuGenerator()
+        tempGenerator.grid = tempGrid
+        if (tempGenerator.solve(Random(0))) {
+            return tempGenerator.grid
+        }
+        return null
+    }
 }

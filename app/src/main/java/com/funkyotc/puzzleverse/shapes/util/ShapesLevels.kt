@@ -36,8 +36,8 @@ object ShapesLevels {
         val p2Local = listOf(Offset(50f, 50f), Offset(50f, -50f), Offset(-50f, 50f))
         
         val pieces = listOf(
-            PuzzlePiece(1, p1Local, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[0]),
-            PuzzlePiece(2, p2Local, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[1])
+            PuzzlePiece(1, p1Local, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[0], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, p2Local, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[1], solutionPosition = Offset(200f, 200f), solutionRotation = 0f)
         )
 
         val targetVertices = listOf(
@@ -79,9 +79,9 @@ object ShapesLevels {
         val rightBase = listOf(Offset(-25f, -50f), Offset(25f, -50f), Offset(25f, 50f), Offset(-25f, 50f))
         
         val fixedPieces = listOf(
-            PuzzlePiece(1, roof, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[0]),
-            PuzzlePiece(2, leftBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[1]),
-            PuzzlePiece(3, rightBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[2])
+            PuzzlePiece(1, roof, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[0], solutionPosition = Offset(200f, 150f), solutionRotation = 0f),
+            PuzzlePiece(2, leftBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[1], solutionPosition = Offset(175f, 200f), solutionRotation = 0f),
+            PuzzlePiece(3, rightBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[2], solutionPosition = Offset(225f, 200f), solutionRotation = 0f)
         )
         return ShapesPuzzle(fixedPieces, TargetShape(targetVertices))
     }
@@ -100,9 +100,9 @@ object ShapesLevels {
         val sailR = listOf(Offset(0f, -40f), Offset(40f, 40f), Offset(0f, 40f))
         
         val pieces = listOf(
-            PuzzlePiece(1, mast, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[0]),
-            PuzzlePiece(2, hull, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[1]),
-            PuzzlePiece(3, sailR, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[2])
+            PuzzlePiece(1, mast, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[0], solutionPosition = Offset(210f, 150f), solutionRotation = 0f),
+            PuzzlePiece(2, hull, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[1], solutionPosition = Offset(200f, 220f), solutionRotation = 0f),
+            PuzzlePiece(3, sailR, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel3[2], solutionPosition = Offset(220f, 160f), solutionRotation = 0f)
         )
         
         // Target shape roughly resembling the combined pieces
@@ -125,11 +125,11 @@ object ShapesLevels {
         val square = listOf(Offset(-25f, -25f), Offset(25f, -25f), Offset(25f, 25f), Offset(-25f, 25f))
         
         val pieces = listOf(
-            PuzzlePiece(1, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[0]),
-            PuzzlePiece(2, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[1]),
-            PuzzlePiece(3, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[2]),
-            PuzzlePiece(4, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[3]),
-            PuzzlePiece(5, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[4])
+            PuzzlePiece(1, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[0], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[1], solutionPosition = Offset(200f, 150f), solutionRotation = 0f),
+            PuzzlePiece(3, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[2], solutionPosition = Offset(200f, 250f), solutionRotation = 0f),
+            PuzzlePiece(4, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[3], solutionPosition = Offset(150f, 200f), solutionRotation = 0f),
+            PuzzlePiece(5, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel4[4], solutionPosition = Offset(250f, 200f), solutionRotation = 0f)
         )
 
         // Center at (200, 200)
@@ -146,8 +146,8 @@ object ShapesLevels {
         val head = listOf(Offset(-40f, 0f), Offset(40f, 0f), Offset(0f, -60f))
         
         val pieces = listOf(
-            PuzzlePiece(1, base, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel5[0]),
-            PuzzlePiece(2, head, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel5[1])
+            PuzzlePiece(1, base, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel5[0], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, head, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel5[1], solutionPosition = Offset(200f, 160f), solutionRotation = 0f)
         )
 
         // Target: point up at (200, 100), handle from (180, 160) to (220, 240)
@@ -162,10 +162,10 @@ object ShapesLevels {
         val tri = listOf(Offset(0f, 0f), Offset(50f, 0f), Offset(0f, -50f))
         
         val pieces = listOf(
-            PuzzlePiece(1, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[0]),
-            PuzzlePiece(2, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[1]),
-            PuzzlePiece(3, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[2]),
-            PuzzlePiece(4, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[3])
+            PuzzlePiece(1, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[0], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[1], solutionPosition = Offset(200f, 200f), solutionRotation = 90f),
+            PuzzlePiece(3, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[2], solutionPosition = Offset(200f, 200f), solutionRotation = 180f),
+            PuzzlePiece(4, tri, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel6[3], solutionPosition = Offset(200f, 200f), solutionRotation = 270f)
         )
 
         // Diamond center (200, 200). Size 100x100
@@ -181,9 +181,9 @@ object ShapesLevels {
         val support = listOf(Offset(-5f, -20f), Offset(5f, -20f), Offset(5f, 20f), Offset(-5f, 20f))
 
         val pieces = listOf(
-            PuzzlePiece(1, top, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[0]),
-            PuzzlePiece(2, bottom, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[1]),
-            PuzzlePiece(3, support, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[2])
+            PuzzlePiece(1, top, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[0], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, bottom, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[1], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(3, support, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel7[2], solutionPosition = Offset(200f, 200f), solutionRotation = 0f)
         )
 
         // Hourglass shape Target is slightly more complex
@@ -200,9 +200,9 @@ object ShapesLevels {
         val triR = listOf(Offset(0f, -40f), Offset(40f, 40f), Offset(0f, 40f))
 
         val pieces = listOf(
-            PuzzlePiece(1, triL, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[0]),
-            PuzzlePiece(2, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[1]),
-            PuzzlePiece(3, triR, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[2])
+            PuzzlePiece(1, triL, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[0], solutionPosition = Offset(160f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[1], solutionPosition = Offset(200f, 200f), solutionRotation = 0f),
+            PuzzlePiece(3, triR, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel8[2], solutionPosition = Offset(240f, 200f), solutionRotation = 0f)
         )
 
         // Target: (120, 160) to (280, 160), bottom is wider

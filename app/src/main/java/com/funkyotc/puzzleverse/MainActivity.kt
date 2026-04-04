@@ -124,7 +124,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository)
                 "constellations" -> ConstellationsScreen(navController = navController, mode = mode)
                 "shapes" -> ShapesScreen(navController = navController, mode = mode)
-                "wordle" -> WordleScreen(navController = navController) // Wordle stub doesn't use mode yet, that's fine
+                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository)
                 else -> {
                     GameScreen(
                         navController = navController,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -114,8 +115,13 @@ fun BonzaScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showNewGameDialog = true }) {
-                        Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                    IconButton(onClick = { bonzaViewModel.hint() }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Hint")
+                    }
+                    if (mode != "daily") {
+                        IconButton(onClick = { showNewGameDialog = true }) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                        }
                     }
                 }
             )

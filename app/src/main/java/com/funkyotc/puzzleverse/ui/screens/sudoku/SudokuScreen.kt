@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -118,6 +119,9 @@ fun SudokuScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { sudokuViewModel.hint() }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Hint")
+                    }
                     if (mode == "standard") {
                         IconButton(onClick = { showNewGameDialog = true }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")

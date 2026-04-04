@@ -24,6 +24,11 @@ import com.funkyotc.puzzleverse.wordle.model.LetterState
 import com.funkyotc.puzzleverse.wordle.model.WordleLetter
 import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModel
 
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModelFactory
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shuffle
+
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
 val AbsentColor = Color(0xFF546E7A)  // Slate Gray
@@ -34,9 +39,13 @@ val TextColor = Color.White
 @Composable
 fun WordleScreen(
     navController: NavController,
-    viewModel: WordleViewModel = viewModel()
+    mode: String? = "standard",
+    streakRepository: StreakRepository,
+    viewModel: WordleViewModel = viewModel(
+        factory = WordleViewModelFactory(mode, streakRepository) 
+    )
 ) {
-    val state by viewModel.wordleState.collectAsState()
+    val gameState by viewModel.wordleState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -47,16 +56,39 @@ fun WordleScreen(
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                actions = {
+                    IconButton(onClick = { viewModel.hint() }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Hint")
+                    }
+                    if (mode == "standard") {
+                        IconButton(onClick = { viewModel.startNewGame() }) {
+                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF1E272C),
                     titleContentColor = TextColor,
-                    navigationIconContentColor = TextColor
+                    navigationIconContentColor = TextColor,
+                    actionIconContentColor = TextColor
                 )
             )
         },
         containerColor = Color(0xFF161C20)
     ) { paddingValues ->
-        state?.let { gameState ->
+            val state = gameState
+            if (state == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Color.White)
+                }
+                return@Scaffold
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -72,7 +104,7 @@ fun WordleScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    gameState.guesses.forEach { guess ->
+                    state.guesses.forEach { guess ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             guess.letters.forEach { letter ->
                                 WordleTile(letter)
@@ -82,9 +114,10 @@ fun WordleScreen(
                 }
 
                 // Temporary Feedback (e.g. "Not enough letters")
-                if (gameState.missingFeedback != null) {
+                val feedback = state.missingFeedback
+                if (feedback != null) {
                     Text(
-                        text = gameState.missingFeedback,
+                        text = feedback,
                         color = Color(0xFFEF5350),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(8.dp)
@@ -93,14 +126,14 @@ fun WordleScreen(
 
                 // Keyboard
                 WordleKeyboard(
-                    keyboardState = gameState.keyboardState,
+                    keyboardState = state.keyboardState,
                     onLetterTyped = { viewModel.onLetterTyped(it) },
                     onBackspace = { viewModel.onBackspace() },
                     onSubmit = { viewModel.onSubmitGuess() }
                 )
 
                 // Dialogs
-                if (gameState.gameStatus == GameStatus.WON) {
+                if (state.gameStatus == GameStatus.WON) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = { Text("Magnificent!") },
@@ -111,11 +144,11 @@ fun WordleScreen(
                             }
                         }
                     )
-                } else if (gameState.gameStatus == GameStatus.LOST) {
+                } else if (state.gameStatus == GameStatus.LOST) {
                     AlertDialog(
                         onDismissRequest = {},
                         title = { Text("Game Over") },
-                        text = { Text("The correct word was ${gameState.solution}") },
+                        text = { Text("The correct word was ${state.solution}") },
                         confirmButton = {
                             Button(onClick = { viewModel.startNewGame() }) {
                                 Text("Play Again")
@@ -126,7 +159,6 @@ fun WordleScreen(
             }
         }
     }
-}
 
 @Composable
 fun WordleTile(letter: WordleLetter) {

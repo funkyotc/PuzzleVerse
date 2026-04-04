@@ -26,7 +26,7 @@ class BonzaViewModel(
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon
 
-    private val _puzzle = MutableStateFlow(puzzleGenerator.generate())
+    private val _puzzle = MutableStateFlow(generatePuzzle())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
     private var draggedFragmentGroupId: Int? = null
@@ -35,6 +35,41 @@ class BonzaViewModel(
 
     init {
         // Initialize Bonza game state here
+    }
+
+    private fun generatePuzzle(): BonzaPuzzle {
+        val seed = if (mode == "daily") {
+            java.time.LocalDate.now().toEpochDay()
+        } else {
+            kotlin.random.Random.nextLong()
+        }
+        return puzzleGenerator.generate(seed)
+    }
+
+    fun hint() {
+        if (_isGameWon.value) return
+        val currentPuzzle = _puzzle.value
+        val fragments = currentPuzzle.fragments
+        if (fragments.isEmpty()) return
+
+        // Find an anchor group and a moving group that are disconnected
+        val anchorGroupId = fragments.first().groupId
+        
+        // Find a fragment that is NOT in the anchor group
+        val movingFragment = fragments.find { it.groupId != anchorGroupId } ?: return
+        
+        // Calculate the vector needed to move movingFragment to its solved relative position against an anchor fragment.
+        val anchorFragment = fragments.first { it.groupId == anchorGroupId }
+        
+        val movingSolved = movingFragment.solvedPosition ?: return
+        val anchorSolved = anchorFragment.solvedPosition ?: return
+        
+        val relativeVector = movingSolved - anchorSolved
+        val targetPosition = anchorFragment.currentPosition + relativeVector
+        val moveDelta = targetPosition - movingFragment.currentPosition
+        
+        snapGroup(movingFragment.groupId, moveDelta, anchorGroupId)
+        checkWinCondition()
     }
 
     fun onDragStart(position: Offset) {
@@ -161,6 +196,14 @@ class BonzaViewModel(
         }
 
         if (isSolved) {
+            if (!_isGameWon.value && mode == "daily") {
+                val today = java.time.LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("bonza")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1
+                    streakRepository.saveStreak(streak.copy(count = newCount, lastCompletedEpochDay = today))
+                }
+            }
             _isGameWon.value = true
         }
     }
@@ -204,7 +247,8 @@ class BonzaViewModel(
     }
 
     fun newGame() {
+        if (mode == "daily") return // usually new game is disabled manually, but as fallback
         _isGameWon.value = false
-        _puzzle.value = puzzleGenerator.generate()
+        _puzzle.value = generatePuzzle()
     }
 }

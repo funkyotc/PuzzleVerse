@@ -12,7 +12,9 @@ data class PuzzlePiece(
     val rotation: Float = 0f, // Angle in degrees
     val isFlipped: Boolean = false,
     val color: Color = Color.Blue,
-    val isLocked: Boolean = false // If true, piece is correctly placed and shouldn't move
+    val isLocked: Boolean = false, // If true, piece is correctly placed and shouldn't move
+    val solutionPosition: Offset = Offset.Zero,
+    val solutionRotation: Float = 0f
 ) {
     // Computed property for current world vertices
     val currentVertices: List<Offset> get() = GeometryUtils.transformPolygon(

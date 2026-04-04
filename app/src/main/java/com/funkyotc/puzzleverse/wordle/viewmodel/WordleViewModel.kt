@@ -10,7 +10,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
 
-class WordleViewModel : ViewModel() {
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import java.time.LocalDate
+
+class WordleViewModel(
+    private val mode: String?,
+    private val streakRepository: StreakRepository
+) : ViewModel() {
 
     private val _wordleState = MutableStateFlow<WordleState?>(null)
     val wordleState: StateFlow<WordleState?> = _wordleState
@@ -28,7 +34,8 @@ class WordleViewModel : ViewModel() {
         val emptyGuesses = List(6) { 
             WordleGuess(List(5) { WordleLetter(' ', LetterState.EMPTY) })
         }
-        val solution = validWords.random(Random(System.currentTimeMillis()))
+        val seed = if (mode == "daily") LocalDate.now().toEpochDay() else System.currentTimeMillis()
+        val solution = validWords.random(Random(seed))
         _wordleState.value = WordleState(
             guesses = emptyGuesses, 
             solution = solution, 
@@ -65,7 +72,6 @@ class WordleViewModel : ViewModel() {
         val currentGuessIndex = currentState.currentGuessIndex
         val currentGuess = currentState.guesses[currentGuessIndex]
 
-        // Find the last filled index
         val lastFilledIndex = currentGuess.letters.indexOfLast { it.char != ' ' }
         if (lastFilledIndex != -1) {
             val updatedLetters = currentGuess.letters.toMutableList()
@@ -75,6 +81,23 @@ class WordleViewModel : ViewModel() {
             updatedGuesses[currentGuessIndex] = WordleGuess(updatedLetters)
 
             _wordleState.value = currentState.copy(guesses = updatedGuesses, missingFeedback = null)
+        }
+    }
+
+    fun hint() {
+        val currentState = _wordleState.value ?: return
+        if (currentState.gameStatus != GameStatus.PLAYING) return
+
+        val solutionChars = currentState.solution.toSet()
+        val guessedChars = currentState.keyboardState.keys
+        val unguessedChars = solutionChars - guessedChars
+
+        if (unguessedChars.isNotEmpty()) {
+            val hintChar = unguessedChars.random()
+            val newKeyboardState = currentState.keyboardState.toMutableMap()
+            // Mark the hint char as PRESENT so it lights up on the keyboard as Amber
+            newKeyboardState[hintChar] = LetterState.PRESENT
+            _wordleState.value = currentState.copy(keyboardState = newKeyboardState)
         }
     }
 
@@ -91,23 +114,16 @@ class WordleViewModel : ViewModel() {
             return
         }
 
-        if (guessWord !in validWords) {
-            // For a small dictionary prototype, letting them guess any 5 chars could be ok, 
-            // but strict check feels more realistic. Optionally bypass.
-            // Let's bypass strict dictionary for arbitrary guesses since dict is only 20 words for now to avoid frustration.
-        }
-
         val evaluatedLetters = evaluateGuess(guessWord, currentState.solution)
         val updatedGuesses = currentState.guesses.toMutableList()
         updatedGuesses[currentState.currentGuessIndex] = WordleGuess(evaluatedLetters)
 
-        // Update keyboard state globally
         val newKeyboardState = currentState.keyboardState.toMutableMap()
         evaluatedLetters.forEach { letter ->
             val existingState = newKeyboardState[letter.char]
-            if (existingState != LetterState.CORRECT) { // Never downgrade a correct letter
+            if (existingState != LetterState.CORRECT) {
                 if (existingState == LetterState.PRESENT && letter.state == LetterState.ABSENT) {
-                    // Don't downgrade present to absent if they guessed it again in wrong spot
+                    // Do nothing
                 } else {
                     newKeyboardState[letter.char] = letter.state
                 }
@@ -118,6 +134,18 @@ class WordleViewModel : ViewModel() {
             guessWord == currentState.solution -> GameStatus.WON
             currentState.currentGuessIndex == 5 -> GameStatus.LOST
             else -> GameStatus.PLAYING
+        }
+
+        if (newGameStatus == GameStatus.WON && mode == "daily") {
+            val today = LocalDate.now().toEpochDay()
+            val streak = streakRepository.getStreak("wordle")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
         }
 
         _wordleState.value = currentState.copy(
@@ -133,21 +161,19 @@ class WordleViewModel : ViewModel() {
         val result = MutableList(5) { WordleLetter(' ', LetterState.EMPTY) }
         val solutionCharsLeft = solution.toMutableList()
 
-        // Pass 1: Find CORRECT
         for (i in guess.indices) {
             if (guess[i] == solution[i]) {
                 result[i] = WordleLetter(guess[i], LetterState.CORRECT)
-                solutionCharsLeft[i] = ' ' // nullify
+                solutionCharsLeft[i] = ' '
             }
         }
 
-        // Pass 2: Find PRESENT or ABSENT
         for (i in guess.indices) {
             if (result[i].state != LetterState.CORRECT) {
                 val indexInSolution = solutionCharsLeft.indexOf(guess[i])
                 if (indexInSolution != -1) {
                     result[i] = WordleLetter(guess[i], LetterState.PRESENT)
-                    solutionCharsLeft[indexInSolution] = ' ' // use it up
+                    solutionCharsLeft[indexInSolution] = ' '
                 } else {
                     result[i] = WordleLetter(guess[i], LetterState.ABSENT)
                 }

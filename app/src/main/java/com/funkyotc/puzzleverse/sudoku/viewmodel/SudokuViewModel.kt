@@ -147,6 +147,33 @@ class SudokuViewModel(
         _selectedCell.value = null
     }
 
+    fun hint() {
+        if (_isGameWon.value) return
+        val currentBoard = _board.value
+        val emptyCells = currentBoard.cells.filter { it.number == 0 }
+        if (emptyCells.isEmpty()) return
+
+        val solutionGrid = generator.getSolutionGrid(currentBoard) ?: return
+        
+        // Pick a random empty cell
+        val targetCell = emptyCells.random()
+        val correctNumber = solutionGrid[targetCell.row][targetCell.col]
+
+        val newCells = currentBoard.cells.map {
+            if (it.row == targetCell.row && it.col == targetCell.col) {
+                // We set isHint = true to lock it permanently
+                it.copy(number = correctNumber, pencilMarks = emptySet(), isHint = true, isError = false)
+            } else {
+                it
+            }
+        }
+        val newBoard = validateBoard(SudokuBoard(newCells))
+        _board.value = newBoard
+        boardHistory.add(newBoard)
+        repository.saveBoard(newBoard, boardKey)
+        checkWinCondition(newBoard)
+    }
+
     private fun validateBoard(board: SudokuBoard): SudokuBoard {
         val cells = board.cells
         val errorPositions = mutableSetOf<Pair<Int, Int>>()

@@ -14,3 +14,8 @@
 .cxx
 local.properties
 .kotlin
+build_err.txt
+build_error.txt
+build_error2.txt
+build_output.txt
+build.log

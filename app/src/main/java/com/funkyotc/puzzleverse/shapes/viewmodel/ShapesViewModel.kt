@@ -115,6 +115,27 @@ class ShapesViewModel(
         }
     }
 
+    fun hint() {
+        _puzzle.value?.let { currentPuzzle ->
+            if (currentPuzzle.isComplete) return
+            
+            // Find a piece that is not yet locked and not exactly at its solution position
+            val pieceToHint = currentPuzzle.pieces.find { !it.isLocked && (it.position != it.solutionPosition || it.rotation != it.solutionRotation) }
+            
+            if (pieceToHint != null) {
+                val updatedPieces = currentPuzzle.pieces.map {
+                    if (it.id == pieceToHint.id) {
+                        it.copy(position = it.solutionPosition, rotation = it.solutionRotation, isLocked = true)
+                    } else {
+                        it
+                    }
+                }
+                _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
+                checkCompletion()
+            }
+        }
+    }
+
     private fun checkCompletion() {
         val currentPuzzle = _puzzle.value ?: return
         
