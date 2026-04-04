@@ -9,13 +9,21 @@ class ConstellationsPuzzleGenerator {
 
     fun generate(size: Int = 8, seed: Long = Random.nextLong()): ConstellationsPuzzle {
         val random = Random(seed)
-        // 1. Place Stars
-        val starPositions = placeStars(size, random)
+        
+        while (true) {
+            // 1. Place Stars
+            val starPositions = placeStars(size, random)
+            if (starPositions.isEmpty()) continue
 
-        // 2. Generate Regions
-        val (cells, regions) = generateRegions(size, starPositions, random)
+            // 2. Generate Regions
+            val (cells, regions) = generateRegions(size, starPositions, random)
 
-        return ConstellationsPuzzle(size, cells, regions, starPositions)
+            // 3. Verify Unique Solution
+            val solutionCount = countSolutions(size, regions)
+            if (solutionCount == 1) {
+                return ConstellationsPuzzle(size, cells, regions, starPositions)
+            }
+        }
     }
 
     private fun placeStars(size: Int, random: Random): List<Pair<Int, Int>> {
@@ -151,5 +159,60 @@ class ConstellationsPuzzleGenerator {
         // Convert array to list
         val cellList = grid.map { it.toList() }
         return Pair(cellList, regions)
+    }
+
+    private fun countSolutions(size: Int, regions: Map<Int, List<Pair<Int, Int>>>): Int {
+        val regionOfCell = Array(size) { IntArray(size) }
+        for ((regionId, cells) in regions) {
+            for ((r, c) in cells) {
+                regionOfCell[r][c] = regionId
+            }
+        }
+        val regionHasStar = BooleanArray(regions.size)
+        val colHasStar = BooleanArray(size)
+        val stars = mutableListOf<Pair<Int, Int>>()
+        return solve(size, 0, regionOfCell, regionHasStar, colHasStar, stars)
+    }
+
+    private fun solve(
+        size: Int, 
+        row: Int, 
+        regionOfCell: Array<IntArray>, 
+        regionHasStar: BooleanArray, 
+        colHasStar: BooleanArray, 
+        stars: MutableList<Pair<Int, Int>>
+    ): Int {
+        if (row == size) return 1
+        
+        var count = 0
+        for (col in 0 until size) {
+            if (colHasStar[col]) continue
+            val regionId = regionOfCell[row][col]
+            if (regionHasStar[regionId]) continue
+            
+            // Adjacency check
+            var adjacent = false
+            for (i in stars.indices) {
+                val r = stars[i].first
+                val c = stars[i].second
+                if (kotlin.math.abs(r - row) <= 1 && kotlin.math.abs(c - col) <= 1) {
+                    adjacent = true
+                    break
+                }
+            }
+            if (adjacent) continue
+            
+            stars.add(Pair(row, col))
+            colHasStar[col] = true
+            regionHasStar[regionId] = true
+            
+            count += solve(size, row + 1, regionOfCell, regionHasStar, colHasStar, stars)
+            if (count > 1) return count // Short circuit!
+            
+            regionHasStar[regionId] = false
+            colHasStar[col] = false
+            stars.removeAt(stars.size - 1)
+        }
+        return count
     }
 }
