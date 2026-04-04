@@ -112,7 +112,7 @@ class ConstellationsPuzzleGenerator {
             }
 
             if (neighbors.isNotEmpty()) {
-                val (nr, nc) = neighbors.random()
+                val (nr, nc) = neighbors.random(random)
                 grid[nr][nc] = grid[nr][nc].copy(regionId = regionId)
                 regions[regionId]?.add(nr to nc)
                 frontier.add(Triple(nr, nc, regionId))
