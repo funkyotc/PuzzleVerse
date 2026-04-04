@@ -160,15 +160,25 @@ fun ConstellationsScreen(
                             }
                         }
                         .pointerInput(Unit) {
-                            detectDragGestures { change, dragAmount ->
-                                val offset = change.position
-                                val cellSize = gridSize.width / p.size.toFloat()
-                                val col = (offset.x / cellSize).toInt()
-                                val row = (offset.y / cellSize).toInt()
-                                if (row in 0 until p.size && col in 0 until p.size) {
-                                    constellationsViewModel.onDragOver(row, col)
+                            detectDragGestures(
+                                onDragStart = { offset ->
+                                    val cellSize = gridSize.width / p.size.toFloat()
+                                    val col = (offset.x / cellSize).toInt()
+                                    val row = (offset.y / cellSize).toInt()
+                                    if (row in 0 until p.size && col in 0 until p.size) {
+                                        constellationsViewModel.onDragStart(row, col)
+                                    }
+                                },
+                                onDrag = { change, _ ->
+                                    val offset = change.position
+                                    val cellSize = gridSize.width / p.size.toFloat()
+                                    val col = (offset.x / cellSize).toInt()
+                                    val row = (offset.y / cellSize).toInt()
+                                    if (row in 0 until p.size && col in 0 until p.size) {
+                                        constellationsViewModel.onDragOver(row, col)
+                                    }
                                 }
-                            }
+                            )
                         }
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
