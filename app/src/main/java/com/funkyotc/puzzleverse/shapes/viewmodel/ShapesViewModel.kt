@@ -51,8 +51,8 @@ class ShapesViewModel(
                 id = 1, 
                 initialVertices = p1Local, 
                 position = Offset(
-                    random.nextFloat() * 600f + 50f, 
-                    random.nextFloat() * 400f + 400f
+                    random.nextInt(61) * 10f + 50f, 
+                    random.nextInt(41) * 10f + 400f
                 ), 
                 rotation = random.nextInt(4) * 90f, 
                 color = Color.Red
@@ -61,8 +61,8 @@ class ShapesViewModel(
                 id = 2, 
                 initialVertices = p2Local, 
                 position = Offset(
-                    random.nextFloat() * 600f + 50f, 
-                    random.nextFloat() * 400f + 400f
+                    random.nextInt(61) * 10f + 50f, 
+                    random.nextInt(41) * 10f + 400f
                 ), 
                 rotation = random.nextInt(4) * 90f,
                 color = Color.Green
@@ -86,9 +86,32 @@ class ShapesViewModel(
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
 
+            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
+            val pieceWithNewPos = tentativePiece.copy(position = newPosition)
+
+            // Vertex snapping logic
+            var bestSnapDelta = Offset.Zero
+            var minDistance = 30f // Threshold for snapping
+
+            val targetVertices = currentPuzzle.target.vertices
+            val otherPiecesVertices = currentPuzzle.pieces.filter { it.id != pieceId }.flatMap { it.currentVertices }
+            val allSnapPoints = targetVertices + otherPiecesVertices
+
+            for (vertex in pieceWithNewPos.currentVertices) {
+                for (snapPoint in allSnapPoints) {
+                    val dist = kotlin.math.hypot(vertex.x - snapPoint.x, vertex.y - snapPoint.y)
+                    if (dist < minDistance) {
+                        minDistance = dist
+                        bestSnapDelta = Offset(snapPoint.x - vertex.x, snapPoint.y - vertex.y)
+                    }
+                }
+            }
+
+            val finalPosition = Offset(newPosition.x + bestSnapDelta.x, newPosition.y + bestSnapDelta.y)
+
             val updatedPieces = currentPuzzle.pieces.map {
                 if (it.id == pieceId && !it.isLocked) {
-                    it.copy(position = newPosition)
+                    it.copy(position = finalPosition)
                 } else {
                     it
                 }

@@ -54,7 +54,7 @@ object GeometryUtils {
                     if (projected > maxB) maxB = projected
                 }
 
-                if (maxA < minB || maxB < minA) return false
+                if (maxA <= minB + 1.0f || maxB <= minA + 1.0f) return false
             }
         }
         return true
@@ -91,25 +91,19 @@ object GeometryUtils {
     }
 
     private fun doSegmentsIntersect(p1: Offset, p2: Offset, q1: Offset, q2: Offset): Boolean {
-        // Standard segment intersection
-        // ... (implementation omitted for brevity in first pass, can use java.awt.geom.Line2D or manual math)
-        // Implementing manual math for cross product approach
-        
         fun crossProduct(a: Offset, b: Offset, c: Offset): Float {
             return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
         }
 
-        // Check if endpoints of one segment are on opposite sides of the other line
-        // BUT strict intersection only, touching is allowed?
-        // Usually for "inside" check, touching boundary is fine.
-        // Crossing is bad.
-        
-        // This is complex to get right quickly. 
-        // Strategy B: Ray casing for every point on the edge?
-        // Let's rely on vertex check + no intersection with other pieces for now. 
-        // For Target vs Piece, if Piece is inside Target, we usually just need to check vertices + no edge crossing.
-        
-        return false // Placeholder, to be implemented if needed.
+        val cp1 = crossProduct(p1, p2, q1)
+        val cp2 = crossProduct(p1, p2, q2)
+        val cp3 = crossProduct(q1, q2, p1)
+        val cp4 = crossProduct(q1, q2, p2)
+
+        val cross1 = (cp1 > 0f && cp2 < 0f) || (cp1 < 0f && cp2 > 0f)
+        val cross2 = (cp3 > 0f && cp4 < 0f) || (cp3 < 0f && cp4 > 0f)
+
+        return cross1 && cross2
     }
 
     fun transformPolygon(
