@@ -145,33 +145,37 @@ fun ShapesScreen(
                 Canvas(modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { offset ->
-                                // Hit test against CURRENT rotated/flipped vertices
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
-                                }
-                                selectedPieceId = clickedPiece?.id
-                            },
-                            onDoubleTap = { offset ->
-                                // Double tap shortcut to Rotate
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
-                                }
-                                clickedPiece?.let {
-                                    viewModel.rotatePiece(it.id, 90f)
+                        var lastTapTime = 0L
+                        var lastTapPos = androidx.compose.ui.geometry.Offset.Zero
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                                val down = event.changes.firstOrNull { it.changedToDown() }
+                                if (down != null) {
+                                    val offset = down.position
+                                    val clickedPiece = puzzleState.pieces.findLast { piece ->
+                                         GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
+                                    }
+                                    if (clickedPiece != null) {
+                                        selectedPieceId = clickedPiece.id
+                                        
+                                        val now = System.currentTimeMillis()
+                                        if (now - lastTapTime < 300 && (offset - lastTapPos).getDistance() < 50f) {
+                                            viewModel.rotatePiece(clickedPiece.id, 90f)
+                                            lastTapTime = 0L // reset
+                                        } else {
+                                            lastTapTime = now
+                                            lastTapPos = offset
+                                        }
+                                    } else {
+                                        selectedPieceId = null
+                                    }
                                 }
                             }
-                        )
+                        }
                     }
                     .pointerInput(Unit) {
                         detectDragGestures(
-                            onDragStart = { offset ->
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
-                                }
-                                selectedPieceId = clickedPiece?.id // Select on drag start
-                            },
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 selectedPieceId?.let { id ->

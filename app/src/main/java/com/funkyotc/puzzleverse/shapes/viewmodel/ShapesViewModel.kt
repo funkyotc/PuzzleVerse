@@ -38,7 +38,19 @@ class ShapesViewModel(
         }
         val random = Random(seed)
 
-        _puzzle.value = com.funkyotc.puzzleverse.shapes.util.ShapesLevels.generateLevel(currentLevel, random)
+        val originalLevel = com.funkyotc.puzzleverse.shapes.util.ShapesLevels.generateLevel(currentLevel, random)
+        
+        val scale = 2.5f
+        val scaledPieces = originalLevel.pieces.map { piece ->
+            piece.copy(
+                initialVertices = piece.initialVertices.map { Offset(it.x * scale, it.y * scale) },
+                position = Offset(piece.position.x * scale, piece.position.y * scale),
+                solutionPosition = Offset(piece.solutionPosition.x * scale, piece.solutionPosition.y * scale)
+            )
+        }
+        val scaledTarget = TargetShape(originalLevel.target.vertices.map { Offset(it.x * scale, it.y * scale) })
+
+        _puzzle.value = originalLevel.copy(pieces = scaledPieces, target = scaledTarget)
         _isGameWon.value = false
         currentLevel++
     }
