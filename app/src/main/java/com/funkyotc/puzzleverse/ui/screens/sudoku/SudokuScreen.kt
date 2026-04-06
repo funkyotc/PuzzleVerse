@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,6 +75,20 @@ fun SudokuScreen(
     val isGameWon by sudokuViewModel.isGameWon.collectAsState()
     val isPencilOn by sudokuViewModel.isPencilOn.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var showHowToDialog by remember { mutableStateOf(false) }
+
+    if (showHowToDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowToDialog = false },
+            title = { Text("How To Play") },
+            text = { Text("Fill the 9x9 grid so that each column, each row, and each of the nine 3x3 grids contain all of the digits from 1 to 9.") },
+            confirmButton = {
+                TextButton(onClick = { showHowToDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     if (isGameWon) {
         AlertDialog(
@@ -119,10 +134,13 @@ fun SudokuScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHowToDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How To")
+                    }
                     IconButton(onClick = { sudokuViewModel.hint() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
-                    if (mode == "standard") {
+                    if (mode != "daily") {
                         IconButton(onClick = { showNewGameDialog = true }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }

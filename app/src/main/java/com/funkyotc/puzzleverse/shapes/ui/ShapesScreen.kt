@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +54,20 @@ fun ShapesScreen(
     val isGameWon by viewModel.isGameWon.collectAsState()
     var selectedPieceId by remember { mutableStateOf<Int?>(null) }
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var showHowToDialog by remember { mutableStateOf(false) }
+
+    if (showHowToDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowToDialog = false },
+            title = { Text("How To Play") },
+            text = { Text("Drag, rotate, and flip the pieces so they fit perfectly into the target shape.") },
+            confirmButton = {
+                TextButton(onClick = { showHowToDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     if (isGameWon) {
         AlertDialog(
@@ -99,6 +114,9 @@ fun ShapesScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHowToDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How To")
+                    }
                     IconButton(onClick = { viewModel.hint() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }

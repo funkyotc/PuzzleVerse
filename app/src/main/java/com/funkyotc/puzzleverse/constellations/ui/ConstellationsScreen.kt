@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +64,20 @@ fun ConstellationsScreen(
     val elapsedSeconds by constellationsViewModel.elapsedSeconds.collectAsState()
     val moves by constellationsViewModel.moves.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var showHowToDialog by remember { mutableStateOf(false) }
+
+    if (showHowToDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowToDialog = false },
+            title = { Text("How To Play") },
+            text = { Text("Place one star in every row, column, and colored region. Stars cannot touch each other, not even diagonally.") },
+            confirmButton = {
+                TextButton(onClick = { showHowToDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     if (isGameWon) {
         AlertDialog(
@@ -108,6 +123,9 @@ fun ConstellationsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHowToDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How To")
+                    }
                     IconButton(onClick = { constellationsViewModel.hint() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }

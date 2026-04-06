@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -70,6 +71,20 @@ fun BonzaScreen(
     val isGameWon by bonzaViewModel.isGameWon.collectAsState()
     val puzzle by bonzaViewModel.puzzle.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var showHowToDialog by remember { mutableStateOf(false) }
+
+    if (showHowToDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowToDialog = false },
+            title = { Text("How To Play") },
+            text = { Text("Move the puzzle pieces around to form interlocking words based on the level's theme.") },
+            confirmButton = {
+                TextButton(onClick = { showHowToDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     if (isGameWon) {
         AlertDialog(
@@ -115,6 +130,9 @@ fun BonzaScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHowToDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How To")
+                    }
                     IconButton(onClick = { bonzaViewModel.hint() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }

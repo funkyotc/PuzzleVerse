@@ -28,6 +28,7 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModelFactory
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Info
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -46,6 +47,20 @@ fun WordleScreen(
     )
 ) {
     val gameState by viewModel.wordleState.collectAsState()
+    var showHowToDialog by remember { mutableStateOf(false) }
+
+    if (showHowToDialog) {
+        AlertDialog(
+            onDismissRequest = { showHowToDialog = false },
+            title = { Text("How To Play") },
+            text = { Text("Guess the word in 6 tries. Colors show if the letter is correct, in the wrong place, or not in the word.") },
+            confirmButton = {
+                TextButton(onClick = { showHowToDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -57,10 +72,13 @@ fun WordleScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showHowToDialog = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "How To")
+                    }
                     IconButton(onClick = { viewModel.hint() }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
-                    if (mode == "standard") {
+                    if (mode != "daily") {
                         IconButton(onClick = { viewModel.startNewGame() }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }
