@@ -37,6 +37,7 @@ import com.funkyotc.puzzleverse.ui.theme.PuzzleVerseTheme
 import com.funkyotc.puzzleverse.wordle.ui.WordleScreen
 import com.funkyotc.puzzleverse.tfe.ui.TfeScreen
 import com.funkyotc.puzzleverse.minesweeper.ui.MinesweeperScreen
+import com.funkyotc.puzzleverse.nonogram.ui.NonogramScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -129,6 +130,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
