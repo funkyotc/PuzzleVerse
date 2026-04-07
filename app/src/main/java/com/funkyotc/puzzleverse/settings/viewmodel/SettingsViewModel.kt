@@ -17,9 +17,24 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
             initialValue = false
         )
 
+    val activeTheme: StateFlow<String> = repository.activeTheme
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "default")
+
+    val unlockedThemes: StateFlow<Set<String>> = repository.unlockedThemes
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), setOf("default", "dark", "light"))
+
+    val totalWins: StateFlow<Int> = repository.totalWins
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     fun setDarkTheme(isDark: Boolean) {
         viewModelScope.launch {
             repository.setDarkTheme(isDark)
+        }
+    }
+
+    fun setActiveTheme(theme: String) {
+        viewModelScope.launch {
+            repository.setActiveTheme(theme)
         }
     }
 }

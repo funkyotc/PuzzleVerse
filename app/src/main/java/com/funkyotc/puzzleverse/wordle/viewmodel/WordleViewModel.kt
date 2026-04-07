@@ -23,7 +23,15 @@ class WordleViewModel(
 
     private val validWords = listOf(
         "APPLE", "CRATE", "ROAST", "REACT", "BUILD", "DEBUG", "STORM", "PLANT", "CLOCK", "TRAIN", 
-        "BRICK", "GHOST", "SOUND", "SMART", "FRAME", "WATER", "LIGHT", "HOUSE", "DREAM", "SLEEP"
+        "BRICK", "GHOST", "SOUND", "SMART", "FRAME", "WATER", "LIGHT", "HOUSE", "DREAM", "SLEEP",
+        "BRAIN", "PAINT", "SPOIL", "MONEY", "GRAIN", "WHEAT", "GRASS", "TRACK", "WHEEL", "SPACE",
+        "ROBOT", "CABLE", "CHAIR", "TABLE", "PHONE", "RADIO", "VIDEO", "AUDIO", "GLASS", "STEEL",
+        "PAPER", "STONE", "RIVER", "OCEAN", "BEACH", "MOUNTAIN", "FOREST", "TIGER", "LION", "BEAR",
+        "EAGLE", "SNAKE", "SHARK", "HORSE", "SHEEP", "MOUSE", "SNAIL", "FROG", "TOAD", "BIRD",
+        "WINGS", "TAIL", "SCALE", "CLAW", "TEETH", "BONE", "BLOOD", "HEART", "LUNGS", "BRAIN",
+        "SKILL", "MAGIC", "POWER", "FORCE", "SPEED", "LIGHT", "HEAVY", "THICK", "THIN", "SHARP",
+        "BLUNT", "ROUGH", "SMOOTH", "SOFT", "HARD", "SWEET", "SOUR", "BITTER", "SALTY", "SPICY",
+        "FRESH", "STALE", "HOT", "COLD", "WARM", "COOL", "DRY", "WET", "CLEAN", "DIRTY"
     )
 
     init {

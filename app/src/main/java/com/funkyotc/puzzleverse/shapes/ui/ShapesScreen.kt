@@ -42,12 +42,15 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShapesScreen(
     navController: NavController, 
     mode: String? = "standard",
+    settingsRepository: SettingsRepository,
     viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode))
 ) {
     val puzzle by viewModel.puzzle.collectAsState()
@@ -55,6 +58,12 @@ fun ShapesScreen(
     var selectedPieceId by remember { mutableStateOf<Int?>(null) }
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isGameWon) {
+        if (isGameWon) {
+            settingsRepository.addWin()
+        }
+    }
 
     if (showHowToDialog) {
         AlertDialog(
@@ -168,7 +177,7 @@ fun ShapesScreen(
                         awaitPointerEventScope {
                             while (true) {
                                 val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
-                                val down = event.changes.firstOrNull { it.changedToDown() }
+                                val down = event.changes.firstOrNull { it.pressed && !it.previousPressed }
                                 if (down != null) {
                                     val offset = down.position
                                     val clickedPiece = puzzleState.pieces.findLast { piece ->

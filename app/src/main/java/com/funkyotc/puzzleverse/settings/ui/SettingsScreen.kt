@@ -16,6 +16,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -67,6 +74,32 @@ fun SettingsScreen(
                     checked = isDarkTheme,
                     onCheckedChange = { viewModel.setDarkTheme(it) }
                 )
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            val activeTheme by viewModel.activeTheme.collectAsState()
+            val unlockedThemes by viewModel.unlockedThemes.collectAsState()
+            val totalWins by viewModel.totalWins.collectAsState()
+
+            Text("Total Puzzle Wins: $totalWins", style = MaterialTheme.typography.titleMedium)
+            Text("Win more puzzles to unlock new themes!", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Select Theme", style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(unlockedThemes.toList()) { themeName ->
+                    OutlinedButton(
+                        onClick = { viewModel.setActiveTheme(themeName) },
+                        colors = if (themeName == activeTheme) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Text(themeName.replaceFirstChar { it.uppercase() })
+                    }
+                }
             }
         }
     }

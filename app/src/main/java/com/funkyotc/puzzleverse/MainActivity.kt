@@ -64,8 +64,9 @@ class MainActivity : ComponentActivity() {
             val settingsRepository = remember { SettingsRepository(context) }
             val streakRepository = remember { StreakRepository(context) }
             val isDarkTheme by settingsRepository.isDarkTheme.collectAsState(initial = false)
+            val activeTheme by settingsRepository.activeTheme.collectAsState(initial = "default")
 
-            PuzzleVerseTheme(darkTheme = isDarkTheme) {
+            PuzzleVerseTheme(activeTheme = activeTheme, darkTheme = isDarkTheme) {
                 CompositionLocalProvider(LocalSoundManager provides soundManager) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         PuzzleVerseNavHost(settingsRepository = settingsRepository, streakRepository = streakRepository) {
@@ -120,11 +121,11 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             val mode = backStackEntry.arguments?.getString("mode")
 
             when (gameId) {
-                "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository)
-                "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository)
-                "constellations" -> ConstellationsScreen(navController = navController, mode = mode)
-                "shapes" -> ShapesScreen(navController = navController, mode = mode)
-                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository)
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
+                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
+                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -145,8 +146,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             val mode = backStackEntry.arguments?.getString("mode")
 
             when (gameId) {
-                "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository)
-                "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository)
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(

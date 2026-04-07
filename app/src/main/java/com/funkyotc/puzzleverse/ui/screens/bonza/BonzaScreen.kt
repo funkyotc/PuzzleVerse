@@ -57,6 +57,8 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.launch
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.BoxWithConstraints
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,12 +68,19 @@ fun BonzaScreen(
     forceNewGame: Boolean = false,
     context: Context = LocalContext.current,
     streakRepository: StreakRepository,
+    settingsRepository: SettingsRepository,
     bonzaViewModel: BonzaViewModel = viewModel(factory = BonzaViewModelFactory(context, mode, forceNewGame, streakRepository))
 ) {
     val isGameWon by bonzaViewModel.isGameWon.collectAsState()
     val puzzle by bonzaViewModel.puzzle.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isGameWon) {
+        if (isGameWon) {
+            settingsRepository.addWin()
+        }
+    }
 
     if (showHowToDialog) {
         AlertDialog(

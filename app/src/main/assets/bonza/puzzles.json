@@ -379,5 +379,80 @@
       "SLED",
       "DEER"
     ]
+  },
+  {
+    "theme": "Programming",
+    "words": [
+      "KOTLIN",
+      "JAVA",
+      "PYTHON",
+      "RUBY",
+      "SWIFT",
+      "RUST",
+      "DART",
+      "HTML",
+      "REACT",
+      "NODE"
+    ]
+  },
+  {
+    "theme": "Supernovae",
+    "words": [
+      "STAR",
+      "SPACE",
+      "DEATH",
+      "EXPLODE",
+      "DUST",
+      "GAS",
+      "LIGHT",
+      "ENERGY",
+      "IRON",
+      "CORE"
+    ]
+  },
+  {
+    "theme": "Geology",
+    "words": [
+      "ROCK",
+      "MANTLE",
+      "CORE",
+      "CRUST",
+      "MAGMA",
+      "LAVA",
+      "STONE",
+      "DIRT",
+      "SOIL",
+      "SAND"
+    ]
+  },
+  {
+    "theme": "Chemistry",
+    "words": [
+      "ATOM",
+      "PROTON",
+      "BOND",
+      "ION",
+      "MOLECULE",
+      "GAS",
+      "ACID",
+      "BASE",
+      "GOLD",
+      "OXYGEN"
+    ]
+  },
+  {
+    "theme": "Fantasy",
+    "words": [
+      "DRAGON",
+      "ELF",
+      "ORC",
+      "MAGIC",
+      "SWORD",
+      "KING",
+      "QUEEN",
+      "CASTLE",
+      "SPELL",
+      "WAND"
+    ]
   }
 ]

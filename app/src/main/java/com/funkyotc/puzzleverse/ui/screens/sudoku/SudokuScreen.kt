@@ -58,6 +58,8 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModel
 import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModelFactory
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.runtime.LaunchedEffect
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +70,7 @@ fun SudokuScreen(
     forceNewGame: Boolean = false, 
     context: Context = LocalContext.current,
     streakRepository: StreakRepository,
+    settingsRepository: SettingsRepository,
     sudokuViewModel: SudokuViewModel = viewModel(factory = SudokuViewModelFactory(context, mode, forceNewGame, streakRepository))
 ) {
     val board by sudokuViewModel.board.collectAsState()
@@ -76,6 +79,12 @@ fun SudokuScreen(
     val isPencilOn by sudokuViewModel.isPencilOn.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isGameWon) {
+        if (isGameWon) {
+            settingsRepository.addWin()
+        }
+    }
 
     if (showHowToDialog) {
         AlertDialog(

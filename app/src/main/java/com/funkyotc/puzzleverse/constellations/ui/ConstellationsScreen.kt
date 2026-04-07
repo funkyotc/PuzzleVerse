@@ -50,13 +50,15 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModel
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModelFactory
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConstellationsScreen(
     navController: NavController, 
     mode: String? = "standard",
-    context: Context = LocalContext.current,
+    settingsRepository: SettingsRepository,
     constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
@@ -65,6 +67,12 @@ fun ConstellationsScreen(
     val moves by constellationsViewModel.moves.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isGameWon) {
+        if (isGameWon) {
+            settingsRepository.addWin()
+        }
+    }
 
     if (showHowToDialog) {
         AlertDialog(

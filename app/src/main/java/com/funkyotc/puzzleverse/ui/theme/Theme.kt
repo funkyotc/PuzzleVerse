@@ -11,6 +11,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -155,19 +156,26 @@ private val Typography = Typography(
 
 @Composable
 fun PuzzleVerseTheme(
+    activeTheme: String = "default",
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val colorScheme = when (activeTheme) {
+        "ocean" -> if (darkTheme) darkColorScheme(primary = Color(0xFF0277BD), background = Color(0xFF001F3F)) else lightColorScheme(primary = Color(0xFF0277BD), background = Color(0xFFE1F5FE))
+        "forest" -> if (darkTheme) darkColorScheme(primary = Color(0xFF2E7D32), background = Color(0xFF1B5E20)) else lightColorScheme(primary = Color(0xFF2E7D32), background = Color(0xFFE8F5E9))
+        "sunset" -> if (darkTheme) darkColorScheme(primary = Color(0xFFD84315), background = Color(0xFF3E2723)) else lightColorScheme(primary = Color(0xFFD84315), background = Color(0xFFFBE9E7))
+        "cyberpunk" -> darkColorScheme(primary = Color(0xFFFF003C), secondary = Color(0xFF00FF9F), background = Color(0xFF0D0221))
+        "dark" -> DarkColorScheme
+        "light" -> LightColorScheme
+        else -> {
+            if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val context = LocalContext.current
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            } else {
+                if (darkTheme) DarkColorScheme else LightColorScheme
+            }
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
     }
     val view = LocalView.current
     if (!view.isInEditMode) {

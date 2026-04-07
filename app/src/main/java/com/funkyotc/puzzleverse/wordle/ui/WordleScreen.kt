@@ -29,6 +29,7 @@ import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModelFactory
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Info
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -42,6 +43,7 @@ fun WordleScreen(
     navController: NavController,
     mode: String? = "standard",
     streakRepository: StreakRepository,
+    settingsRepository: SettingsRepository,
     viewModel: WordleViewModel = viewModel(
         factory = WordleViewModelFactory(mode, streakRepository) 
     )
@@ -60,6 +62,13 @@ fun WordleScreen(
                 }
             }
         )
+    }
+
+    val state = gameState
+    LaunchedEffect(state?.gameStatus) {
+        if (state?.gameStatus == GameStatus.WON) {
+            settingsRepository.addWin()
+        }
     }
 
     Scaffold(

@@ -19,7 +19,7 @@ object ShapesLevels {
     private val colorsLevel8 = listOf(Color(0xFFFF5F6D), Color(0xFFFFC371), Color(0xFFE55D87))
 
     fun generateLevel(levelIndex: Int, random: Random): ShapesPuzzle {
-        return when (levelIndex % 8) {
+        return when (levelIndex % 10) {
             0 -> createSquareLevel(random)
             1 -> createHouseLevel(random)
             2 -> createBoatLevel(random)
@@ -27,7 +27,10 @@ object ShapesLevels {
             4 -> createArrowLevel(random)
             5 -> createDiamondLevel(random)
             6 -> createHourglassLevel(random)
-            else -> createTrapezoidLevel(random)
+            7 -> createTrapezoidLevel(random)
+            8 -> createRectangleLevel(random)
+            9 -> createTallHouseLevel(random)
+            else -> createSquareLevel(random)
         }
     }
 
@@ -208,6 +211,44 @@ object ShapesLevels {
         // Target: (120, 160) to (280, 160), bottom is wider
         val targetVertices = listOf(
             Offset(160f, 160f), Offset(240f, 160f), Offset(280f, 240f), Offset(120f, 240f)
+        )
+        return ShapesPuzzle(pieces, TargetShape(targetVertices))
+    }
+
+    private fun createRectangleLevel(random: Random): ShapesPuzzle {
+        val square = listOf(Offset(-25f, -25f), Offset(25f, -25f), Offset(25f, 25f), Offset(-25f, 25f))
+        val pieces = listOf(
+            PuzzlePiece(1, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[0], solutionPosition = Offset(175f, 200f), solutionRotation = 0f),
+            PuzzlePiece(2, square, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel1[1], solutionPosition = Offset(225f, 200f), solutionRotation = 0f)
+        )
+        val targetVertices = listOf(
+            Offset(150f, 175f), Offset(250f, 175f), Offset(250f, 225f), Offset(150f, 225f)
+        )
+        return ShapesPuzzle(pieces, TargetShape(targetVertices))
+    }
+
+    private fun createTallHouseLevel(random: Random): ShapesPuzzle {
+        val roof = listOf(Offset(0f, -50f), Offset(50f, 0f), Offset(-50f, 0f))
+        val base = listOf(Offset(-50f, -50f), Offset(50f, -50f), Offset(50f, 50f), Offset(-50f, 50f))
+        
+        val leftBase = listOf(Offset(-25f, -50f), Offset(25f, -50f), Offset(25f, 50f), Offset(-25f, 50f))
+        val rightBase = listOf(Offset(-25f, -50f), Offset(25f, -50f), Offset(25f, 50f), Offset(-25f, 50f))
+        val topBase = listOf(Offset(-50f, -25f), Offset(50f, -25f), Offset(50f, 25f), Offset(-50f, 25f))
+
+        val pieces = listOf(
+            PuzzlePiece(1, roof, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[0], solutionPosition = Offset(200f, 100f), solutionRotation = 0f),
+            PuzzlePiece(2, topBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[1], solutionPosition = Offset(200f, 175f), solutionRotation = 0f),
+            PuzzlePiece(3, leftBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[2], solutionPosition = Offset(175f, 250f), solutionRotation = 0f),
+            PuzzlePiece(4, rightBase, randomPosition(random), random.nextInt(4) * 90f, color = colorsLevel2[0], solutionPosition = Offset(225f, 250f), solutionRotation = 0f)
+        )
+
+        val targetVertices = listOf(
+            Offset(200f, 50f),
+            Offset(250f, 100f),
+            Offset(250f, 150f),
+            Offset(250f, 300f),
+            Offset(150f, 300f),
+            Offset(150f, 150f)
         )
         return ShapesPuzzle(pieces, TargetShape(targetVertices))
     }
