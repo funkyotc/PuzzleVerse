@@ -1,5 +1,8 @@
 package com.funkyotc.puzzleverse.tfe.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -13,15 +16,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.tfe.data.Direction
+import com.funkyotc.puzzleverse.tfe.data.Tile
 import com.funkyotc.puzzleverse.tfe.viewmodel.TfeViewModel
 import com.funkyotc.puzzleverse.tfe.viewmodel.TfeViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
@@ -131,7 +137,8 @@ fun TfeScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            Box(
+            // Grid Box
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
@@ -158,34 +165,74 @@ fun TfeScreen(
                         }
                     }
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (r in 0..3) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
-                            for (c in 0..3) {
-                                val value = state.grid[r][c]
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(getTileColor(value)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (value > 0) {
-                                        Text(
-                                            text = value.toString(),
-                                            fontSize = if (value > 1000) 24.sp else 32.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (value <= 4) Color(0xFF776E65) else Color.White
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                // Background grid
+                val margin = 8.dp
+                val tileSpace = (maxWidth - margin * 3) / 4
+                
+                for (r in 0..3) {
+                    for (c in 0..3) {
+                        Box(
+                            modifier = Modifier
+                                .size(tileSpace)
+                                .offset(x = (tileSpace + margin) * c, y = (tileSpace + margin) * r)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFCDC1B4))
+                        )
+                    }
+                }
+                
+                // Animated tiles
+                state.tiles.forEach { tile ->
+                    key(tile.id) {
+                        AnimatedTile(tile = tile, tileSize = tileSpace, margin = margin)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun AnimatedTile(tile: Tile, tileSize: Dp, margin: Dp) {
+    val targetX = (tileSize + margin) * tile.col
+    val targetY = (tileSize + margin) * tile.row
+
+    val x by animateDpAsState(targetValue = targetX, animationSpec = tween(durationMillis = 150), label = "x")
+    val y by animateDpAsState(targetValue = targetY, animationSpec = tween(durationMillis = 150), label = "y")
+    
+    var visibleScale by remember { mutableStateOf(if (tile.isNew) 0.1f else 1f) }
+    
+    LaunchedEffect(tile.isNew) {
+        if (tile.isNew) {
+            visibleScale = 1f
+        }
+    }
+    
+    LaunchedEffect(tile.isMerged) {
+        if (tile.isMerged) {
+            visibleScale = 1.2f
+            kotlinx.coroutines.delay(100)
+            visibleScale = 1f
+        }
+    }
+    
+    val scale by animateFloatAsState(targetValue = visibleScale, animationSpec = tween(durationMillis = 100), label = "scale")
+
+    Box(
+        modifier = Modifier
+            .size(tileSize)
+            .offset(x = x, y = y)
+            .scale(scale)
+            .clip(RoundedCornerShape(4.dp))
+            .background(getTileColor(tile.value)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = tile.value.toString(),
+            fontSize = if (tile.value > 1000) 24.sp else 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (tile.value <= 4) Color(0xFF776E65) else Color.White
+        )
     }
 }
 
