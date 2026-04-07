@@ -35,6 +35,8 @@ import com.funkyotc.puzzleverse.ui.screens.home.HomeScreen
 import com.funkyotc.puzzleverse.ui.screens.sudoku.SudokuScreen
 import com.funkyotc.puzzleverse.ui.theme.PuzzleVerseTheme
 import com.funkyotc.puzzleverse.wordle.ui.WordleScreen
+import com.funkyotc.puzzleverse.tfe.ui.TfeScreen
+import com.funkyotc.puzzleverse.minesweeper.ui.MinesweeperScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -125,6 +127,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
                 "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
                 "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
