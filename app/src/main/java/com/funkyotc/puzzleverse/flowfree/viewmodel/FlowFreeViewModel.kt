@@ -24,17 +24,11 @@ class FlowFreeViewModel(
     }
 
     fun startNewGame() {
-        // Simple predefined 5x5 board for smooth testing
-        val dots = listOf(
-            ColorDot(1, Point(0, 0), Point(2, 2)), // Red
-            ColorDot(2, Point(0, 1), Point(4, 4)), // Blue
-            ColorDot(3, Point(0, 4), Point(3, 4)), // Green
-            ColorDot(4, Point(3, 0), Point(3, 1))  // Yellow
-        )
+        val (size, dots) = com.funkyotc.puzzleverse.flowfree.data.FlowFreePuzzleLibrary.getRandomPuzzle()
         
         _state.value = FlowFreeState(
-            rows = 5,
-            cols = 5,
+            rows = size,
+            cols = size,
             dots = dots,
             paths = emptyList(),
             isWon = false

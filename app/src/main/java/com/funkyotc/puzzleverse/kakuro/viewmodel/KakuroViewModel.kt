@@ -32,23 +32,7 @@ class KakuroViewModel(
         // (1,0) H=3     (1,1) Input(1) (1,2) Input(2)
         // (2,0) H=7     (2,1) Input(3) (2,2) Input(4)
         
-        val grid = listOf(
-            listOf(
-                KakuroCell(CellType.BLACK, null, null, 0, 0),
-                KakuroCell(CellType.CLUE, Clue(null, 4), null, 0, 1),
-                KakuroCell(CellType.CLUE, Clue(null, 6), null, 0, 2)
-            ),
-            listOf(
-                KakuroCell(CellType.CLUE, Clue(3, null), null, 1, 0),
-                KakuroCell(CellType.PLAYER_INPUT, null, null, 1, 1),
-                KakuroCell(CellType.PLAYER_INPUT, null, null, 1, 2)
-            ),
-            listOf(
-                KakuroCell(CellType.CLUE, Clue(7, null), null, 2, 0),
-                KakuroCell(CellType.PLAYER_INPUT, null, null, 2, 1),
-                KakuroCell(CellType.PLAYER_INPUT, null, null, 2, 2)
-            )
-        )
+        val grid = com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
         
         _state.value = KakuroState(
             grid = grid,
@@ -78,26 +62,48 @@ class KakuroViewModel(
     }
     
     private fun checkWin(grid: List<List<KakuroCell>>, rows: Int, cols: Int): Boolean {
-        // Simple check for our hardcoded 3x3 puzzle
-        // To be generic, we would scan all clues and sum player inputs until next black/clue.
-        // For grid 3x3:
-        val r1c1 = grid[1][1].playerValue ?: return false
-        val r1c2 = grid[1][2].playerValue ?: return false
-        val r2c1 = grid[2][1].playerValue ?: return false
-        val r2c2 = grid[2][2].playerValue ?: return false
-        
-        // Check uniqueness in runs
-        if (r1c1 == r1c2) return false
-        if (r2c1 == r2c2) return false
-        if (r1c1 == r2c1) return false
-        if (r1c2 == r2c2) return false
-        
-        // Check sums
-        if (r1c1 + r1c2 != 3) return false
-        if (r2c1 + r2c2 != 7) return false
-        if (r1c1 + r2c1 != 4) return false
-        if (r1c2 + r2c2 != 6) return false
-
+        // Find player inputs and clues dynamically
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                val cell = grid[r][c]
+                if (cell.type == CellType.CLUE) {
+                    val hSum = cell.clue?.horizontalSum
+                    val vSum = cell.clue?.verticalSum
+                    
+                    if (hSum != null) {
+                        var sum = 0
+                        val inputs = mutableSetOf<Int>()
+                        var valid = true
+                        for (i in c + 1 until cols) {
+                            val nextCell = grid[r][i]
+                            if (nextCell.type != CellType.PLAYER_INPUT) break
+                            val v = nextCell.playerValue
+                            if (v == null) { valid = false; break }
+                            if (inputs.contains(v)) { valid = false; break }
+                            inputs.add(v)
+                            sum += v
+                        }
+                        if (!valid || sum != hSum) return false
+                    }
+                    
+                    if (vSum != null) {
+                        var sum = 0
+                        val inputs = mutableSetOf<Int>()
+                        var valid = true
+                        for (i in r + 1 until rows) {
+                            val nextCell = grid[i][c]
+                            if (nextCell.type != CellType.PLAYER_INPUT) break
+                            val v = nextCell.playerValue
+                            if (v == null) { valid = false; break }
+                            if (inputs.contains(v)) { valid = false; break }
+                            inputs.add(v)
+                            sum += v
+                        }
+                        if (!valid || sum != vSum) return false
+                    }
+                }
+            }
+        }
         return true
     }
 }
