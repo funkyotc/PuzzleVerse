@@ -45,7 +45,8 @@ val games = listOf(
     Game("tfe", "2048"),
     Game("minesweeper", "Minesweeper"),
     Game("nonogram", "Nonogram"),
-    Game("blockpuzzle", "Block Puzzle")
+    Game("blockpuzzle", "Block Puzzle"),
+    Game("kakuro", "Kakuro")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

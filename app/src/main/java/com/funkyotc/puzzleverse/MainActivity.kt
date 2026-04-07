@@ -39,6 +39,7 @@ import com.funkyotc.puzzleverse.tfe.ui.TfeScreen
 import com.funkyotc.puzzleverse.minesweeper.ui.MinesweeperScreen
 import com.funkyotc.puzzleverse.nonogram.ui.NonogramScreen
 import com.funkyotc.puzzleverse.blockpuzzle.ui.BlockPuzzleScreen
+import com.funkyotc.puzzleverse.kakuro.ui.KakuroScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -133,6 +134,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "blockpuzzle" -> BlockPuzzleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
