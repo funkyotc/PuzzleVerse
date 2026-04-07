@@ -10,28 +10,22 @@ object FlowFreePuzzleLibrary {
                 ColorDot(3, Point(0, 4), Point(3, 4)), // Green
                 ColorDot(4, Point(3, 0), Point(3, 1))  // Yellow
             )),
-            // Level 2: 5x5
-            Pair(5, listOf(
-                ColorDot(1, Point(1, 0), Point(2, 2)), // Red
-                ColorDot(2, Point(0, 2), Point(4, 2)), // Blue
-                ColorDot(3, Point(1, 4), Point(4, 3)), // Green
-                ColorDot(4, Point(3, 1), Point(4, 0))  // Yellow
+            // Level 2: 7x7
+            Pair(7, listOf(
+                ColorDot(1, Point(0, 0), Point(6, 6)), // Red
+                ColorDot(2, Point(0, 1), Point(5, 5)), // Blue
+                ColorDot(3, Point(0, 2), Point(4, 4)), // Green
+                ColorDot(4, Point(1, 0), Point(6, 5)), // Yellow
+                ColorDot(5, Point(2, 0), Point(6, 4))  // Orange
             )),
-            // Level 3: 5x5
-            Pair(5, listOf(
-                ColorDot(1, Point(0, 2), Point(4, 4)), // Red
-                ColorDot(2, Point(0, 3), Point(2, 3)), // Blue
-                ColorDot(3, Point(0, 4), Point(1, 3)), // Green
-                ColorDot(4, Point(1, 0), Point(4, 0)), // Yellow
-                ColorDot(5, Point(2, 2), Point(3, 2))  // Orange
-            )),
-            // Level 4: 5x5
-            Pair(5, listOf(
-                ColorDot(1, Point(4, 0), Point(2, 2)),
-                ColorDot(2, Point(3, 0), Point(1, 2)),
-                ColorDot(3, Point(0, 1), Point(3, 2)),
-                ColorDot(4, Point(4, 1), Point(0, 4)),
-                ColorDot(5, Point(4, 3), Point(2, 4))
+            // Level 3: 8x8
+            Pair(8, listOf(
+                ColorDot(1, Point(0, 0), Point(7, 7)), // Red
+                ColorDot(2, Point(0, 1), Point(6, 6)), // Blue
+                ColorDot(3, Point(0, 2), Point(5, 5)), // Green
+                ColorDot(4, Point(1, 0), Point(7, 6)), // Yellow
+                ColorDot(5, Point(2, 0), Point(7, 5)), // Orange
+                ColorDot(6, Point(3, 0), Point(7, 4))  // Cyan
             ))
         )
         return puzzles.random()

@@ -22,8 +22,8 @@ class NonogramViewModel(
     }
 
     fun startNewGame() {
-        val rows = 5
-        val cols = 5
+        val rows = 10
+        val cols = 10
         
         // Generate random solution
         val solution = List(rows) { List(cols) { Math.random() > 0.4 } }

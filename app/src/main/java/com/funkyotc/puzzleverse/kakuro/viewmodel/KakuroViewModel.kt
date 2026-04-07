@@ -33,6 +33,8 @@ class KakuroViewModel(
         // (2,0) H=7     (2,1) Input(3) (2,2) Input(4)
         
         val grid = com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
+        val rows = grid.size
+        val cols = if (rows > 0) grid[0].size else 0
         
         _state.value = KakuroState(
             grid = grid,

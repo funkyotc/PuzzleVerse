@@ -22,9 +22,9 @@ class MinesweeperViewModel(
     }
 
     fun startNewGame() {
-        val rows = 12
-        val cols = 10
-        val totalMines = 20
+        val rows = 16
+        val cols = 16
+        val totalMines = 40
         
         val emptyGrid = List(rows) { r ->
             List(cols) { c ->

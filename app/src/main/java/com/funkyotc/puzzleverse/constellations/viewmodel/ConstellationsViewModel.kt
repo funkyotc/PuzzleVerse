@@ -60,7 +60,7 @@ class ConstellationsViewModel(
         // For this step, I'll pass the seed to a new generate method I'll add to the generator, 
         // or just use a Random instance here and pass it.
         
-        _puzzle.value = generator.generate(seed = seed)
+        _puzzle.value = generator.generate(size = 10, seed = seed)
         _isGameWon.value = false
         _moves.value = 0
         _elapsedSeconds.value = 0
