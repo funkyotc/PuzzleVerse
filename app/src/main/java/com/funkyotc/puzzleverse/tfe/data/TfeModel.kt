@@ -3,7 +3,7 @@ package com.funkyotc.puzzleverse.tfe.data
 import java.util.UUID
 
 data class Tile(
-    val id: String = UUID.randomWindow().toString(), // Helper function or just UUID.randomUUID().toString()
+    val id: String = UUID.randomUUID().toString(), // Helper function or just UUID.randomUUID().toString()
     val value: Int,
     val row: Int,
     val col: Int,
