@@ -27,9 +27,10 @@ import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModel
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModelFactory
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Shuffle
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.ui.platform.LocalContext
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -44,8 +45,9 @@ fun WordleScreen(
     mode: String? = "standard",
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
+    context: android.content.Context = LocalContext.current,
     viewModel: WordleViewModel = viewModel(
-        factory = WordleViewModelFactory(mode, streakRepository) 
+        factory = WordleViewModelFactory(mode, streakRepository, context) 
     )
 ) {
     val gameState by viewModel.wordleState.collectAsState()

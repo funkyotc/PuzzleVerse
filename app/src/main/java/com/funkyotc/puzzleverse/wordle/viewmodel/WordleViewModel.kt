@@ -1,38 +1,27 @@
 package com.funkyotc.puzzleverse.wordle.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.funkyotc.puzzleverse.wordle.model.LetterState
 import com.funkyotc.puzzleverse.wordle.model.GameStatus
+import com.funkyotc.puzzleverse.wordle.model.LetterState
 import com.funkyotc.puzzleverse.wordle.model.WordleGuess
 import com.funkyotc.puzzleverse.wordle.model.WordleLetter
 import com.funkyotc.puzzleverse.wordle.model.WordleState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.random.Random
-
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import java.time.LocalDate
+import android.content.Context
+import androidx.lifecycle.ViewModelProvider
 
 class WordleViewModel(
     private val mode: String?,
-    private val streakRepository: StreakRepository
+    private val streakRepository: StreakRepository,
+    private val dictionary: List<String>
 ) : ViewModel() {
 
     private val _wordleState = MutableStateFlow<WordleState?>(null)
     val wordleState: StateFlow<WordleState?> = _wordleState
-
-    private val validWords = listOf(
-        "APPLE", "CRATE", "ROAST", "REACT", "BUILD", "DEBUG", "STORM", "PLANT", "CLOCK", "TRAIN", 
-        "BRICK", "GHOST", "SOUND", "SMART", "FRAME", "WATER", "LIGHT", "HOUSE", "DREAM", "SLEEP",
-        "BRAIN", "PAINT", "SPOIL", "MONEY", "GRAIN", "WHEAT", "GRASS", "TRACK", "WHEEL", "SPACE",
-        "ROBOT", "CABLE", "CHAIR", "TABLE", "PHONE", "RADIO", "VIDEO", "AUDIO", "GLASS", "STEEL",
-        "PAPER", "STONE", "RIVER", "OCEAN", "BEACH", "MOUNTAIN", "FOREST", "TIGER", "LION", "BEAR",
-        "EAGLE", "SNAKE", "SHARK", "HORSE", "SHEEP", "MOUSE", "SNAIL", "FROG", "TOAD", "BIRD",
-        "WINGS", "TAIL", "SCALE", "CLAW", "TEETH", "BONE", "BLOOD", "HEART", "LUNGS", "BRAIN",
-        "SKILL", "MAGIC", "POWER", "FORCE", "SPEED", "LIGHT", "HEAVY", "THICK", "THIN", "SHARP",
-        "BLUNT", "ROUGH", "SMOOTH", "SOFT", "HARD", "SWEET", "SOUR", "BITTER", "SALTY", "SPICY",
-        "FRESH", "STALE", "HOT", "COLD", "WARM", "COOL", "DRY", "WET", "CLEAN", "DIRTY"
-    )
 
     init {
         startNewGame()
@@ -43,7 +32,7 @@ class WordleViewModel(
             WordleGuess(List(5) { WordleLetter(' ', LetterState.EMPTY) })
         }
         val seed = if (mode == "daily") LocalDate.now().toEpochDay() else System.currentTimeMillis()
-        val solution = validWords.random(Random(seed))
+        val solution = dictionary.random(Random(seed))
         _wordleState.value = WordleState(
             guesses = emptyGuesses, 
             solution = solution, 
@@ -122,6 +111,11 @@ class WordleViewModel(
             return
         }
 
+        if (!dictionary.contains(guessWord)) {
+            _wordleState.value = currentState.copy(missingFeedback = "Not a valid word")
+            return
+        }
+
         val evaluatedLetters = evaluateGuess(guessWord, currentState.solution)
         val updatedGuesses = currentState.guesses.toMutableList()
         updatedGuesses[currentState.currentGuessIndex] = WordleGuess(evaluatedLetters)
@@ -188,5 +182,27 @@ class WordleViewModel(
             }
         }
         return result
+    }
+}
+
+class WordleViewModelFactory(
+    private val mode: String?,
+    private val streakRepository: StreakRepository,
+    private val context: Context
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(WordleViewModel::class.java)) {
+            val words = try {
+                context.assets.open("wordle/valid_words.txt")
+                    .bufferedReader().readLines()
+                    .map { it.trim().uppercase() }
+                    .filter { it.length == 5 }
+            } catch (e: Exception) {
+                listOf("APPLE", "CRATE", "PLANE", "STONE") // Fallback
+            }
+            @Suppress("UNCHECKED_CAST")
+            return WordleViewModel(mode, streakRepository, words) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
