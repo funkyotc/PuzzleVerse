@@ -22,16 +22,10 @@ class NonogramViewModel(
     }
 
     fun startNewGame() {
-        val rows = 10
-        val cols = 10
-        
-        // Generate random solution
-        val solution = List(rows) { List(cols) { Math.random() > 0.4 } }
-        
-        // Need to ensure solution is not completely empty
-        val finalSolution = if (solution.all { row -> row.all { !it } }) {
-            solution.map { it.map { true } } // Fallback if rng gives empty
-        } else solution
+        // Use library for handcrafted levels
+        val finalSolution = com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+        val rows = finalSolution.size
+        val cols = if (rows > 0) finalSolution[0].size else 0
         
         val player = List(rows) { List(cols) { CellState.EMPTY } }
         
