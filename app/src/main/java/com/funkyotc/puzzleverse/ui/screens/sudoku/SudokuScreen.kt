@@ -79,6 +79,28 @@ fun SudokuScreen(
     val isPencilOn by sudokuViewModel.isPencilOn.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
+    var showHintDialog by remember { mutableStateOf(false) }
+
+    if (showHintDialog) {
+        AlertDialog(
+            onDismissRequest = { showHintDialog = false },
+            title = { Text("Use a Hint?") },
+            text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showHintDialog = false
+                    sudokuViewModel.hint()
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showHintDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
@@ -146,7 +168,7 @@ fun SudokuScreen(
                     IconButton(onClick = { showHowToDialog = true }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    IconButton(onClick = { sudokuViewModel.hint() }) {
+                    IconButton(onClick = { showHintDialog = true }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
                     if (mode != "daily") {

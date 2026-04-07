@@ -63,10 +63,9 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val settingsRepository = remember { SettingsRepository(context) }
             val streakRepository = remember { StreakRepository(context) }
-            val isDarkTheme by settingsRepository.isDarkTheme.collectAsState(initial = false)
             val activeTheme by settingsRepository.activeTheme.collectAsState(initial = "default")
 
-            PuzzleVerseTheme(activeTheme = activeTheme, darkTheme = isDarkTheme) {
+            PuzzleVerseTheme(activeTheme = activeTheme) {
                 CompositionLocalProvider(LocalSoundManager provides soundManager) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         PuzzleVerseNavHost(settingsRepository = settingsRepository, streakRepository = streakRepository) {

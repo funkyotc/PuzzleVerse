@@ -8,9 +8,6 @@ class SettingsRepository(context: Context) {
 
     private val sharedPreferences = context.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE)
 
-    private val _isDarkTheme = MutableStateFlow(sharedPreferences.getBoolean("is_dark_theme", false))
-    val isDarkTheme: Flow<Boolean> = _isDarkTheme
-
     private val _activeTheme = MutableStateFlow(sharedPreferences.getString("active_theme", "default") ?: "default")
     val activeTheme: Flow<String> = _activeTheme
 
@@ -19,11 +16,6 @@ class SettingsRepository(context: Context) {
 
     private val _totalWins = MutableStateFlow(sharedPreferences.getInt("total_wins", 0))
     val totalWins: Flow<Int> = _totalWins
-
-    fun setDarkTheme(isDark: Boolean) {
-        sharedPreferences.edit().putBoolean("is_dark_theme", isDark).apply()
-        _isDarkTheme.value = isDark
-    }
 
     fun setActiveTheme(theme: String) {
         if (_unlockedThemes.value.contains(theme)) {

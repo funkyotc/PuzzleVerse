@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.OutlinedButton
@@ -41,8 +40,6 @@ fun SettingsScreen(
     onBackPress: () -> Unit
 ) {
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsRepository))
-    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -64,22 +61,6 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Dark Mode")
-                Switch(
-                    checked = isDarkTheme,
-                    onCheckedChange = { viewModel.setDarkTheme(it) }
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(16.dp))
-            
             val activeTheme by viewModel.activeTheme.collectAsState()
             val unlockedThemes by viewModel.unlockedThemes.collectAsState()
             val totalWins by viewModel.totalWins.collectAsState()

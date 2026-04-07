@@ -10,13 +10,6 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
 
-    val isDarkTheme: StateFlow<Boolean> = repository.isDarkTheme
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
     val activeTheme: StateFlow<String> = repository.activeTheme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "default")
 
@@ -25,12 +18,6 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
     val totalWins: StateFlow<Int> = repository.totalWins
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
-
-    fun setDarkTheme(isDark: Boolean) {
-        viewModelScope.launch {
-            repository.setDarkTheme(isDark)
-        }
-    }
 
     fun setActiveTheme(theme: String) {
         viewModelScope.launch {
