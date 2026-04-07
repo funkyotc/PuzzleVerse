@@ -24,14 +24,6 @@ class KakuroViewModel(
     }
 
     fun startNewGame() {
-        val rows = 3
-        val cols = 3
-        
-        // Simple 3x3 predefined puzzle
-        // (0,0) Black   (0,1) V=4      (0,2) V=6
-        // (1,0) H=3     (1,1) Input(1) (1,2) Input(2)
-        // (2,0) H=7     (2,1) Input(3) (2,2) Input(4)
-        
         val grid = com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
         val rows = grid.size
         val cols = if (rows > 0) grid[0].size else 0

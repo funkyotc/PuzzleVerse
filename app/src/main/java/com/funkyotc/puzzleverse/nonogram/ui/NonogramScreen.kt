@@ -115,7 +115,7 @@ fun NonogramScreen(
             Row(modifier = Modifier.fillMaxWidth().padding(start = 60.dp)) {
                 for (c in 0 until state.cols) {
                     Column(
-                        modifier = Modifier.weight(1f).height(60.dp),
+                        modifier = Modifier.weight(1f).wrapContentHeight(),
                         verticalArrangement = Arrangement.Bottom,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
