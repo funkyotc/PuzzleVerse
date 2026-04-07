@@ -1,5 +1,7 @@
 package com.funkyotc.puzzleverse.blockpuzzle.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -122,6 +125,22 @@ fun BlockPuzzleScreen(
                 var gridOffset by remember { mutableStateOf(Offset.Zero) }
                 var gridWidth by remember { mutableStateOf(0f) }
 
+                // Flash animation
+                var flashRunning by remember { mutableStateOf(false) }
+                LaunchedEffect(state.flashId) {
+                    if (state.flashId > 0) {
+                        flashRunning = true
+                        kotlinx.coroutines.delay(150)
+                        flashRunning = false
+                    }
+                }
+                
+                val flashAlpha by animateFloatAsState(
+                    targetValue = if (flashRunning) 0.8f else 0f,
+                    animationSpec = tween(durationMillis = 150),
+                    label = "flashAlpha"
+                )
+
                 // The 10x10 Grid
                 Box(
                     modifier = Modifier
@@ -138,12 +157,17 @@ fun BlockPuzzleScreen(
                             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 for (c in 0 until 10) {
                                     val cell = state.grid[r][c]
+                                    val isFlashing = state.recentlyClearedRows.contains(r) || state.recentlyClearedCols.contains(c)
+                                    val cellBgColor = if (cell == BoxType.FILLED) Color(0xFF4CAF50) 
+                                                      else if (isFlashing && flashAlpha > 0f) Color.White.copy(alpha = flashAlpha)
+                                                      else Color.Transparent
+
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
                                             .border(1.dp, Color.Gray)
-                                            .background(if (cell == BoxType.FILLED) Color(0xFF4CAF50) else Color.Transparent)
+                                            .background(cellBgColor)
                                     )
                                 }
                             }
@@ -157,23 +181,28 @@ fun BlockPuzzleScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(100.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                        .wrapContentHeight() // Allow blocks to overflow naturally
+                        .padding(top = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     state.tray.forEachIndexed { index, shape ->
-                        if (shape != null) {
-                            DraggableShape(
-                                shape = shape,
-                                shapeIndex = index,
-                                gridOffset = gridOffset,
-                                gridWidth = gridWidth,
-                                onDrop = { r, c ->
-                                    viewModel.placeShape(index, r, c)
-                                }
-                            )
-                        } else {
-                            Spacer(modifier = Modifier.size(60.dp))
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (shape != null) {
+                                DraggableShape(
+                                    shape = shape,
+                                    shapeIndex = index,
+                                    gridOffset = gridOffset,
+                                    gridWidth = gridWidth,
+                                    onDrop = { r, c ->
+                                        viewModel.placeShape(index, r, c)
+                                    }
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.height(60.dp))
+                            }
                         }
                     }
                 }
@@ -194,48 +223,40 @@ fun DraggableShape(
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
+    var initialPosition by remember { mutableStateOf(Offset.Zero) }
 
-    val cellSize = 20.dp // visual size in tray
-    val blockSizePx = if (gridWidth > 0f) gridWidth / 10f else 60f
+    val density = LocalDensity.current
+    // gridWidth is in pixels, divide by 10 for cell width
+    val blockPx = if (gridWidth > 0f) gridWidth / 10f else 0f
+    val cellSizeDp = if (blockPx > 0f) with(density) { blockPx.toDp() } else 20.dp
 
     Box(
         modifier = Modifier
+            .onGloballyPositioned { coordinates ->
+                if (!isDragging) {
+                    initialPosition = coordinates.positionInRoot()
+                }
+            }
             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-            .pointerInput(Unit) {
+            .pointerInput(gridWidth) {
                 detectDragGestures(
                     onDragStart = { isDragging = true },
                     onDragEnd = {
                         isDragging = false
-                        // Calculate where dropped
-                        if (gridWidth > 0f) {
-                            // Find center of shape
-                            val dropX = gridOffset.x + (gridWidth / 2f) + offsetX // very rough approximation
-                            // A proper implementation computes absolute bounds. 
-                            // Grog simplify! Convert offset back to grid coords.
-                            // We assume touch drops center of shape into top-left of target cell.
+                        if (blockPx > 0f) {
+                            val currentPosition = initialPosition + Offset(offsetX, offsetY)
+                            val localDropX = currentPosition.x - gridOffset.x
+                            val localDropY = currentPosition.y - gridOffset.y
                             
-                            // For a realistic grid math:
-                            // We need absolute position of pointer at end. 
-                            // Wait, detectDragGestures doesn't give pointer at end, just offsets.
-                            // Better: use relative offset from tray to grid if we know it.
+                            // Adjust to target nearest cell center
+                            val dropRow = ((localDropY + (blockPx / 2f)) / blockPx).toInt()
+                            val dropCol = ((localDropX + (blockPx / 2f)) / blockPx).toInt()
                             
-                            // Because Grog fast, we do simple relative math. 
-                            // Tray is far down. grid is top.
-                            val cellPixels = gridWidth / 10f
-                            val dropRow = ((offsetY + 500f) / cellPixels).roundToInt() - 5 // rough estimate dependent on screen
-                            val dropCol = ((offsetX + 150f) / cellPixels).roundToInt()
-                            // Proper placement calculation omitted for Grog brevity.
-                            // BUT Grog want working code! Let's do a reliable math: 
-                            val relativeToGridY = offsetY + 300f // Hacky estimation!
-                            val r = (relativeToGridY / cellPixels).roundToInt()
-                            val c = (offsetX / cellPixels).roundToInt()
-                            
-                            // Grog actually should use pointer location, but offset is easiest.
-                            val estimatedRow = (offsetY / blockSizePx).roundToInt() + 8
-                            val estimatedCol = (offsetX / blockSizePx).roundToInt() + 3
-                            
-                            onDrop(estimatedRow, estimatedCol)
+                            if (dropRow in 0..9 && dropCol in 0..9) {
+                                onDrop(dropRow, dropCol)
+                            }
                         }
+                        
                         offsetX = 0f
                         offsetY = 0f
                     },
@@ -251,16 +272,16 @@ fun DraggableShape(
                 }
             }
     ) {
-        // Draw the shape mini
+        // Draw the shape 
         val maxR = shape.blocks.maxOfOrNull { it.r } ?: 0
         val maxC = shape.blocks.maxOfOrNull { it.c } ?: 0
         
-        Box(modifier = Modifier.size(cellSize * (maxC + 1), cellSize * (maxR + 1))) {
+        Box(modifier = Modifier.size(cellSizeDp * (maxC + 1), cellSizeDp * (maxR + 1))) {
             shape.blocks.forEach { p ->
                 Box(
                     modifier = Modifier
-                        .offset(x = cellSize * p.c, y = cellSize * p.r)
-                        .size(cellSize)
+                        .offset(x = cellSizeDp * p.c, y = cellSizeDp * p.r)
+                        .size(cellSizeDp)
                         .background(Color(0xFF2196F3))
                         .border(1.dp, Color.White)
                 )

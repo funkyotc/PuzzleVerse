@@ -89,7 +89,14 @@ class BlockPuzzleViewModel(
             newTray[2] = ShapeLibrary.getRandomShape()
         }
         
-        _state.update { it.copy(grid = newGrid, tray = newTray, score = it.score + scoreAdd) }
+        _state.update { it.copy(
+            grid = newGrid, 
+            tray = newTray, 
+            score = it.score + scoreAdd,
+            recentlyClearedRows = rowsToClear,
+            recentlyClearedCols = colsToClear,
+            flashId = if (linesCleared > 0) System.currentTimeMillis() else it.flashId
+        ) }
         
         // Check check game over
         checkGameOver()

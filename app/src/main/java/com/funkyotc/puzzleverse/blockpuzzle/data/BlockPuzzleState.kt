@@ -15,7 +15,10 @@ data class BlockPuzzleState(
     val grid: List<List<BoxType>> = List(10) { List(10) { BoxType.EMPTY } },
     val tray: List<BoxShape?> = listOf(null, null, null),
     val score: Int = 0,
-    val isGameOver: Boolean = false
+    val isGameOver: Boolean = false,
+    val recentlyClearedRows: List<Int> = emptyList(),
+    val recentlyClearedCols: List<Int> = emptyList(),
+    val flashId: Long = 0L
 )
 
 object ShapeLibrary {
