@@ -53,20 +53,9 @@ fun KakuroScreen(
             title = { Text("How To Play") },
             text = { Text("Fill white cells with numbers 1-9. Numbers in a run cannot repeat, and must sum up to the clue numbers. The top-right number is the horizontal sum, bottom-left is vertical.") },
             confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/kakuro/standard/new") { popUpTo("home") } }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
- TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
+                TextButton(onClick = { showHowToDialog = false }) { Text("OK") }
+            }
         )
-
-                }
     }
 
     if (state.isWon) {

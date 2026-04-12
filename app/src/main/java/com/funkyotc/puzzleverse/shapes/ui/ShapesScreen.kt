@@ -66,23 +66,9 @@ fun ShapesScreen(
             title = { Text("Use a Hint?") },
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/shapes/standard/new") { popUpTo("home") } }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
                 TextButton(onClick = {
                     showHintDialog = false
-                    viewModel.hint()
-
-                }
-                }) {
+                    viewModel.hint() }) {
                     Text("Yes")
                 }
             },
