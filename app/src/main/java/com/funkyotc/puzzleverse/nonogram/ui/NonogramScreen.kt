@@ -48,8 +48,21 @@ fun NonogramScreen(
             onDismissRequest = { showHowToDialog = false },
             title = { Text("How To Play") },
             text = { Text("Use numbers on the top and left to fill the grid. The numbers tell you how many unbroken lines of filled squares there are in any given row or column.") },
-            confirmButton = { TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
+            confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/nonogram/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+ TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
         )
+
+                }
     }
 
     if (state.isWon) {
@@ -58,7 +71,20 @@ fun NonogramScreen(
             title = { Text("You Win!") },
             text = { Text("You solved the Nonogram!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/nonogram/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+
+                }
             }
         )
     }

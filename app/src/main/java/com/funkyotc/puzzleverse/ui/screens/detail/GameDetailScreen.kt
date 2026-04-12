@@ -29,11 +29,12 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameDetailScreen(navController: NavController, gameId: String?) {
+fun GameDetailScreen(navController: NavController, gameId: String?, streakRepository: StreakRepository) {
     val soundManager = LocalSoundManager.current
     val context = LocalContext.current
 
@@ -103,8 +104,12 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
                 }
             }
 
+            val streak = streakRepository.getStreak(gameId)
+            val today = java.time.LocalDate.now().toEpochDay()
+            val isDailyCompleted = streak.lastCompletedEpochDay == today
+
             Spacer(modifier = Modifier.height(16.dp))
-            MenuCard(text = "Daily Challenge") {
+            MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                 navController.navigate("game/$gameId/daily")
             }
@@ -113,11 +118,12 @@ fun GameDetailScreen(navController: NavController, gameId: String?) {
 }
 
 @Composable
-fun MenuCard(text: String, onClick: () -> Unit) {
-    Card(
+fun MenuCard(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    androidx.compose.material3.ElevatedCard(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .fillMaxWidth(),
+        enabled = enabled,
+        onClick = onClick
     ) {
         Box(
             modifier = Modifier.padding(16.dp),

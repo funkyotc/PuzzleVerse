@@ -56,6 +56,11 @@ import com.funkyotc.puzzleverse.bonza.viewmodel.BonzaViewModelFactory
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.launch
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.BoxWithConstraints
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.runtime.LaunchedEffect
@@ -83,9 +88,22 @@ fun BonzaScreen(
             title = { Text("Use a Hint?") },
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/bonza/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 TextButton(onClick = {
                     showHintDialog = false
                     bonzaViewModel.hint()
+
+                }
                 }) {
                     Text("Yes")
                 }
@@ -110,8 +128,21 @@ fun BonzaScreen(
             title = { Text("How To Play") },
             text = { Text("Move the puzzle pieces around to form interlocking words based on the level's theme.") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/bonza/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 TextButton(onClick = { showHowToDialog = false }) {
                     Text("OK")
+
+                }
                 }
             }
         )
@@ -123,8 +154,21 @@ fun BonzaScreen(
             title = { Text(text = "Congratulations!") },
             text = { Text(text = "You solved the puzzle!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/bonza/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { bonzaViewModel.newGame() }) {
                     Text("New Game")
+
+                }
                 }
             }
         )
@@ -268,6 +312,8 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                  offsetY.snapTo(offsetY.value + offsetChange.y)
              }
         }
+        
+        val draggedGroupId by viewModel.draggedGroupId.collectAsState()
 
         Box(
             modifier = Modifier
@@ -300,21 +346,43 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                     )
                 }
         ) {
+            // Pre-calculate animations outside Canvas
+            val fragmentAnimations = puzzle.fragments.associate { fragment ->
+                val isDragged = fragment.groupId == draggedGroupId
+                // Position animation (snapping)
+                val animatedPos by animateOffsetAsState(
+                    targetValue = fragment.currentPosition,
+                    animationSpec = if (isDragged) snap() else spring(stiffness = Spring.StiffnessMediumLow),
+                    label = "position_anim_${fragment.id}"
+                )
+                
+                // Vertical lift animation
+                val liftUnit = if (isDragged) -0.5f else 0f
+                val verticalLift by animateFloatAsState(
+                    targetValue = liftUnit,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "lift_anim_${fragment.id}"
+                )
+                
+                fragment.id to Pair(animatedPos, verticalLift)
+            }
+
             Canvas(modifier = Modifier.fillMaxSize()) {
                 translate(offsetX.value, offsetY.value) {
                     scale(scale.value, pivot = Offset.Zero) {
                         puzzle.fragments.forEach { fragment ->
-                            // Shadow removed for flat look
+                            val animData = fragmentAnimations[fragment.id]
+                            val animPos = animData?.first ?: fragment.currentPosition
+                            val vLift = animData?.second ?: 0f
+
                             fragment.text.forEachIndexed { index, char ->
-                                // Current position is in Grid Units. Convert to Pixels for drawing.
                                 val gridPos = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
-                                   Offset(fragment.currentPosition.x + index, fragment.currentPosition.y)
+                                   Offset(animPos.x + index, animPos.y + vLift)
                                 } else {
-                                   Offset(fragment.currentPosition.x, fragment.currentPosition.y + index)
+                                   Offset(animPos.x, animPos.y + index + vLift)
                                 }
                                 
                                 val letterOffset = gridPos * letterBoxSizePx
-                                // Shadow drawing removed
     
                                 drawRoundRect(
                                     color = primaryColor,

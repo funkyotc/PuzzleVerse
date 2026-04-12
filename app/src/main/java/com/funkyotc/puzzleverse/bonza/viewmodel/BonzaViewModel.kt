@@ -13,6 +13,7 @@ import com.funkyotc.puzzleverse.bonza.generator.BonzaPuzzleGenerator
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
 
 class BonzaViewModel(
@@ -28,6 +29,9 @@ class BonzaViewModel(
 
     private val _puzzle = MutableStateFlow(generatePuzzle())
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
+
+    private val _draggedGroupId = MutableStateFlow<Int?>(null)
+    val draggedGroupId = _draggedGroupId.asStateFlow()
 
     private var draggedFragmentGroupId: Int? = null
     // Logical size of a letter box in grid units is always 1.0
@@ -75,6 +79,7 @@ class BonzaViewModel(
     fun onDragStart(position: Offset) {
         val fragment = getFragmentAt(position)
         draggedFragmentGroupId = fragment?.groupId
+        _draggedGroupId.value = fragment?.groupId
     }
 
     fun onDrag(dragAmount: Offset) {
@@ -126,9 +131,11 @@ class BonzaViewModel(
                // Optional: Visual bounce back or just leave it
             }
             
+            
             checkWinCondition()
         }
         draggedFragmentGroupId = null
+        _draggedGroupId.value = null
     }
     
     // Returns Pair(ShouldSnap, DeltaToMoveDraggedFragment)
@@ -137,7 +144,7 @@ class BonzaViewModel(
         anchorFrag: WordFragment,
         connection: BonzaConnection
     ): Pair<Boolean, Offset> {
-        val snapThreshold = 0.4f // Snap if within 0.4 grid units
+        val snapThreshold = 0.85f // Snap if within 0.85 grid units
         
         // Target position for movingFrag based on anchorFrag's current position and solved relative position
         val movingSolved = movingFrag.solvedPosition ?: return Pair(false, Offset.Zero)

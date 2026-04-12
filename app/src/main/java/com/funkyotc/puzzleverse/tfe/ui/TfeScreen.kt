@@ -67,7 +67,20 @@ fun TfeScreen(
             title = { Text("Game Over") },
             text = { Text("No more moves left. Score: ${state.score}") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/tfe/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Try Again") }
+
+                }
             }
         )
     }
@@ -78,7 +91,20 @@ fun TfeScreen(
             title = { Text("You Win!") },
             text = { Text("You reached 2048! Score: ${state.score}") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/tfe/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+
+                }
             }
         )
     }

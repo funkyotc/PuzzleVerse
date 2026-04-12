@@ -61,7 +61,20 @@ fun MinesweeperScreen(
             title = { Text("Game Over") },
             text = { Text("You hit a mine!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/minesweeper/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Try Again") }
+
+                }
             }
         )
     }
@@ -72,7 +85,20 @@ fun MinesweeperScreen(
             title = { Text("You Win!") },
             text = { Text("You found all the safe tiles!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/minesweeper/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+
+                }
             }
         )
     }

@@ -112,7 +112,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             GameDetailScreen(
                 navController = navController,
-                gameId = backStackEntry.arguments?.getString("gameId")
+                gameId = backStackEntry.arguments?.getString("gameId"),
+                streakRepository = streakRepository
             )
         }
         composable(

@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Whatshot
-import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,7 +79,10 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
         ) { 
             items(games) { game ->
                 val streak = streakRepository.getStreak(game.id)
-                GameCard(game = game, streak = streak.count) {
+                val today = java.time.LocalDate.now().toEpochDay()
+                val isDailyCompleted = streak.lastCompletedEpochDay == today
+
+                GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     navController.navigate("gameDetail/${game.id}")
                 }
@@ -89,11 +92,18 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
 }
 
 @Composable
-fun GameCard(game: Game, streak: Int, onClick: () -> Unit) {
-    Card(
+fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, onClick: () -> Unit) {
+    androidx.compose.material3.ElevatedCard(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        colors = if (isDailyCompleted) {
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        } else {
+            CardDefaults.elevatedCardColors()
+        }
     ) {
         Box(
             modifier = Modifier.padding(16.dp),

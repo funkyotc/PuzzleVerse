@@ -87,9 +87,22 @@ fun SudokuScreen(
             title = { Text("Use a Hint?") },
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 TextButton(onClick = {
                     showHintDialog = false
                     sudokuViewModel.hint()
+
+                }
                 }) {
                     Text("Yes")
                 }
@@ -114,8 +127,21 @@ fun SudokuScreen(
             title = { Text("How To Play") },
             text = { Text("Fill the 9x9 grid so that each column, each row, and each of the nine 3x3 grids contain all of the digits from 1 to 9.") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 TextButton(onClick = { showHowToDialog = false }) {
                     Text("OK")
+
+                }
                 }
             }
         )
@@ -127,8 +153,21 @@ fun SudokuScreen(
             title = { Text(text = "Congratulations!") },
             text = { Text(text = "You solved the puzzle!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { sudokuViewModel.newGame() }) {
                     Text("New Game")
+
+                }
                 }
             }
         )

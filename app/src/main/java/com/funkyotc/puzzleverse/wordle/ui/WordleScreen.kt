@@ -81,8 +81,21 @@ fun WordleScreen(
             title = { Text("How To Play") },
             text = { Text("Guess the word in 6 tries. Colors show if the letter is correct, in the wrong place, or not in the word.") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/wordle/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 TextButton(onClick = { showHowToDialog = false }) {
                     Text("OK")
+
+                }
                 }
             }
         )

@@ -59,8 +59,21 @@ fun FlowFreeScreen(
             onDismissRequest = { showHowToDialog = false },
             title = { Text("How To Play") },
             text = { Text("Connect matching colors with pipes to create a flow. Pair all colors, and cover the entire board to solve each puzzle. Pipes cannot branch or cross each other.") },
-            confirmButton = { TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
+            confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/flowfree/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+ TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
         )
+
+                }
     }
 
     if (state.isWon) {
@@ -69,7 +82,20 @@ fun FlowFreeScreen(
             title = { Text("You Win!") },
             text = { Text("You connected all flows and filled the grid!") },
             confirmButton = {
+                if (mode == "daily") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            androidx.compose.material3.Text("Main Menu")
+                        }
+                        androidx.compose.material3.Button(onClick = { navController.navigate("game/flowfree/standard/new") { popUpTo("home") } }) {
+                            androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else {
+
                 Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+
+                }
             }
         )
     }
