@@ -10,6 +10,7 @@ import com.funkyotc.puzzleverse.flowfree.data.FlowPath
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreeState
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePuzzleLibrary
 import com.funkyotc.puzzleverse.flowfree.data.Point
+import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import kotlinx.coroutines.launch
 
 class FlowFreeViewModel(
     private val streakRepository: StreakRepository? = null,
-    private val mode: String? = "standard"
+    private val mode: String? = "standard",
+    private val puzzleId: String? = null
 ) : ViewModel() {
     private val _state = MutableStateFlow(FlowFreeState())
     val state: StateFlow<FlowFreeState> = _state.asStateFlow()
@@ -43,8 +45,23 @@ class FlowFreeViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             _isGenerating.value = true
 
+            if (puzzleId != null) {
+                // Load specific puzzle by ID
+                val pregen = FlowFreePregenerated.getPuzzleById(puzzleId)
+                if (pregen != null) {
+                    _state.value = FlowFreeState(
+                        rows = pregen.size,
+                        cols = pregen.size,
+                        dots = pregen.dots,
+                        paths = emptyList(),
+                        isWon = false
+                    )
+                    _isGenerating.value = false
+                    return@launch
+                }
+            }
+
             val puzzle = if (mode == "daily") {
-                // Seed from today's date for consistent daily puzzle
                 val today = java.time.LocalDate.now()
                 val seed = today.toEpochDay()
                 FlowFreePuzzleLibrary.getDailyPuzzle(seed)
@@ -147,12 +164,13 @@ class FlowFreeViewModel(
 
 class FlowFreeViewModelFactory(
     private val streakRepository: StreakRepository,
-    private val mode: String?
+    private val mode: String?,
+    private val puzzleId: String? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FlowFreeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return FlowFreeViewModel(streakRepository, mode) as T
+            return FlowFreeViewModel(streakRepository, mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

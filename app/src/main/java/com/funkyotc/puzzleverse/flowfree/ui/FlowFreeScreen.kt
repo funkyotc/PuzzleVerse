@@ -40,7 +40,8 @@ fun FlowFreeScreen(
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
     mode: String? = "standard",
-    viewModel: FlowFreeViewModel = viewModel(factory = FlowFreeViewModelFactory(streakRepository, mode))
+    puzzleId: String? = null,
+    viewModel: FlowFreeViewModel = viewModel(factory = FlowFreeViewModelFactory(streakRepository, mode, puzzleId))
 ) {
     val state by viewModel.state.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()

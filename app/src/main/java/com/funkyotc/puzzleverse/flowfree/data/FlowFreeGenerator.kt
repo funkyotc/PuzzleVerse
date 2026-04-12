@@ -36,11 +36,15 @@ object FlowFreeGenerator {
         val size = difficulty.gridSize
         val numColors = difficulty.numColors
         
-        // Pick a base puzzle for the difficulty
-        val bases = FlowFreePregenerated.PUZZLES[difficulty] ?: FlowFreePregenerated.PUZZLES[FlowDifficulty.EASY]!!
-        val base = bases[random.nextInt(bases.size)]
+        // Pick a random pregenerated puzzle for this difficulty
+        val pregen = FlowFreePregenerated.getRandomPuzzle(difficulty)
         
-        var dots = base.map { it.copy() }
+        var dots = if (pregen != null) {
+            pregen.dots.map { it.copy() }
+        } else {
+            // Fallback: use first puzzle available
+            FlowFreePregenerated.ALL_PUZZLES.firstOrNull()?.dots?.map { it.copy() } ?: emptyList()
+        }
         
         // Apply transformations
         dots = applyTransformations(dots, size, random)
