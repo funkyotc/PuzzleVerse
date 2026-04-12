@@ -66,6 +66,16 @@ fun FlowFreeScreen(
         )
     }
 
+    // Track puzzle completion
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.flowfree.data.FlowPuzzleCompletionRepository(context) }
+
+    LaunchedEffect(state.isWon) {
+        if (state.isWon && mode == "puzzle" && puzzleId != null) {
+            completionRepo.markCompleted(puzzleId)
+        }
+    }
+
     if (state.isWon) {
         AlertDialog(
             onDismissRequest = {},
@@ -81,23 +91,30 @@ fun FlowFreeScreen(
                             Text("Random Puzzles")
                         }
                     }
-                } else if (mode == "puzzle") {
+                } else if (mode == "puzzle" && puzzleId != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { navController.popBackStack() }) {
                             Text("Back to List")
                         }
-                        Button(onClick = {
-                            // Navigate to a random next puzzle from pregenerated list
-                            val next = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
-                                .filter { it.id != puzzleId }
-                                .randomOrNull()
-                            if (next != null) {
-                                navController.navigate("game/flowfree/puzzle/${next.id}") {
+                        // Find next puzzle in same size group
+                        val currentPuzzle = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.getPuzzleById(puzzleId)
+                        val sameSizePuzzles = if (currentPuzzle != null) {
+                            com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
+                                .filter { it.size == currentPuzzle.size && it.difficulty == currentPuzzle.difficulty }
+                        } else emptyList()
+                        val currentIndex = sameSizePuzzles.indexOfFirst { it.id == puzzleId }
+                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameSizePuzzles.size - 1) {
+                            sameSizePuzzles[currentIndex + 1]
+                        } else null
+
+                        if (nextPuzzle != null) {
+                            Button(onClick = {
+                                navController.navigate("game/flowfree/puzzle/${nextPuzzle.id}") {
                                     popUpTo("flowfree/puzzles")
                                 }
+                            }) {
+                                Text("Next Puzzle")
                             }
-                        }) {
-                            Text("Next Puzzle")
                         }
                     }
                 } else {

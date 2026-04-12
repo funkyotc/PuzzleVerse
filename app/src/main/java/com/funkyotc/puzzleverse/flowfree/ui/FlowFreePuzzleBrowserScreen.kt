@@ -1,20 +1,22 @@
 package com.funkyotc.puzzleverse.flowfree.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
+import com.funkyotc.puzzleverse.flowfree.data.FlowPuzzleCompletionRepository
 import com.funkyotc.puzzleverse.flowfree.data.PregeneratedPuzzle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,9 +24,19 @@ import com.funkyotc.puzzleverse.flowfree.data.PregeneratedPuzzle
 fun FlowFreePuzzleBrowserScreen(
     navController: NavController
 ) {
+    val context = LocalContext.current
+    val completionRepo = remember { FlowPuzzleCompletionRepository(context) }
     val puzzlesByDifficulty = remember { FlowFreePregenerated.PUZZLES_BY_DIFFICULTY }
     val difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert")
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    // Re-read completion state when screen is revisited
+    var completedIds by remember { mutableStateOf(completionRepo.getCompletedIds()) }
+
+    // Refresh on every recomposition triggered by navigation return
+    LaunchedEffect(navController.currentBackStackEntry) {
+        completedIds = completionRepo.getCompletedIds()
+    }
 
     Scaffold(
         topBar = {
@@ -49,11 +61,12 @@ fun FlowFreePuzzleBrowserScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 difficultyOrder.forEachIndexed { index, diff ->
-                    val count = puzzlesByDifficulty[diff]?.size ?: 0
+                    val puzzles = puzzlesByDifficulty[diff] ?: emptyList()
+                    val completed = puzzles.count { it.id in completedIds }
                     Tab(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
-                        text = { Text("$diff ($count)") }
+                        text = { Text("$diff ($completed/${puzzles.size})") }
                     )
                 }
             }
@@ -71,21 +84,37 @@ fun FlowFreePuzzleBrowserScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 puzzlesBySize.forEach { (size, sizePuzzles) ->
+                    val sizeCompleted = sizePuzzles.count { it.id in completedIds }
+
                     // Size subheading
                     item {
-                        Text(
-                            text = "${size}×${size} Grid",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp, bottom = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${size}×${size} Grid",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "$sizeCompleted/${sizePuzzles.size} completed",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         HorizontalDivider()
                     }
 
                     // Puzzle cards
                     items(sizePuzzles) { puzzle ->
+                        val isCompleted = puzzle.id in completedIds
                         PuzzleCard(
                             puzzle = puzzle,
+                            isCompleted = isCompleted,
                             onClick = {
                                 navController.navigate("game/flowfree/puzzle/${puzzle.id}")
                             }
@@ -98,7 +127,7 @@ fun FlowFreePuzzleBrowserScreen(
 }
 
 @Composable
-private fun PuzzleCard(puzzle: PregeneratedPuzzle, onClick: () -> Unit) {
+private fun PuzzleCard(puzzle: PregeneratedPuzzle, isCompleted: Boolean, onClick: () -> Unit) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -122,11 +151,20 @@ private fun PuzzleCard(puzzle: PregeneratedPuzzle, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text = "▶",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
-            )
+            if (isCompleted) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Completed",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = "▶",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
