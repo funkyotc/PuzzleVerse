@@ -89,6 +89,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                             navController.navigate("game/sudoku/standard")
                         }
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("sudoku/puzzles")
+                    }
+                }
+                "tfe" -> {
+                    MenuCard(text = "Play") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/tfe/standard")
+                    }
                 }
                 "bonza" -> {
                     MenuCard(text = "Standard") {

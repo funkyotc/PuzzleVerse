@@ -71,7 +71,8 @@ fun SudokuScreen(
     context: Context = LocalContext.current,
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
-    sudokuViewModel: SudokuViewModel = viewModel(factory = SudokuViewModelFactory(context, mode, forceNewGame, streakRepository))
+    puzzleId: String? = null,
+    sudokuViewModel: SudokuViewModel = viewModel(factory = SudokuViewModelFactory(context, mode, forceNewGame, streakRepository, puzzleId))
 ) {
     val board by sudokuViewModel.board.collectAsState()
     val selectedCell by sudokuViewModel.selectedCell.collectAsState()
@@ -140,20 +141,42 @@ fun SudokuScreen(
             text = { Text(text = "You solved the puzzle!") },
             confirmButton = {
                 if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
-                            androidx.compose.material3.Text("Main Menu")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
-                            androidx.compose.material3.Text("Random Puzzles")
+                        Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                            Text("Random Puzzles")
+                        }
+                    }
+                } else if (mode == "puzzle" && puzzleId != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.popBackStack() }) {
+                            Text("Back to List")
+                        }
+                        val currentPuzzle = com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.getPuzzleById(puzzleId)
+                        val sameDiffPuzzles = if (currentPuzzle != null) {
+                            com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.ALL_PUZZLES
+                                .filter { it.difficulty == currentPuzzle.difficulty }
+                        } else emptyList()
+                        val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
+                            sameDiffPuzzles[currentIndex + 1]
+                        } else null
+                        if (nextPuzzle != null) {
+                            Button(onClick = {
+                                navController.navigate("game/sudoku/puzzle/${nextPuzzle.id}") {
+                                    popUpTo("sudoku/puzzles")
+                                }
+                            }) {
+                                Text("Next Puzzle")
+                            }
                         }
                     }
                 } else {
-
-                Button(onClick = { sudokuViewModel.newGame() }) {
-                    Text("New Game")
-
-                }
+                    Button(onClick = { sudokuViewModel.newGame() }) {
+                        Text("New Game")
+                    }
                 }
             }
         )

@@ -9,12 +9,13 @@ class SudokuViewModelFactory(
     private val context: Context, 
     private val mode: String?, 
     private val forceNewGame: Boolean = false, 
-    private val streakRepository: StreakRepository
+    private val streakRepository: StreakRepository,
+    private val puzzleId: String? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SudokuViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SudokuViewModel(context, mode, forceNewGame, streakRepository) as T
+            return SudokuViewModel(context, mode, forceNewGame, streakRepository, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

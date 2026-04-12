@@ -6,22 +6,26 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
+import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
+import com.funkyotc.puzzleverse.sudoku.data.SudokuCompletionRepository
 import com.funkyotc.puzzleverse.sudoku.generator.SudokuGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.time.LocalDate
 
 class SudokuViewModel(
-    context: Context, 
-    private val mode: String?, 
-    private val forceNewGame: Boolean, 
-    private val streakRepository: StreakRepository
+    context: Context,
+    private val mode: String?,
+    private val forceNewGame: Boolean,
+    private val streakRepository: StreakRepository,
+    private val puzzleId: String? = null
 ) : ViewModel() {
 
     private val generator = SudokuGenerator()
     private val repository = SudokuRepository(context)
+    private val completionRepo = SudokuCompletionRepository(context)
     private val dailyChallengeSeed = LocalDate.now().toEpochDay()
-    private val boardKey = if (mode == "daily") "daily_sudoku_board" else "standard_sudoku_board"
+    private val boardKey = if (mode == "daily") "daily_sudoku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_sudoku_board"
 
     private val _board: MutableStateFlow<SudokuBoard>
     val board: StateFlow<SudokuBoard>
@@ -61,6 +65,19 @@ class SudokuViewModel(
     }
 
     private fun generateNewBoard(): SudokuBoard {
+        if (puzzleId != null) {
+            val pregen = SudokuPregenerated.getPuzzleById(puzzleId)
+            if (pregen != null) {
+                val cells = mutableListOf<SudokuCell>()
+                for (r in 0..8) {
+                    for (c in 0..8) {
+                        val number = pregen.puzzle[r][c]
+                        cells.add(SudokuCell(r, c, number, isHint = number != 0))
+                    }
+                }
+                return SudokuBoard(cells)
+            }
+        }
         return if (mode == "daily") {
             generator.generate(dailyChallengeSeed)
         } else {
@@ -218,6 +235,11 @@ class SudokuViewModel(
         val hasNoErrors = board.cells.none { it.isError }
         if (isComplete && hasNoErrors) {
             _isGameWon.value = true
+
+            // Mark pregenerated puzzle as completed
+            if (puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
 
             if (mode == "daily") {
                 val today = LocalDate.now().toEpochDay()

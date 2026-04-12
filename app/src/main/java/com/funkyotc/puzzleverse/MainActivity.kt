@@ -42,6 +42,7 @@ import com.funkyotc.puzzleverse.blockpuzzle.ui.BlockPuzzleScreen
 import com.funkyotc.puzzleverse.kakuro.ui.KakuroScreen
 import com.funkyotc.puzzleverse.flowfree.ui.FlowFreeScreen
 import com.funkyotc.puzzleverse.flowfree.ui.FlowFreePuzzleBrowserScreen
+import com.funkyotc.puzzleverse.sudoku.ui.SudokuPuzzleBrowserScreen
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -180,6 +181,22 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             FlowFreeScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("sudoku/puzzles") {
+            SudokuPuzzleBrowserScreen(navController = navController)
+        }
+        composable(
+            "game/sudoku/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            SudokuScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
