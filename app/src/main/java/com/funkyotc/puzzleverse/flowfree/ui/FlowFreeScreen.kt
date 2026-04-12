@@ -73,18 +73,35 @@ fun FlowFreeScreen(
             text = { Text("You connected all flows and filled the grid!") },
             confirmButton = {
                 if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
-                            androidx.compose.material3.Text("Main Menu")
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                            Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/flowfree/standard/new") { popUpTo("home") } }) {
-                            androidx.compose.material3.Text("Random Puzzles")
+                        Button(onClick = { navController.navigate("game/flowfree/standard/new") { popUpTo("home") } }) {
+                            Text("Random Puzzles")
+                        }
+                    }
+                } else if (mode == "puzzle") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.popBackStack() }) {
+                            Text("Back to List")
+                        }
+                        Button(onClick = {
+                            // Navigate to a random next puzzle from pregenerated list
+                            val next = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
+                                .filter { it.id != puzzleId }
+                                .randomOrNull()
+                            if (next != null) {
+                                navController.navigate("game/flowfree/puzzle/${next.id}") {
+                                    popUpTo("flowfree/puzzles")
+                                }
+                            }
+                        }) {
+                            Text("Next Puzzle")
                         }
                     }
                 } else {
-
-                Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
-
+                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
                 }
             }
         )
