@@ -25,19 +25,19 @@
 **Goal:** Generate browsable nonogram puzzles at multiple sizes.
 
 **Steps:**
-1. Write `scripts/generate_nonograms.py`
+[x] 1. Write `scripts/generate_nonograms.py`
    - Generate pixel-art patterns using template shapes (hearts, stars, arrows, animals)
    - Sizes: 5×5 (Easy), 10×10 (Medium), 15×15 (Hard)
    - Verify each puzzle has a unique solution via line-solving logic
    - Target: 15 Easy, 15 Medium, 10 Hard
-2. Write `scripts/bake_nonograms.py` → `NonogramPregenerated.kt`
+[x] 2. Write `scripts/bake_nonograms.py` → `NonogramPregenerated.kt`
    - Store grids as compact binary strings ("10110..." for filled/empty)
-3. Create `NonogramCompletionRepository.kt`
-4. Create `NonogramPuzzleBrowserScreen.kt`
-5. Update `NonogramViewModel.kt` — accept puzzleId, load specific puzzle
-6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for nonogram
-7. Update `MainActivity.kt` — add `nonogram/puzzles` and `game/nonogram/puzzle/{id}` routes
-8. Add win dialog with Back to List + Next Puzzle
+[x] 3. Create `NonogramCompletionRepository.kt`
+[x] 4. Create `NonogramPuzzleBrowserScreen.kt`
+[x] 5. Update `NonogramViewModel.kt` — accept puzzleId, load specific puzzle
+[x] 6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for nonogram
+[x] 7. Update `MainActivity.kt` — add `nonogram/puzzles` and `game/nonogram/puzzle/{id}` routes
+[x] 8. Add win dialog with Back to List + Next Puzzle
 
 ### Kakuro
 **Goal:** Generate browsable kakuro puzzles at multiple grid sizes.

@@ -220,5 +220,21 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
+        composable("nonogram/puzzles") {
+            com.funkyotc.puzzleverse.nonogram.ui.NonogramPuzzleBrowserScreen(navController = navController)
+        }
+        composable(
+            "game/nonogram/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            NonogramScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
     }
 }

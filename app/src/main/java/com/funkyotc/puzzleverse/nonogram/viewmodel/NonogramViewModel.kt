@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.update
 
 class NonogramViewModel(
     private val streakRepository: StreakRepository? = null,
-    private val mode: String? = "standard"
+    private val mode: String? = "standard",
+    private val puzzleId: String? = null
 ) : ViewModel() {
     private val _state = MutableStateFlow(NonogramState())
     val state: StateFlow<NonogramState> = _state.asStateFlow()
@@ -22,8 +23,12 @@ class NonogramViewModel(
     }
 
     fun startNewGame() {
-        // Use library for handcrafted levels
-        val finalSolution = com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+        val finalSolution = if (puzzleId != null) {
+            val pregen = com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES.find { it.id == puzzleId }
+            pregen?.grid ?: com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+        } else {
+            com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+        }
         val rows = finalSolution.size
         val cols = if (rows > 0) finalSolution[0].size else 0
         
@@ -99,12 +104,13 @@ class NonogramViewModel(
 
 class NonogramViewModelFactory(
     private val streakRepository: StreakRepository,
-    private val mode: String?
+    private val mode: String?,
+    private val puzzleId: String? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(NonogramViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return NonogramViewModel(streakRepository, mode) as T
+            return NonogramViewModel(streakRepository, mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

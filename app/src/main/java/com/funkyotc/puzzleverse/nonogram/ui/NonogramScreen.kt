@@ -31,15 +31,22 @@ fun NonogramScreen(
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
     mode: String? = "standard",
-    viewModel: NonogramViewModel = viewModel(factory = NonogramViewModelFactory(streakRepository, mode))
+    puzzleId: String? = null,
+    viewModel: NonogramViewModel = viewModel(factory = NonogramViewModelFactory(streakRepository, mode, puzzleId))
 ) {
     val state by viewModel.state.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.nonogram.data.NonogramCompletionRepository(context) }
+
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
@@ -69,10 +76,27 @@ fun NonogramScreen(
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
+                } else if (mode == "puzzle") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) {
+                            androidx.compose.material3.Text("Back to List")
+                        }
+                        val nextId = puzzleId?.let { id ->
+                            val diffPuzzles = com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES
+                            val currentIndex = diffPuzzles.indexOfFirst { it.id == id }
+                            if (currentIndex != -1 && currentIndex + 1 < diffPuzzles.size) diffPuzzles[currentIndex + 1].id else null
+                        }
+                        if (nextId != null) {
+                            androidx.compose.material3.Button(onClick = {
+                                navController.popBackStack()
+                                navController.navigate("game/nonogram/puzzle/$nextId")
+                            }) {
+                                androidx.compose.material3.Text("Next Puzzle")
+                            }
+                        }
+                    }
                 } else {
-
-                Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
-
+                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
                 }
             }
         )
