@@ -41,8 +41,11 @@ import com.funkyotc.puzzleverse.nonogram.ui.NonogramScreen
 import com.funkyotc.puzzleverse.blockpuzzle.ui.BlockPuzzleScreen
 import com.funkyotc.puzzleverse.kakuro.ui.KakuroScreen
 import com.funkyotc.puzzleverse.flowfree.ui.FlowFreeScreen
-import com.funkyotc.puzzleverse.flowfree.ui.FlowFreePuzzleBrowserScreen
-import com.funkyotc.puzzleverse.sudoku.ui.SudokuPuzzleBrowserScreen
+import com.funkyotc.puzzleverse.core.ui.PuzzleBrowserScreen
+import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
+import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
+import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
+import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -173,7 +176,14 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             }
         }
         composable("flowfree/puzzles") {
-            FlowFreePuzzleBrowserScreen(navController = navController)
+            PuzzleBrowserScreen(
+                title = "Flow Puzzles",
+                gameName = "Flow",
+                navController = navController,
+                puzzlesByDifficulty = FlowFreePregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/flowfree/puzzle/${puzzle.id}") }
+            )
         }
         composable(
             "game/flowfree/puzzle/{puzzleId}",
@@ -189,7 +199,14 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             )
         }
         composable("sudoku/puzzles") {
-            SudokuPuzzleBrowserScreen(navController = navController)
+            PuzzleBrowserScreen(
+                title = "Sudoku Puzzles",
+                gameName = "Sudoku",
+                navController = navController,
+                puzzlesByDifficulty = SudokuPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/sudoku/puzzle/${puzzle.id}") }
+            )
         }
         composable(
             "game/sudoku/puzzle/{puzzleId}",
@@ -205,7 +222,14 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             )
         }
         composable("kakuro/puzzles") {
-            com.funkyotc.puzzleverse.kakuro.ui.KakuroPuzzleBrowserScreen(navController = navController)
+            PuzzleBrowserScreen(
+                title = "Kakuro Puzzles",
+                gameName = "Kakuro",
+                navController = navController,
+                puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/kakuro/puzzle/${puzzle.id}") }
+            )
         }
         composable(
             "game/kakuro/puzzle/{puzzleId}",
@@ -221,7 +245,14 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             )
         }
         composable("nonogram/puzzles") {
-            com.funkyotc.puzzleverse.nonogram.ui.NonogramPuzzleBrowserScreen(navController = navController)
+            PuzzleBrowserScreen(
+                title = "Nonogram Puzzles",
+                gameName = "Nonogram",
+                navController = navController,
+                puzzlesByDifficulty = NonogramPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/nonogram/puzzle/${puzzle.id}") }
+            )
         }
         composable(
             "game/nonogram/puzzle/{puzzleId}",

@@ -23,6 +23,7 @@ import com.funkyotc.puzzleverse.nonogram.data.CellState
 import com.funkyotc.puzzleverse.nonogram.viewmodel.NonogramViewModel
 import com.funkyotc.puzzleverse.nonogram.viewmodel.NonogramViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +40,7 @@ fun NonogramScreen(
     var showNewGameDialog by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    val completionRepo = remember { com.funkyotc.puzzleverse.nonogram.data.NonogramCompletionRepository(context) }
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Nonogram") }
 
     LaunchedEffect(state.isWon) {
         if (state.isWon) {

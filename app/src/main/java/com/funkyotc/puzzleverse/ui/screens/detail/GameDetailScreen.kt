@@ -140,6 +140,22 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("nonogram/puzzles")
                     }
                 }
+                "minesweeper" -> {
+                    MenuCard(text = "Easy (9x9)") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/minesweeper/easy")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Medium (16x16)") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/minesweeper/medium")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Hard (16x30)") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/minesweeper/hard")
+                    }
+                }
                 else -> {
                     MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)

@@ -2,11 +2,14 @@ package com.funkyotc.puzzleverse.flowfree.data
 
 
 data class PregeneratedPuzzle(
-    val id: String,
+    override val id: String,
     val size: Int,
-    val difficulty: String,
+    override val difficulty: String,
     val dots: List<ColorDot>
-)
+) : com.funkyotc.puzzleverse.core.data.BrowseablePuzzle {
+    override val label: String get() = id.replace("_", " ").replaceFirstChar { it.uppercase() }
+    override val subtitle: String get() = "${size}x${size} • ${dots.size} colors"
+}
 
 object FlowFreePregenerated {
 

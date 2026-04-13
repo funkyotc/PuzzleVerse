@@ -1,4 +1,4 @@
-package com.funkyotc.puzzleverse.kakuro.ui
+package com.funkyotc.puzzleverse.core.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,17 +15,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.funkyotc.puzzleverse.kakuro.data.KakuroCompletionRepository
-import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
-import com.funkyotc.puzzleverse.kakuro.data.PregeneratedKakuro
+import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KakuroPuzzleBrowserScreen(navController: NavController) {
+fun PuzzleBrowserScreen(
+    title: String,
+    gameName: String,
+    navController: NavController,
+    puzzlesByDifficulty: Map<String, List<BrowseablePuzzle>>,
+    difficultyOrder: List<String>,
+    onPuzzleClick: (BrowseablePuzzle) -> Unit
+) {
     val context = LocalContext.current
-    val completionRepo = remember { KakuroCompletionRepository(context) }
-    val puzzlesByDifficulty = remember { KakuroPregenerated.PUZZLES_BY_DIFFICULTY }
-    val difficultyOrder = listOf("Easy", "Medium", "Hard")
+    val completionRepo = remember { PuzzleCompletionRepository(context, gameName) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var completedIds by remember { mutableStateOf(completionRepo.getCompletedIds()) }
 
@@ -36,7 +40,7 @@ fun KakuroPuzzleBrowserScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kakuro Puzzles") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -73,12 +77,10 @@ fun KakuroPuzzleBrowserScreen(navController: NavController) {
             ) {
                 items(puzzles) { puzzle ->
                     val isCompleted = puzzle.id in completedIds
-                    KakuroPuzzleCard(
+                    GenericPuzzleCard(
                         puzzle = puzzle,
                         isCompleted = isCompleted,
-                        onClick = {
-                            navController.navigate("game/kakuro/puzzle/${puzzle.id}")
-                        }
+                        onClick = { onPuzzleClick(puzzle) }
                     )
                 }
             }
@@ -87,7 +89,7 @@ fun KakuroPuzzleBrowserScreen(navController: NavController) {
 }
 
 @Composable
-private fun KakuroPuzzleCard(puzzle: PregeneratedKakuro, isCompleted: Boolean, onClick: () -> Unit) {
+fun GenericPuzzleCard(puzzle: BrowseablePuzzle, isCompleted: Boolean, onClick: () -> Unit) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -97,14 +99,14 @@ private fun KakuroPuzzleCard(puzzle: PregeneratedKakuro, isCompleted: Boolean, o
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = puzzle.id.replace("_", " ").replaceFirstChar { it.uppercase() },
+                    text = puzzle.label,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${puzzle.cols}x${puzzle.rows} • ${puzzle.difficulty}",
+                    text = puzzle.subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

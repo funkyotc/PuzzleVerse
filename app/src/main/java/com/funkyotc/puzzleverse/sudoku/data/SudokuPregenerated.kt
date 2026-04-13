@@ -2,12 +2,14 @@ package com.funkyotc.puzzleverse.sudoku.data
 
 
 data class PregeneratedSudoku(
-    val id: String,
-    val difficulty: String,
+    override val id: String,
+    override val difficulty: String,
     val clues: Int,
     val puzzleStr: String,
     val solutionStr: String
-) {
+) : com.funkyotc.puzzleverse.core.data.BrowseablePuzzle {
+    override val label: String get() = id.replace("_", " ").replaceFirstChar { it.uppercase() }
+    override val subtitle: String get() = "$clues clues • $difficulty"
     val puzzle: List<List<Int>> get() = puzzleStr.map { it.digitToInt() }.chunked(9)
     val solution: List<List<Int>> get() = solutionStr.map { it.digitToInt() }.chunked(9)
 }

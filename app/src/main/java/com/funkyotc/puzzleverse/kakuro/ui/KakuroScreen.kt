@@ -26,6 +26,7 @@ import com.funkyotc.puzzleverse.kakuro.viewmodel.KakuroViewModel
 import com.funkyotc.puzzleverse.kakuro.viewmodel.KakuroViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.ui.platform.LocalContext
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +45,7 @@ fun KakuroScreen(
     var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     val context = LocalContext.current
-    val completionRepo = remember { com.funkyotc.puzzleverse.kakuro.data.KakuroCompletionRepository(context) }
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Kakuro") }
 
     LaunchedEffect(state.isWon) {
         if (state.isWon) {

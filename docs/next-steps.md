@@ -3,91 +3,43 @@
 ## ✅ Completed
 
 ### Flow Free
-- 48 pregenerated puzzles (Easy 5×5, Medium 6×6, Hard 7×7, Expert 8×8)
-- Puzzle browser with difficulty tabs, size subheadings, completion checkmarks
-- Win dialog: Back to List + Next Puzzle (sequential)
-- Scripts: `scripts/generate_puzzles.py`, `scripts/bake_puzzles.py`
+- [x] 48 pregenerated puzzles (Easy 5×5, Medium 6×6, Hard 7×7, Expert 8×8)
+- [x] Shared puzzle browser integration
+- [x] Win dialog: Back to List + Next Puzzle (sequential)
+- [x] Scripts: `scripts/generate_puzzles.py`, `scripts/bake_puzzles.py`
 
 ### Sudoku
-- 65 pregenerated puzzles (20 Easy, 20 Medium, 15 Hard, 10 Expert)
-- Puzzle browser with difficulty tabs, completion tracking
-- Win dialog: Back to List + Next Puzzle (sequential by difficulty)
-- Scripts: `scripts/generate_sudoku.py`, `scripts/bake_sudoku.py`
+- [x] 65 pregenerated puzzles (20 Easy, 20 Medium, 15 Hard, 10 Expert)
+- [x] Shared puzzle browser integration
+- [x] Win dialog: Back to List + Next Puzzle (sequential by difficulty)
+- [x] Scripts: `scripts/generate_sudoku.py`, `scripts/bake_sudoku.py`
 
 ### 2048
-- Menu simplified to just "Play" + "Daily Challenge"
+- [x] Menu simplified to just "Play" + "Daily Challenge"
 
----
+### Nonogram (Phase 2)
+- [x] 40 pregenerated puzzles (15 Easy, 15 Medium, 10 Hard)
+- [x] Shared puzzle browser integration
+- [x] Win dialog: Back to List + Next Puzzle
+- [x] Scripts: `scripts/generate_nonograms.py`, `scripts/bake_nonograms.py`
 
-## Phase 2: Nonogram + Kakuro
+### Kakuro (Phase 2)
+- [x] 33 pregenerated puzzles (15 Easy, 10 Medium, 8 Hard)
+- [x] Shared puzzle browser integration
+- [x] Win dialog: Back to List + Next Puzzle
+- [x] Scripts: `scripts/generate_kakuro.py`, `scripts/bake_kakuro.py`
 
-### Nonogram
-**Goal:** Generate browsable nonogram puzzles at multiple sizes.
+### Minesweeper (Phase 3)
+- [x] Difficulty presets: Easy (9×9), Medium (16×16), Hard (16×30)
+- [x] Dynamic grid/mine initialization based on selection
 
-**Steps:**
-[x] 1. Write `scripts/generate_nonograms.py`
-   - Generate pixel-art patterns using template shapes (hearts, stars, arrows, animals)
-   - Sizes: 5×5 (Easy), 10×10 (Medium), 15×15 (Hard)
-   - Verify each puzzle has a unique solution via line-solving logic
-   - Target: 15 Easy, 15 Medium, 10 Hard
-[x] 2. Write `scripts/bake_nonograms.py` → `NonogramPregenerated.kt`
-   - Store grids as compact binary strings ("10110..." for filled/empty)
-[x] 3. Create `NonogramCompletionRepository.kt`
-[x] 4. Create `NonogramPuzzleBrowserScreen.kt`
-[x] 5. Update `NonogramViewModel.kt` — accept puzzleId, load specific puzzle
-[x] 6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for nonogram
-[x] 7. Update `MainActivity.kt` — add `nonogram/puzzles` and `game/nonogram/puzzle/{id}` routes
-[x] 8. Add win dialog with Back to List + Next Puzzle
+### Core Infrastructure (Phase 4)
+- [x] Generic `PuzzleBrowserScreen` (replaces 4 game-specific screens)
+- [x] Generic `PuzzleCompletionRepository` (replaces 4 game-specific repos)
+- [x] Unified `BrowseablePuzzle` interface
+- [x] Automated baking pipeline for all future pregenerated games
 
-### Kakuro
-**Goal:** Generate browsable kakuro puzzles at multiple grid sizes.
 
-**Steps:**
-[x] 1. Write `scripts/generate_kakuro.py`
-   - Use constraint satisfaction to build valid grids
-   - Sizes: 4×4 (Easy), 6×6 (Medium), 8×8 (Hard)
-   - Verify unique solutions
-   - Target: 15 Easy, 10 Medium, 8 Hard
-   - Use multiprocessing (12 cores) — Hard grids may take minutes
-[x] 2. Write `scripts/bake_kakuro.py` → `KakuroPregenerated.kt`
-[x] 3. Create `KakuroCompletionRepository.kt`
-[x] 4. Create `KakuroPuzzleBrowserScreen.kt`
-[x] 5. Update `KakuroViewModel.kt` — accept puzzleId
-[x] 6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for kakuro
-[x] 7. Update `MainActivity.kt` — add routes
-[x] 8. Add win dialog with Back to List + Next Puzzle
-
----
-
-## Phase 3: Minesweeper Difficulty
-
-**Goal:** Add difficulty presets (no pregeneration needed — procedural is fine).
-
-**Steps:**
-1. Create `MinesweeperDifficulty.kt` enum:
-   - `Easy`: 9×9, 10 mines
-   - `Medium`: 16×16, 40 mines (current default)
-   - `Hard`: 16×30, 99 mines
-2. Update `MinesweeperViewModel.kt` — accept difficulty, use its grid/mine params
-3. Update `GameDetailScreen.kt` — show difficulty selector cards (Easy/Medium/Hard)
-4. No puzzle browser needed — Minesweeper is inherently random
-
----
-
-## Phase 4: Shared Infrastructure
-
-**Goal:** Reduce code duplication across all puzzle browsers.
-
-**Steps:**
-1. Create generic `PuzzleCompletionRepository(context, gameId)` replacing per-game repos
-2. Create generic `PuzzleBrowserScreen` composable accepting:
-   - `puzzles: List<BrowsablePuzzle>` (id, difficulty, size/label)
-   - `completedIds: Set<String>`
-   - `difficultyLabels: List<String>`
-   - `onPuzzleSelected: (String) -> Unit`
-3. Migrate Flow Free, Sudoku, Nonogram, Kakuro browsers to use shared component
-4. Delete per-game `*CompletionRepository.kt` files
-5. Delete per-game `*PuzzleBrowserScreen.kt` files
 
 ---
 

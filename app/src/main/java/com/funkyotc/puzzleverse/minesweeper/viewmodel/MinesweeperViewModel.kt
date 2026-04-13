@@ -14,7 +14,17 @@ class MinesweeperViewModel(
     private val streakRepository: StreakRepository? = null,
     private val mode: String? = "standard"
 ) : ViewModel() {
-    private val _state = MutableStateFlow(MinesweeperState())
+    private val difficulty = when (mode?.lowercase()) {
+        "easy" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.EASY
+        "hard" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.HARD
+        else -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.MEDIUM
+    }
+
+    private val _state = MutableStateFlow(MinesweeperState(
+        rows = difficulty.rows,
+        cols = difficulty.cols,
+        totalMines = difficulty.mines
+    ))
     val state: StateFlow<MinesweeperState> = _state.asStateFlow()
 
     init {
@@ -22,9 +32,9 @@ class MinesweeperViewModel(
     }
 
     fun startNewGame() {
-        val rows = 16
-        val cols = 16
-        val totalMines = 40
+        val rows = difficulty.rows
+        val cols = difficulty.cols
+        val totalMines = difficulty.mines
         
         val emptyGrid = List(rows) { r ->
             List(cols) { c ->

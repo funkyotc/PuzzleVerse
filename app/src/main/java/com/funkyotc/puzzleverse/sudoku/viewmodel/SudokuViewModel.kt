@@ -7,7 +7,7 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
-import com.funkyotc.puzzleverse.sudoku.data.SudokuCompletionRepository
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.sudoku.generator.SudokuGenerator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +23,7 @@ class SudokuViewModel(
 
     private val generator = SudokuGenerator()
     private val repository = SudokuRepository(context)
-    private val completionRepo = SudokuCompletionRepository(context)
+    private val completionRepo = PuzzleCompletionRepository(context, "Sudoku")
     private val dailyChallengeSeed = LocalDate.now().toEpochDay()
     private val boardKey = if (mode == "daily") "daily_sudoku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_sudoku_board"
 

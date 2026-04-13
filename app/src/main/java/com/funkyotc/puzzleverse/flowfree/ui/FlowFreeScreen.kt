@@ -32,6 +32,7 @@ import com.funkyotc.puzzleverse.flowfree.data.Point
 import com.funkyotc.puzzleverse.flowfree.viewmodel.FlowFreeViewModel
 import com.funkyotc.puzzleverse.flowfree.viewmodel.FlowFreeViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +69,7 @@ fun FlowFreeScreen(
 
     // Track puzzle completion
     val context = androidx.compose.ui.platform.LocalContext.current
-    val completionRepo = remember { com.funkyotc.puzzleverse.flowfree.data.FlowPuzzleCompletionRepository(context) }
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Flow") }
 
     LaunchedEffect(state.isWon) {
         if (state.isWon && mode == "puzzle" && puzzleId != null) {
