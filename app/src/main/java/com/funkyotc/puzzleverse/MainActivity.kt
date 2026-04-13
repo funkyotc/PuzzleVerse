@@ -204,5 +204,21 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
+        composable("kakuro/puzzles") {
+            com.funkyotc.puzzleverse.kakuro.ui.KakuroPuzzleBrowserScreen(navController = navController)
+        }
+        composable(
+            "game/kakuro/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            KakuroScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
     }
 }

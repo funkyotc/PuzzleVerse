@@ -118,6 +118,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("flowfree/puzzles")
                     }
                 }
+                "kakuro" -> {
+                    MenuCard(text = "Random Puzzle") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/kakuro/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("kakuro/puzzles")
+                    }
+                }
                 else -> {
                     MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)

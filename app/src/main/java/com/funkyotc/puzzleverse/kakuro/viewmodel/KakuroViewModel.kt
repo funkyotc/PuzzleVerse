@@ -14,7 +14,8 @@ import kotlinx.coroutines.flow.update
 
 class KakuroViewModel(
     private val streakRepository: StreakRepository? = null,
-    private val mode: String? = "standard"
+    private val mode: String? = "standard",
+    private val puzzleId: String? = null
 ) : ViewModel() {
     private val _state = MutableStateFlow(KakuroState())
     val state: StateFlow<KakuroState> = _state.asStateFlow()
@@ -24,7 +25,13 @@ class KakuroViewModel(
     }
 
     fun startNewGame() {
-        val grid = com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
+        val grid = if (puzzleId != null) {
+            val allPuzzles = com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
+            val pregen = allPuzzles.find { it.id == puzzleId }
+            pregen?.grid ?: com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
+        } else {
+            com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
+        }
         val rows = grid.size
         val cols = if (rows > 0) grid[0].size else 0
         
@@ -104,12 +111,13 @@ class KakuroViewModel(
 
 class KakuroViewModelFactory(
     private val streakRepository: StreakRepository,
-    private val mode: String?
+    private val mode: String?,
+    private val puzzleId: String? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(KakuroViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return KakuroViewModel(streakRepository, mode) as T
+            return KakuroViewModel(streakRepository, mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

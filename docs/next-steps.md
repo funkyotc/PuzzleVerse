@@ -43,19 +43,19 @@
 **Goal:** Generate browsable kakuro puzzles at multiple grid sizes.
 
 **Steps:**
-1. Write `scripts/generate_kakuro.py`
+[x] 1. Write `scripts/generate_kakuro.py`
    - Use constraint satisfaction to build valid grids
    - Sizes: 4×4 (Easy), 6×6 (Medium), 8×8 (Hard)
    - Verify unique solutions
    - Target: 15 Easy, 10 Medium, 8 Hard
    - Use multiprocessing (12 cores) — Hard grids may take minutes
-2. Write `scripts/bake_kakuro.py` → `KakuroPregenerated.kt`
-3. Create `KakuroCompletionRepository.kt`
-4. Create `KakuroPuzzleBrowserScreen.kt`
-5. Update `KakuroViewModel.kt` — accept puzzleId
-6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for kakuro
-7. Update `MainActivity.kt` — add routes
-8. Add win dialog with Back to List + Next Puzzle
+[x] 2. Write `scripts/bake_kakuro.py` → `KakuroPregenerated.kt`
+[x] 3. Create `KakuroCompletionRepository.kt`
+[x] 4. Create `KakuroPuzzleBrowserScreen.kt`
+[x] 5. Update `KakuroViewModel.kt` — accept puzzleId
+[x] 6. Update `GameDetailScreen.kt` — add "Browse Puzzles" for kakuro
+[x] 7. Update `MainActivity.kt` — add routes
+[x] 8. Add win dialog with Back to List + Next Puzzle
 
 ---
 

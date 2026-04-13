@@ -25,6 +25,7 @@ import com.funkyotc.puzzleverse.kakuro.data.KakuroCell
 import com.funkyotc.puzzleverse.kakuro.viewmodel.KakuroViewModel
 import com.funkyotc.puzzleverse.kakuro.viewmodel.KakuroViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,8 @@ fun KakuroScreen(
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
     mode: String? = "standard",
-    viewModel: KakuroViewModel = viewModel(factory = KakuroViewModelFactory(streakRepository, mode))
+    puzzleId: String? = null,
+    viewModel: KakuroViewModel = viewModel(factory = KakuroViewModelFactory(streakRepository, mode, puzzleId))
 ) {
     val state by viewModel.state.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
@@ -41,9 +43,15 @@ fun KakuroScreen(
 
     var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
+    val context = LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.kakuro.data.KakuroCompletionRepository(context) }
+
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
@@ -73,10 +81,27 @@ fun KakuroScreen(
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
+                } else if (mode == "puzzle") {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) {
+                            androidx.compose.material3.Text("Back to List")
+                        }
+                        val nextId = puzzleId?.let { id ->
+                            val diffPuzzles = com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
+                            val currentIndex = diffPuzzles.indexOfFirst { it.id == id }
+                            if (currentIndex != -1 && currentIndex + 1 < diffPuzzles.size) diffPuzzles[currentIndex + 1].id else null
+                        }
+                        if (nextId != null) {
+                            androidx.compose.material3.Button(onClick = {
+                                navController.popBackStack()
+                                navController.navigate("game/kakuro/puzzle/$nextId")
+                            }) {
+                                androidx.compose.material3.Text("Next Puzzle")
+                            }
+                        }
+                    }
                 } else {
-
-                Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
-
+                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
                 }
             }
         )
