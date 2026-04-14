@@ -22,3 +22,4 @@ build.log
 app/finalRelease
 app/release
 scripts/output
+scripts/output-old
