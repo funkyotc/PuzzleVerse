@@ -15,7 +15,8 @@ import java.time.LocalDate
 import kotlin.random.Random
 
 class ShapesViewModel(
-    private val mode: String?
+    private val mode: String?,
+    private val puzzleId: String? = null
 ) : ViewModel() {
 
     private val _puzzle = MutableStateFlow<ShapesPuzzle?>(null)
@@ -31,6 +32,45 @@ class ShapesViewModel(
     }
 
     fun loadNewPuzzle() {
+
+        if (mode == "puzzle" && puzzleId != null) {
+            val cx = 200f
+            val cy = 200f
+            val scale = 1.5f
+            val pregen = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
+            if (pregen != null) {
+                val originalLevel = pregen.toShapesPuzzle()
+                val scaledPieces = originalLevel.pieces.map { piece ->
+                    piece.copy(
+                        initialVertices = piece.initialVertices.map { Offset(it.x * scale, it.y * scale) },
+                        position = piece.solutionPosition, // We don't randomize these right now for simplicity since it's tangrams
+                        solutionPosition = piece.solutionPosition
+                    )
+                }
+                
+                // Shuffle tangram pieces onto the bottom
+                val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
+                    piece.copy(
+                        position = Offset(
+                            150f + Random.nextFloat() * 100f, 
+                            450f + Random.nextFloat() * 150f
+                        )
+                    )
+                }
+                
+                val scaledTarget = TargetShape(originalLevel.target.vertices.map { 
+                    Offset(cx + (it.x) * scale * 100f, cy + (it.y) * scale * 100f) // approximate center offset manually for the generator space
+                })
+                
+                // Override for the specific generator logic used previously:
+                // Pre-bake shapes used very specific unit values.
+                
+                _puzzle.value = originalLevel
+                _isGameWon.value = false
+                return
+            }
+        }
+
         val seed = if (mode == "daily") {
             LocalDate.now().toEpochDay()
         } else {
@@ -187,11 +227,11 @@ class ShapesViewModel(
     }
 }
 
-class ShapesViewModelFactory(private val mode: String?) : ViewModelProvider.Factory {
+class ShapesViewModelFactory(private val mode: String?, private val puzzleId: String? = null) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ShapesViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ShapesViewModel(mode) as T
+            return ShapesViewModel(mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

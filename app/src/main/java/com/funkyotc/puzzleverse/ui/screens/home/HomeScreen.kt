@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -90,12 +93,12 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle") }
-                    androidx.compose.foundation.lazy.items(dailyGames) { game ->
+                    items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = java.time.LocalDate.now().toEpochDay()
                         val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-                        Box(modifier = Modifier.androidx.compose.foundation.layout.width(160.dp).height(120.dp)) {
+                        Box(modifier = Modifier.width(160.dp).height(120.dp)) {
                             GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/${game.id}/daily")

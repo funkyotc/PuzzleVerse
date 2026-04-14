@@ -87,15 +87,15 @@
 
 ### Constellations
 
-1. Write `scripts/generate_constellations.py`
-2. Write `scripts/bake_constellations.py` → `ConstellationsPregenerated.kt`
-3. Standard browser + completion tracking
+1. [x] Write `scripts/generate_constellations.py`
+2. [x] Write `scripts/bake_constellations.py` → `ConstellationsPregenerated.kt`
+3. [x] Standard browser + completion tracking
 
 ### Shapes
 
-1. Write `scripts/generate_shapes.py`
-2. Write `scripts/bake_shapes.py` → `ShapesPregenerated.kt`
-3. Standard browser + completion tracking
+1. [x] Write `scripts/generate_shapes.py`
+2. [x] Write `scripts/bake_shapes.py` → `ShapesPregenerated.kt`
+3. [x] Standard browser + completion tracking
 
 ---
 
@@ -104,6 +104,13 @@
 1. Create `WordleStatsRepository.kt` — track games played, win rate, guess distribution
 2. Add stats display screen accessible from Wordle menu
 3. Optional: Add word length variants (4/5/6 letter modes)
+
+---
+
+## Phase 7: Extra Fixes
+
+- [ ] **Bonza Pickup Offset**: Fix the piece pickup offset so that it doesnt change once the piece is dropped.
+- [ ] **External Libraries**: Update the puzzle generation scripts to generate fun and interesting puzzles. Use whatever nessicary external libraries that are needed to do this.
 
 ---
 

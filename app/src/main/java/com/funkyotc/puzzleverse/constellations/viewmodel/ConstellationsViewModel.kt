@@ -17,7 +17,8 @@ import java.time.LocalDate
 import kotlin.random.Random
 
 class ConstellationsViewModel(
-    private val mode: String?
+    private val mode: String?,
+    private val puzzleId: String? = null
 ) : ViewModel() {
 
     private val _puzzle = MutableStateFlow<ConstellationsPuzzle?>(null)
@@ -41,24 +42,23 @@ class ConstellationsViewModel(
     }
 
     fun loadNewPuzzle() {
+        if (mode == "puzzle" && puzzleId != null) {
+            val pregen = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
+             if (pregen != null) {
+                 _puzzle.value = pregen.toConstellationsPuzzle()
+                 _isGameWon.value = false
+                 _moves.value = 0
+                 _elapsedSeconds.value = 0
+                 startTimer()
+                 return
+             }
+        }
+    
         val seed = if (mode == "daily") {
             LocalDate.now().toEpochDay()
         } else {
             Random.nextLong()
         }
-        // Assuming generator can take a seed now, or we implement seeded generation
-        // Updating generator call to use seed logic if capable, or simulating it
-        // Since original generator didn't take a seed, we need to update it or rely on randomness.
-        // Let's pass the seed to generate() if we update generator, or set Random default.
-        
-        // For now, we will update Generate to roughly respect randomness if we pass it, 
-        // but since we haven't updated Generator signature yet, let's assume valid randomness
-        // or actually update generator? The plan implied updating ViewModel logic.
-        // Ideally we pass a Random instance to generator.
-        
-        // We will assume Generator is updated to accept a Random instance or seed.
-        // For this step, I'll pass the seed to a new generate method I'll add to the generator, 
-        // or just use a Random instance here and pass it.
         
         _puzzle.value = generator.generate(size = 10, seed = seed)
         _isGameWon.value = false
@@ -244,11 +244,11 @@ class ConstellationsViewModel(
     }
 }
 
-class ConstellationsViewModelFactory(private val mode: String?) : ViewModelProvider.Factory {
+class ConstellationsViewModelFactory(private val mode: String?, private val puzzleId: String? = null) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ConstellationsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ConstellationsViewModel(mode) as T
+            return ConstellationsViewModel(mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

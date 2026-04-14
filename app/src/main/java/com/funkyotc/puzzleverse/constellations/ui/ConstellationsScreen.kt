@@ -51,6 +51,7 @@ import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModel
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,8 +59,9 @@ import androidx.compose.runtime.LaunchedEffect
 fun ConstellationsScreen(
     navController: NavController, 
     mode: String? = "standard",
+    puzzleId: String? = null,
     settingsRepository: SettingsRepository,
-    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode))
+    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
     val isGameWon by constellationsViewModel.isGameWon.collectAsState()
@@ -68,6 +70,9 @@ fun ConstellationsScreen(
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "constellations") }
 
     if (showHintDialog) {
         AlertDialog(
@@ -93,6 +98,9 @@ fun ConstellationsScreen(
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
@@ -122,6 +130,30 @@ fun ConstellationsScreen(
                         }
                         Button(onClick = { navController.navigate("game/constellations/standard/new") { popUpTo("home") } }) {
                             Text("Random Puzzles")
+                        }
+                    }
+                } else if (mode == "puzzle" && puzzleId != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.popBackStack() }) {
+                            Text("Back to List")
+                        }
+                        val currentPuzzle = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
+                        val sameDiffPuzzles = if (currentPuzzle != null) {
+                            com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.ALL_PUZZLES
+                                .filter { it.difficulty == currentPuzzle.difficulty }
+                        } else emptyList()
+                        val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
+                            sameDiffPuzzles[currentIndex + 1]
+                        } else null
+                        if (nextPuzzle != null) {
+                            Button(onClick = {
+                                navController.navigate("game/constellations/puzzle/${nextPuzzle.id}") {
+                                    popUpTo("constellations/puzzles")
+                                }
+                            }) {
+                                Text("Next Puzzle")
+                            }
                         }
                     }
                 } else {

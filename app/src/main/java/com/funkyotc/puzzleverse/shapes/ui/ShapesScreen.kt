@@ -43,6 +43,7 @@ import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,8 +51,9 @@ import androidx.compose.runtime.LaunchedEffect
 fun ShapesScreen(
     navController: NavController, 
     mode: String? = "standard",
+    puzzleId: String? = null,
     settingsRepository: SettingsRepository,
-    viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode))
+    viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by viewModel.puzzle.collectAsState()
     val isGameWon by viewModel.isGameWon.collectAsState()
@@ -59,6 +61,9 @@ fun ShapesScreen(
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "shapes") }
 
     if (showHintDialog) {
         AlertDialog(
@@ -83,6 +88,9 @@ fun ShapesScreen(
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
@@ -125,6 +133,30 @@ fun ShapesScreen(
                         }
                         androidx.compose.material3.Button(onClick = { navController.navigate("game/shapes/standard/new") { popUpTo("home") } }) {
                             androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else if (mode == "puzzle" && puzzleId != null) {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        Button(onClick = { navController.popBackStack() }) {
+                            Text("Back to List")
+                        }
+                        val currentPuzzle = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
+                        val sameDiffPuzzles = if (currentPuzzle != null) {
+                            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES
+                                .filter { it.difficulty == currentPuzzle.difficulty }
+                        } else emptyList()
+                        val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
+                            sameDiffPuzzles[currentIndex + 1]
+                        } else null
+                        if (nextPuzzle != null) {
+                            Button(onClick = {
+                                navController.navigate("game/shapes/puzzle/${nextPuzzle.id}") {
+                                    popUpTo("shapes/puzzles")
+                                }
+                            }) {
+                                Text("Next Puzzle")
+                            }
                         }
                     }
                 } else {

@@ -47,6 +47,8 @@ import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
 import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
 import com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated
+import com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated
+import com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -288,6 +290,48 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 mode = "puzzle",
                 puzzleId = puzzleId,
                 streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("constellations/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Constellations Puzzles",
+                gameName = "Constellations",
+                navController = navController,
+                puzzlesByDifficulty = ConstellationsPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/constellations/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/constellations/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            ConstellationsScreen(
+                navController = navController,
+                mode = "puzzle",
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("shapes/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Shapes Puzzles",
+                gameName = "Shapes",
+                navController = navController,
+                puzzlesByDifficulty = ShapesPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/shapes/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/shapes/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            ShapesScreen(
+                navController = navController,
+                mode = "puzzle",
                 settingsRepository = settingsRepository
             )
         }
