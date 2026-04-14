@@ -147,8 +147,7 @@ fun MinesweeperScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -165,44 +164,49 @@ fun MinesweeperScreen(
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
-                    .background(Color.DarkGray)
-                    .border(2.dp, Color.Black)
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    for (r in 0 until state.rows) {
-                        Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                            for (c in 0 until state.cols) {
-                                val cell = state.grid[r][c]
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .border(1.dp, Color.Gray)
-                                        .background(if (cell.isRevealed) Color.LightGray else Color(0xFF555555))
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(
-                                                onTap = { viewModel.revealCell(r, c) },
-                                                onLongPress = { viewModel.toggleFlag(r, c) }
-                                            )
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (cell.isRevealed) {
-                                        if (cell.isMine) {
-                                            Text("💣", fontSize = 16.sp)
-                                        } else if (cell.neighboringMines > 0) {
-                                            Text(
-                                                text = cell.neighboringMines.toString(),
-                                                color = getNumberColor(cell.neighboringMines),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 18.sp
-                                            )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
+                        .background(Color.DarkGray)
+                        .border(2.dp, Color.Black)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        for (r in 0 until state.rows) {
+                            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                for (c in 0 until state.cols) {
+                                    val cell = state.grid[r][c]
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .border(1.dp, Color.Gray)
+                                            .background(if (cell.isRevealed) Color.LightGray else Color(0xFF555555))
+                                            .pointerInput(Unit) {
+                                                detectTapGestures(
+                                                    onTap = { viewModel.revealCell(r, c) },
+                                                    onLongPress = { viewModel.toggleFlag(r, c) }
+                                                )
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (cell.isRevealed) {
+                                            if (cell.isMine) {
+                                                Text("💣", fontSize = 16.sp)
+                                            } else if (cell.neighboringMines > 0) {
+                                                Text(
+                                                    text = cell.neighboringMines.toString(),
+                                                    color = getNumberColor(cell.neighboringMines),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 18.sp
+                                                )
+                                            }
+                                        } else if (cell.isFlagged) {
+                                            Icon(Icons.Filled.Flag, contentDescription = "Flagged", tint = Color.Red, modifier = Modifier.size(16.dp))
                                         }
-                                    } else if (cell.isFlagged) {
-                                        Icon(Icons.Filled.Flag, contentDescription = "Flagged", tint = Color.Red, modifier = Modifier.size(16.dp))
                                     }
                                 }
                             }

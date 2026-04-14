@@ -152,54 +152,55 @@ fun NonogramScreen(
         ) {
             
             // Draw Top Clues
-            Row(modifier = Modifier.fillMaxWidth().padding(start = 60.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 32.dp)) {
                 for (c in 0 until state.cols) {
                     Column(
-                        modifier = Modifier.weight(1f).wrapContentHeight(),
+                        modifier = Modifier.weight(1f).height(64.dp),
                         verticalArrangement = Arrangement.Bottom,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         state.colClues[c].forEach { clue ->
-                            Text(text = clue.toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
             
             // Draw Rows
-            for (r in 0 until state.rows) {
-                Row(modifier = Modifier.fillMaxWidth().height(40.dp)) {
-                    // Left Clues
-                    Row(
-                        modifier = Modifier.width(60.dp).fillMaxHeight(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        state.rowClues[r].forEachIndexed { index, clue ->
-                            Text(text = clue.toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            if (index < state.rowClues[r].size - 1) Spacer(modifier = Modifier.width(4.dp))
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    
-                    // Grid Cells
-                    for (c in 0 until state.cols) {
-                        val cellState = state.playerGrid[r][c]
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .border(1.dp, Color.Gray)
-                                .background(if (cellState == CellState.FILLED) Color.Black else Color.White)
-                                .clickable {
-                                    // simple toggle: click once to fill, click again to empty
-                                    // if you want cross support, maybe double tap, or toggle button at bottom
-                                    viewModel.toggleCell(r, c, isFillAction = true)
-                                },
-                            contentAlignment = Alignment.Center
+            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                for (r in 0 until state.rows) {
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        // Left Clues
+                        Row(
+                            modifier = Modifier.width(32.dp).fillMaxHeight(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (cellState == CellState.CROSSED) {
-                                Text("X", color = Color.Red, fontWeight = FontWeight.Bold)
+                            state.rowClues[r].forEachIndexed { index, clue ->
+                                Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                if (index < state.rowClues[r].size - 1) Spacer(modifier = Modifier.width(2.dp))
+                            }
+                            Spacer(modifier = Modifier.width(2.dp))
+                        }
+                        
+                        // Grid Cells
+                        for (c in 0 until state.cols) {
+                            val cellState = state.playerGrid[r][c]
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .aspectRatio(1f)
+                                    .border(0.5.dp, Color.Gray)
+                                    .background(if (cellState == CellState.FILLED) Color.Black else Color.White)
+                                    .clickable {
+                                        viewModel.toggleCell(r, c, isFillAction = true)
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (cellState == CellState.CROSSED) {
+                                    Text("X", color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }

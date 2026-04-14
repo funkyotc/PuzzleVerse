@@ -343,11 +343,12 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                             val puzzlePos = (position - currentOffset) / currentScale / letterBoxSizePx
                             viewModel.onDragStart(puzzlePos)
                         },
-                        onDrag = { change, dragAmount ->
+                        onDrag = { change, _ ->
                             change.consume()
                             val currentScale = scale.value
-                            // Drag amount in puzzle space (Grid Units)
-                            viewModel.onDrag(dragAmount / currentScale / letterBoxSizePx)
+                            val currentOffset = Offset(offsetX.value, offsetY.value)
+                            val puzzlePos = (change.position - currentOffset) / currentScale / letterBoxSizePx
+                            viewModel.onDrag(puzzlePos)
                         },
                         onDragEnd = { 
                             isDragging = false

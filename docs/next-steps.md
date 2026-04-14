@@ -99,17 +99,21 @@
 
 ---
 
-## Phase 6: Wordle Stats + Polish
+## Phase 6: Wordle Stats
 
-1. Create `WordleStatsRepository.kt` — track games played, win rate, guess distribution
-2. Add stats display screen accessible from Wordle menu
-
----
+- [x] **Data Persistence**: Use `SharedPreferences` to store game results and streaks.
+- [x] **ViewModel Integration**: Added logic to update stats on game completion.
+- [x] **Statistics Dialog**: Created a premium-looking dashboard with guess distribution charts.
 
 ## Phase 7: Extra Fixes
 
-- [ ] **Bonza Pickup Offset**: Fix the piece pickup offset so that it doesnt change once the piece is dropped.
-- [ ] **External Libraries**: Update the puzzle generation scripts to generate fun and interesting puzzles. Use whatever nessicary external libraries that are needed to do this.
+- [x] **Bonza Pickup Offset**: Fixed the piece pickup jump logic in `BonzaViewModel`.
+- [x] **Grid Scaling**: Standardized `SudokuScreen`, `NonogramScreen`, `KakuroScreen`, and `MinesweeperScreen` to use responsive `BoxWithConstraints` + `weight(1f)` logic.
+- [x] **External Libraries**: Upgraded generation scripts using `networkx` for graph-based layout/partitioning and `numpy` for optimization.
+
+---
+
+**Project status**: All requested phases are complete. The application is polished, responsive, and features procedural content generation.
 
 ---
 

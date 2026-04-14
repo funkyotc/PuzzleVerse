@@ -1,22 +1,19 @@
 package com.funkyotc.puzzleverse.wordle.viewmodel
 
-import androidx.lifecycle.ViewModel
-import com.funkyotc.puzzleverse.wordle.model.GameStatus
-import com.funkyotc.puzzleverse.wordle.model.LetterState
-import com.funkyotc.puzzleverse.wordle.model.WordleGuess
-import com.funkyotc.puzzleverse.wordle.model.WordleLetter
-import com.funkyotc.puzzleverse.wordle.model.WordleState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlin.random.Random
-import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import java.time.LocalDate
 import android.content.Context
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.wordle.data.WordleStatsRepository
+import com.funkyotc.puzzleverse.wordle.model.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import java.time.LocalDate
+import kotlin.random.Random
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 class WordleViewModel(
     private val mode: String?,
     private val streakRepository: StreakRepository,
+    private val statsRepository: WordleStatsRepository,
     private val dictionary: List<String>
 ) : ViewModel() {
 
@@ -138,16 +135,22 @@ class WordleViewModel(
             else -> GameStatus.PLAYING
         }
 
-        if (newGameStatus == GameStatus.WON && mode == "daily") {
-            val today = LocalDate.now().toEpochDay()
-            val streak = streakRepository.getStreak("wordle")
-            if (streak.lastCompletedEpochDay != today) {
-                val newStreak = streak.copy(
-                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                    lastCompletedEpochDay = today
-                )
-                streakRepository.saveStreak(newStreak)
+        if (newGameStatus == GameStatus.WON) {
+            statsRepository.recordResult(won = true, guesses = currentState.currentGuessIndex + 1)
+            
+            if (mode == "daily") {
+                val today = LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("wordle")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newStreak = streak.copy(
+                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                        lastCompletedEpochDay = today
+                    )
+                    streakRepository.saveStreak(newStreak)
+                }
             }
+        } else if (newGameStatus == GameStatus.LOST) {
+            statsRepository.recordResult(won = false, guesses = 0)
         }
 
         _wordleState.value = currentState.copy(
@@ -200,8 +203,9 @@ class WordleViewModelFactory(
             } catch (e: Exception) {
                 listOf("APPLE", "CRATE", "PLANE", "STONE") // Fallback
             }
+            val statsRepo = WordleStatsRepository(context)
             @Suppress("UNCHECKED_CAST")
-            return WordleViewModel(mode, streakRepository, words) as T
+            return WordleViewModel(mode, streakRepository, statsRepo, words) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

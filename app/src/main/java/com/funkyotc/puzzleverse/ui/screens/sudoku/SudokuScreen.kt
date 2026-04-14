@@ -230,12 +230,17 @@ fun SudokuScreen(
     ) { paddingValues ->
         Column(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
-            verticalArrangement = Arrangement.SpaceAround,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
+            Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
+            }
             ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
             NumberPad(board = board, isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

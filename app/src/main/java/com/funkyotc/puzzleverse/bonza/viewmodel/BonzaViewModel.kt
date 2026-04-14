@@ -35,6 +35,7 @@ class BonzaViewModel(
     val draggedGroupId = _draggedGroupId.asStateFlow()
 
     private var draggedFragmentGroupId: Int? = null
+    private var dragOffset = Offset.Zero
     // Logical size of a letter box in grid units is always 1.0
     private val letterBoxSize = 1.0f
 
@@ -88,13 +89,22 @@ class BonzaViewModel(
         val fragment = getFragmentAt(position)
         draggedFragmentGroupId = fragment?.groupId
         _draggedGroupId.value = fragment?.groupId
+        
+        // Store the offset from the touch point to the fragment's current position
+        fragment?.let {
+            dragOffset = it.currentPosition - position
+        }
     }
 
-    fun onDrag(dragAmount: Offset) {
+    fun onDrag(touchPosition: Offset) {
         draggedFragmentGroupId?.let { groupId ->
+            val targetPosition = touchPosition + dragOffset
+            val currentGroupPos = _puzzle.value.fragments.find { it.groupId == groupId }?.currentPosition ?: return@let
+            val moveDelta = targetPosition - currentGroupPos
+            
             val updatedFragments = _puzzle.value.fragments.map { fragment ->
                 if (fragment.groupId == groupId) {
-                    fragment.copy(currentPosition = fragment.currentPosition + dragAmount)
+                    fragment.copy(currentPosition = fragment.currentPosition + moveDelta)
                 } else {
                     fragment
                 }

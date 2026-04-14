@@ -28,9 +28,10 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.wordle.viewmodel.WordleViewModelFactory
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Shuffle
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.ui.platform.LocalContext
+import com.funkyotc.puzzleverse.wordle.data.WordleStatsRepository
+import androidx.compose.material.icons.automirrored.filled.BarChart
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -53,6 +54,15 @@ fun WordleScreen(
     val gameState by viewModel.wordleState.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
+    var showStatsDialog by remember { mutableStateOf(false) }
+    
+    val statsRepository = remember { WordleStatsRepository(context) }
+
+    if (showStatsDialog) {
+        WordleStatsDialog(statsRepository = statsRepository) {
+            showStatsDialog = false
+        }
+    }
 
     if (showHintDialog) {
         AlertDialog(
@@ -123,6 +133,9 @@ fun WordleScreen(
                     }
                     IconButton(onClick = { showHintDialog = true }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
+                    }
+                    IconButton(onClick = { showStatsDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.BarChart, contentDescription = "Stats")
                     }
                     if (mode != "daily") {
                         IconButton(onClick = { viewModel.startNewGame() }) {

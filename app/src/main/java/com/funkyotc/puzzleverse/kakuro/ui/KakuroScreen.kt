@@ -159,27 +159,34 @@ fun KakuroScreen(
             // Grid
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
-                    .background(Color.Black)
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    for (r in 0 until state.rows) {
-                        Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                            for (c in 0 until state.cols) {
-                                val cell = state.grid[r][c]
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .border(1.dp, Color.Gray)
-                                        .clickable {
-                                            if (cell.type == CellType.PLAYER_INPUT) {
-                                                selectedCell = Pair(r, c)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
+                        .background(Color.Black)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        for (r in 0 until state.rows) {
+                            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                for (c in 0 until state.cols) {
+                                    val cell = state.grid[r][c]
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .border(1.dp, Color.Gray)
+                                            .clickable {
+                                                if (cell.type == CellType.PLAYER_INPUT) {
+                                                    selectedCell = Pair(r, c)
+                                                }
                                             }
-                                        }
-                                ) {
-                                    KakuroCellView(cell, isSelected = selectedCell == Pair(r, c))
+                                    ) {
+                                        KakuroCellView(cell, isSelected = selectedCell == Pair(r, c))
+                                    }
                                 }
                             }
                         }

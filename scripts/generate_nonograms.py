@@ -1,212 +1,141 @@
 import os
 import json
 import random
+import numpy as np
 
-def solve_line(clues, length):
-    # Returns all possible valid line configurations for given clues and length
-    if not clues:
-        return [[False] * length]
-    
-    first = clues[0]
-    rest = clues[1:]
-    min_rest = sum(rest) + len(rest)
-    
-    valid = []
-    # Maximum start position for the first block
-    max_start = length - min_rest - first
-    for start in range(max_start + 1):
-        prefix = [False] * start + [True] * first
-        
-        if not rest:
-            suffix = [False] * (length - len(prefix))
-            valid.append(prefix + suffix)
-        else:
-            prefix.append(False)
-            sub_sols = solve_line(rest, length - len(prefix))
-            for sub in sub_sols:
-                valid.append(prefix + sub)
-    return valid
+class NonogramGenerator:
+    def __init__(self, size):
+        self.size = size
+        self.grid = np.zeros((size, size), dtype=bool)
 
-def check_unique(grid):
-    size = len(grid)
-    
-    # Generate clues from grid
-    row_clues = []
-    col_clues = []
-    for r in range(size):
-        r_clue = []
+    def get_clues(self, line):
+        clues = []
         count = 0
-        for c in range(size):
-            if grid[r][c]: count += 1
+        for val in line:
+            if val: count += 1
             elif count > 0:
-                r_clue.append(count)
+                clues.append(count)
                 count = 0
-        if count > 0: r_clue.append(count)
-        row_clues.append(r_clue)
-        
-    for c in range(size):
-        c_clue = []
-        count = 0
-        for r in range(size):
-            if grid[r][c]: count += 1
-            elif count > 0:
-                c_clue.append(count)
-                count = 0
-        if count > 0: c_clue.append(count)
-        col_clues.append(c_clue)
-        
-    # Line solving algorithm
-    # Iterate until no more changes. If completed, unique. Otherwise not strictly line-solvable.
-    state = [[None for _ in range(size)] for _ in range(size)]
-    row_poss = [solve_line(row_clues[r], size) for r in range(size)]
-    col_poss = [solve_line(col_clues[c], size) for c in range(size)]
-    
-    changed = True
-    while changed:
-        changed = False
-        
-        # update state from rows
-        for r in range(size):
-            if not row_poss[r]: return False # Contradiction
-            for c in range(size):
-                if state[r][c] is None:
-                    first_val = row_poss[r][0][c]
-                    if all(p[c] == first_val for p in row_poss[r]):
-                        state[r][c] = first_val
-                        changed = True
-                        
-        # filter cols by state
-        for c in range(size):
-            new_poss = []
-            for p in col_poss[c]:
-                valid = True
-                for r in range(size):
-                    if state[r][c] is not None and state[r][c] != p[r]:
-                        valid = False
-                        break
-                if valid: new_poss.append(p)
-            if len(new_poss) < len(col_poss[c]):
-                col_poss[c] = new_poss
-                changed = True
+        if count > 0: clues.append(count)
+        return clues
 
-        # update state from cols
-        for c in range(size):
-            if not col_poss[c]: return False
-            for r in range(size):
-                if state[r][c] is None:
-                    first_val = col_poss[c][0][r]
-                    if all(p[r] == first_val for p in col_poss[c]):
-                        state[r][c] = first_val
-                        changed = True
-                        
-        # filter rows by state
-        for r in range(size):
-            new_poss = []
-            for p in row_poss[r]:
-                valid = True
-                for c in range(size):
-                    if state[r][c] is not None and state[r][c] != p[c]:
-                        valid = False
-                        break
-                if valid: new_poss.append(p)
-            if len(new_poss) < len(row_poss[r]):
-                row_poss[r] = new_poss
-                changed = True
+    def solve_line(self, clues, length):
+        """Memoized line solver."""
+        memo = {}
 
-    for r in range(size):
-        for c in range(size):
-            if state[r][c] is None:
-                return False
-    return True
-
-def generate_shape(size):
-    # random shapes
-    grid = [[False]*size for _ in range(size)]
-    
-    cx, cy = size//2, size//2
-    # Place some blocks near center to ensure connectivity
-    for _ in range(size * size // 2):
-        r, c = random.randint(0, size-1), random.randint(0, size-1)
-        grid[r][c] = True
+        def solve(clue_idx, start_pos):
+            state = (clue_idx, start_pos)
+            if state in memo: return memo[state]
             
-    # symmetry optionally
-    if random.random() < 0.5:
-        # vertical sym
-        for r in range(size):
-            for c in range(size//2):
-                grid[r][size-1-c] = grid[r][c]
-                
-    # ensure not completely empty/full
-    density = sum(sum(r) for r in grid) / (size*size)
-    if density < 0.2 or density > 0.8:
-        return None
-        
-    return grid
+            if clue_idx == len(clues):
+                # No more clues, remaining must be empty
+                res = [[False] * (length - start_pos)]
+                memo[state] = res
+                return res
 
-def generate_puzzles(size, diff, count):
-    puzzles = []
-    attempts = 0
-    while len(puzzles) < count:
-        attempts += 1
-        g = generate_shape(size)
-        if g and check_unique(g):
-            puzzles.append(g)
-            print(f"[{diff}] Generated {len(puzzles)}/{count}")
-    return puzzles
+            res = []
+            clue = clues[clue_idx]
+            # Calculate min space needed for remaining clues
+            remaining_clues = clues[clue_idx+1:]
+            min_needed = sum(remaining_clues) + len(remaining_clues)
+            
+            # Try placing current clue at all possible positions
+            for p in range(start_pos, length - min_needed - clue + 1):
+                # Ensure gap before if not the first clue
+                if clue_idx > 0 and p == start_pos: continue
+                
+                prefix = [False] * (p - start_pos) + [True] * clue
+                # Must follow with a gap if not last
+                if clue_idx < len(clues) - 1:
+                    prefix.append(False)
+                    
+                sub_solutions = solve(clue_idx + 1, p + clue + (1 if clue_idx < len(clues) - 1 else 0))
+                for sub in sub_solutions:
+                    res.append(prefix + sub)
+            
+            memo[state] = res
+            return res
+
+        return solve(0, 0)
+
+    def is_unique(self, row_clues, col_clues):
+        """Deductive line solver to check for strict unique solvability."""
+        size = self.size
+        state = np.full((size, size), -1, dtype=int) # -1: unknown, 0: empty, 1: filled
+        
+        row_poss = [self.solve_line(c, size) for c in row_clues]
+        col_poss = [self.solve_line(c, size) for c in col_clues]
+        
+        changed = True
+        while changed:
+            changed = False
+            # Check Rows
+            for r in range(size):
+                if not row_poss[r]: return False
+                for c in range(size):
+                    if state[r, c] == -1:
+                        first = row_poss[r][0][c]
+                        if all(p[c] == first for p in row_poss[r]):
+                            state[r, c] = 1 if first else 0
+                            changed = True
+                            
+            # Filter Columns
+            for c in range(size):
+                col_poss[c] = [p for p in col_poss[c] if all(state[r, c] == -1 or state[r, c] == (1 if p[r] else 0) for r in range(size))]
+                
+            # Check Columns
+            for c in range(size):
+                if not col_poss[c]: return False
+                for r in range(size):
+                    if state[r, c] == -1:
+                        first = col_poss[c][0][r]
+                        if all(p[r] == first for p in col_poss[c]):
+                            state[r, c] = 1 if first else 0
+                            changed = True
+                            
+            # Filter Rows
+            for r in range(size):
+                row_poss[r] = [p for p in row_poss[r] if all(state[r, c] == -1 or state[r, c] == (1 if p[c] else 0) for c in range(size))]
+
+        return np.all(state != -1)
+
+    def generate(self, difficulty):
+        while True:
+            # Generate random shape with some symmetry
+            self.grid.fill(False)
+            density = random.uniform(0.3, 0.6)
+            self.grid = np.random.rand(self.size, self.size) < density
+            
+            if random.random() < 0.5: # Symmetric
+                self.grid = self.grid | self.grid[:, ::-1]
+                
+            row_clues = [self.get_clues(self.grid[r, :]) for r in range(self.size)]
+            col_clues = [self.get_clues(self.grid[:, c]) for c in range(self.size)]
+            
+            if self.is_unique(row_clues, col_clues):
+                return {
+                    "size": self.size,
+                    "difficulty": difficulty,
+                    "row_clues": row_clues,
+                    "col_clues": col_clues,
+                    "grid_str": "".join("1" if c else "0" for row in self.grid for c in row)
+                }
 
 def main():
-    targets = [
-        (5, 'Easy', 15),
-        (10, 'Medium', 15),
-        (15, 'Hard', 10)
-    ]
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_dir = os.path.join(script_dir, "output", "nonogram")
+    os.makedirs(output_dir, exist_ok=True)
     
-    out_dir = os.path.join(os.path.dirname(__file__), 'output', 'nonogram')
-    os.makedirs(out_dir, exist_ok=True)
+    configs = [(5, "Easy", 15), (10, "Medium", 15), (15, "Hard", 10)]
     
-    results = {}
-    for s, d, t in targets:
-        rs = generate_puzzles(s, d, t)
-        results[d] = []
-        for i, grid in enumerate(rs):
-            # calculate clues
-            row_clues = []
-            col_clues = []
-            for r in range(s):
-                cc = []
-                count = 0
-                for c in range(s):
-                    if grid[r][c]: count += 1
-                    elif count > 0:
-                        cc.append(count)
-                        count = 0
-                if count > 0: cc.append(count)
-                row_clues.append(cc)
-                
-            for c in range(s):
-                cc = []
-                count = 0
-                for r in range(s):
-                    if grid[r][c]: count += 1
-                    elif count > 0:
-                        cc.append(count)
-                        count = 0
-                if count > 0: cc.append(count)
-                col_clues.append(cc)
-                
-            grid_str = "".join("1" if c else "0" for row in grid for c in row)
-            p = {
-                "id": f"nonogram_{d.lower()}_{i+1}",
-                "difficulty": d,
-                "size": s,
-                "row_clues": row_clues,
-                "col_clues": col_clues,
-                "grid_str": grid_str
-            }
-            results[d].append(p)
-            out_path = os.path.join(out_dir, f"{p['id']}.json")
-            with open(out_path, 'w') as f:
+    for size, diff, count in configs:
+        gen = NonogramGenerator(size)
+        for i in range(count):
+            p = gen.generate(diff)
+            p["id"] = f"nonogram_{diff.lower()}_{i+1}"
+            with open(os.path.join(out_dir if 'out_dir' in locals() else output_dir, f"{p['id']}.json"), "w") as f:
                 json.dump(p, f, indent=2)
+            print(f"Generated Nonogram {diff} {i+1}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
