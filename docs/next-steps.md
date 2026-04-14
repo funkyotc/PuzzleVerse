@@ -53,10 +53,10 @@
 ### UI/UX Refactor (High Priority)
 
 - [x] **Main Menu Overhaul**: Rework layout to have Daily Challenge at the top, with puzzle lists in a second section.
-- [ ] **Level Select Refinement**: Improve level select screen (numbers only in a grid, colored to mark completed levels).
-- [ ] **Theme/Level Previews**: Implement theme previews using the selection buttons.
-- [ ] **Progression/Unlocks**: Show locked themes/levels with unlock requirements (greyed out).
-- [ ] **Information Density**: Show difficulty and level number for all pregenerated puzzles.
+- [x] **Level Select Refinement**: Improve level select screen (numbers only in a grid, colored to mark completed levels).
+- [x] **Theme/Level Previews**: Implement theme previews using the selection buttons.
+- [x] **Progression/Unlocks**: Show locked themes/levels with unlock requirements (greyed out).
+- [x] **Information Density**: Show difficulty and level number for all pregenerated puzzles.
 
 ### Bug Fixes & Logic
 
@@ -103,7 +103,6 @@
 
 1. Create `WordleStatsRepository.kt` — track games played, win rate, guess distribution
 2. Add stats display screen accessible from Wordle menu
-3. Optional: Add word length variants (4/5/6 letter modes)
 
 ---
 
