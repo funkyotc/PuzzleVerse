@@ -17,6 +17,10 @@ class SudokuBoard(val cells: List<SudokuCell>) {
             ?: throw IllegalStateException("Cell not found at row $row, col $col")
     }
 
+    fun isNumberCompleted(number: Int): Boolean {
+        return cells.count { it.number == number } >= 9
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

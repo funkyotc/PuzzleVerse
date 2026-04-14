@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -152,10 +154,16 @@ fun FlowFreeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.undo() }) {
+                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+                    }
+                    IconButton(onClick = { viewModel.restartLevel() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+                    }
                     IconButton(onClick = { showHowToDialog = true }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    if (mode != "daily") {
+                    if (mode != "daily" && mode != "puzzle") {
                         IconButton(onClick = { showNewGameDialog = true }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
@@ -174,42 +182,15 @@ fun FlowFreeScreen(
         ) {
 
             // Difficulty indicator chip
-            if (mode != "daily") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FlowDifficulty.entries.forEach { diff ->
-                        val isSelected = diff == currentDifficulty
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.setDifficulty(diff) },
-                            label = {
-                                Text(
-                                    diff.label,
-                                    fontSize = 12.sp
-                                )
-                            },
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        )
-                    }
-                }
-            } else {
-                // Daily mode: show difficulty badge
+            if (mode == "daily" || puzzleId != null) {
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.padding(bottom = 8.dp)
                 ) {
+                    val labelPrefix = if (mode == "daily") "Daily" else "Puzzle"
                     Text(
-                        text = "Daily • ${currentDifficulty.label} • ${state.rows}×${state.cols}",
+                        text = "$labelPrefix • ${currentDifficulty.label} • ${state.rows}×${state.cols}",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer

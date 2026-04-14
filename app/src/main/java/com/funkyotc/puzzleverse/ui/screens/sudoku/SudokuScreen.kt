@@ -235,7 +235,7 @@ fun SudokuScreen(
         ) {
             SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
             ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
-            NumberPad(isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
+            NumberPad(board = board, isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
         }
     }
 }
@@ -412,26 +412,26 @@ fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Uni
 }
 
 @Composable
-fun NumberPad(isPencilOn: Boolean, onNumberSelected: (Int) -> Unit) {
+fun NumberPad(board: SudokuBoard, isPencilOn: Boolean, onNumberSelected: (Int) -> Unit) {
     Box(
         modifier = Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .widthIn(max = 400.dp)
             .fillMaxWidth()
-            .aspectRatio(1f)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             (0..2).forEach { row ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     (1..3).forEach { col ->
                         val number = row * 3 + col
-                        NumberButton(number = number, isPencilOn = isPencilOn, onClick = { onNumberSelected(number) })
+                        val isCompleted = board.isNumberCompleted(number)
+                        NumberButton(number = number, isPencilOn = isPencilOn, isCompleted = isCompleted, onClick = { onNumberSelected(number) })
                     }
                 }
             }
@@ -440,21 +440,22 @@ fun NumberPad(isPencilOn: Boolean, onNumberSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun RowScope.NumberButton(number: Int, isPencilOn: Boolean, onClick: () -> Unit) {
+fun RowScope.NumberButton(number: Int, isPencilOn: Boolean, isCompleted: Boolean, onClick: () -> Unit) {
+    val alpha = if (isCompleted) 0.3f else 1.0f
     val textStyle = if (isPencilOn) {
-        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f * alpha))
     } else {
-        MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary)
+        MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = alpha))
     }
 
     Surface(
         modifier = Modifier
             .padding(4.dp)
             .clip(CircleShape)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick, enabled = !isCompleted)
             .weight(1f)
             .aspectRatio(1f),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f * alpha)
     ) {
         Box(
             contentAlignment = Alignment.Center

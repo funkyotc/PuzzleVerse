@@ -63,12 +63,12 @@
 - [x] **Daily Challenge Fixes**:
   - Remove Daily Challenge option from random-selection puzzles.
   - Fix broken Daily Challenge buttons.
-- [ ] **Flow Free Refinement**:
-  - Remove Easy/Med/Hard difficulty selection from Flow screen (use pregenerated list).
-  - Add Flow Undo and Restart buttons.
-- [ ] **Sudoku Tweaks**:
-  - Dim number buttons in Sudoku once all numbers are placed.
-  - Scale Sudoku buttons correctly to prevent overlapping.
+- [x] **Flow Free Refinement**:
+  - [x] Remove Easy/Med/Hard difficulty selection from Flow screen (use pregenerated list).
+  - [x] Add Flow Undo and Restart buttons.
+- [x] **Sudoku Tweaks**:
+  - [x] Dim number buttons in Sudoku once all numbers are placed.
+  - [x] Scale Sudoku buttons correctly to prevent overlapping.
 
 ### Feature Enhancements
 

@@ -144,6 +144,21 @@ class FlowFreeViewModel(
         _state.update { it.copy(paths = newPaths, isWon = won) }
     }
 
+    fun restartLevel() {
+        if (_state.value.isWon) return
+        _state.update { it.copy(paths = emptyList(), isWon = false) }
+    }
+
+    fun undo() {
+        if (_state.value.isWon) return
+        val st = _state.value
+        if (st.paths.isEmpty()) return
+        // Just remove the most recently added/modified path for a simple undo
+        val newPaths = st.paths.toMutableList()
+        newPaths.removeLast()
+        _state.update { it.copy(paths = newPaths, isWon = false) }
+    }
+
     private fun checkWin(paths: List<FlowPath>, dots: List<ColorDot>, rows: Int, cols: Int): Boolean {
         // 1. All paths must touch BOTH start and end
         for (d in dots) {
