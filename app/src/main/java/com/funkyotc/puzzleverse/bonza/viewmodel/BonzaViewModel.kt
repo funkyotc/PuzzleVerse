@@ -19,6 +19,7 @@ import kotlin.math.abs
 class BonzaViewModel(
     context: Context,
     private val mode: String?,
+    private val puzzleId: String?,
     private val forceNewGame: Boolean,
     private val streakRepository: StreakRepository,
     private val puzzleGenerator: BonzaPuzzleGenerator
@@ -42,6 +43,13 @@ class BonzaViewModel(
     }
 
     private fun generatePuzzle(): BonzaPuzzle {
+        if (mode == "puzzle" && puzzleId != null) {
+            val pregenerated = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)
+            if (pregenerated != null) {
+                return pregenerated.toBonzaPuzzle()
+            }
+        }
+        
         val seed = if (mode == "daily") {
             java.time.LocalDate.now().toEpochDay()
         } else {

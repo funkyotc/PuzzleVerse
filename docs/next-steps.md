@@ -3,70 +3,97 @@
 ## ✅ Completed
 
 ### Flow Free
+
 - [x] 48 pregenerated puzzles (Easy 5×5, Medium 6×6, Hard 7×7, Expert 8×8)
 - [x] Shared puzzle browser integration
 - [x] Win dialog: Back to List + Next Puzzle (sequential)
 - [x] Scripts: `scripts/generate_puzzles.py`, `scripts/bake_puzzles.py`
 
 ### Sudoku
+
 - [x] 65 pregenerated puzzles (20 Easy, 20 Medium, 15 Hard, 10 Expert)
 - [x] Shared puzzle browser integration
 - [x] Win dialog: Back to List + Next Puzzle (sequential by difficulty)
 - [x] Scripts: `scripts/generate_sudoku.py`, `scripts/bake_sudoku.py`
 
 ### 2048
+
 - [x] Menu simplified to just "Play" + "Daily Challenge"
 
 ### Nonogram (Phase 2)
+
 - [x] 40 pregenerated puzzles (15 Easy, 15 Medium, 10 Hard)
 - [x] Shared puzzle browser integration
 - [x] Win dialog: Back to List + Next Puzzle
 - [x] Scripts: `scripts/generate_nonograms.py`, `scripts/bake_nonograms.py`
 
 ### Kakuro (Phase 2)
+
 - [x] 33 pregenerated puzzles (15 Easy, 10 Medium, 8 Hard)
-- [x] Shared puzzle browser integration
+- [x] Sharedป Shared puzzle browser integration
 - [x] Win dialog: Back to List + Next Puzzle
 - [x] Scripts: `scripts/generate_kakuro.py`, `scripts/bake_kakuro.py`
 
 ### Minesweeper (Phase 3)
+
 - [x] Difficulty presets: Easy (9×9), Medium (16×16), Hard (16×30)
 - [x] Dynamic grid/mine initialization based on selection
 
 ### Core Infrastructure (Phase 4)
+
 - [x] Generic `PuzzleBrowserScreen` (replaces 4 game-specific screens)
 - [x] Generic `PuzzleCompletionRepository` (replaces 4 game-specific repos)
 - [x] Unified `BrowseablePuzzle` interface
 - [x] Automated baking pipeline for all future pregenerated games
 
+---
 
+## 🛠️ Maintenance & Bug Fixes (The "Polish" Queue)
+
+### UI/UX Refactor (High Priority)
+
+- [x] **Main Menu Overhaul**: Rework layout to have Daily Challenge at the top, with puzzle lists in a second section.
+- [ ] **Level Select Refinement**: Improve level select screen (numbers only in a grid, colored to mark completed levels).
+- [ ] **Theme/Level Previews**: Implement theme previews using the selection buttons.
+- [ ] **Progression/Unlocks**: Show locked themes/levels with unlock requirements (greyed out).
+- [ ] **Information Density**: Show difficulty and level number for all pregenerated puzzles.
+
+### Bug Fixes & Logic
+
+- [x] **Daily Challenge Fixes**:
+  - Remove Daily Challenge option from random-selection puzzles.
+  - Fix broken Daily Challenge buttons.
+- [ ] **Flow Free Refinement**:
+  - Remove Easy/Med/Hard difficulty selection from Flow screen (use pregenerated list).
+  - Add Flow Undo and Restart buttons.
+- [ ] **Sudoku Tweaks**:
+  - Dim number buttons in Sudoku once all numbers are placed.
+  - Scale Sudoku buttons correctly to prevent overlapping.
+
+### Feature Enhancements
+
+- [ ] **Sudoku/Nonogram/etc. Scaling**: Standardize grid/button scaling across all puzzle types.
 
 ---
 
 ## Phase 5: Bonza, Constellations, Shapes
 
 ### Bonza
-1. Write `scripts/generate_bonza.py`
-   - Generate word cluster puzzles from themed word lists
-   - Categories: Animals, Food, Science, Sports, Geography, etc.
-   - Target: 10 puzzles per theme, 6 themes = 60 puzzles
-2. Write `scripts/bake_bonza.py` → `BonzaPregenerated.kt`
-3. Browser grouped by theme instead of difficulty
-4. Completion tracking + Back to List / Next Puzzle
+
+1. [x] Write `scripts/generate_bonza.py`
+2. [x] Write `scripts/bake_bonza.py` → `BonzaPregenerated.kt`
+3. [x] Browser grouped by theme instead of difficulty
+4. [x] Completion tracking + Back to List / Next Puzzle
 
 ### Constellations
+
 1. Write `scripts/generate_constellations.py`
-   - Generate star patterns with known solutions
-   - Difficulty by star count: Easy (5), Medium (8), Hard (12)
-   - Target: 10 per difficulty = 30 puzzles
 2. Write `scripts/bake_constellations.py` → `ConstellationsPregenerated.kt`
 3. Standard browser + completion tracking
 
 ### Shapes
+
 1. Write `scripts/generate_shapes.py`
-   - Generate shape-fitting puzzles at varying piece counts
-   - Difficulty by piece count and grid size
-   - Target: 10 per difficulty = 30 puzzles
 2. Write `scripts/bake_shapes.py` → `ShapesPregenerated.kt`
 3. Standard browser + completion tracking
 
@@ -82,12 +109,4 @@
 
 ## Pipeline Summary
 
-For any game needing pregenerated puzzles:
-```
-python scripts/generate_<game>.py    # Generate JSON puzzles
-python scripts/bake_<game>.py        # Convert to Kotlin source
-./gradlew assembleDebug              # Build app
-```
-
-All generator scripts output to `scripts/output/` (gitignored).
-All bake scripts write directly to the appropriate `data/` package.
+...

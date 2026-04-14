@@ -77,14 +77,52 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) { 
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = "Daily Challenges",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp)
+                ) {
+                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle") }
+                    androidx.compose.foundation.lazy.items(dailyGames) { game ->
+                        val streak = streakRepository.getStreak(game.id)
+                        val today = java.time.LocalDate.now().toEpochDay()
+                        val isDailyCompleted = streak.lastCompletedEpochDay == today
+
+                        Box(modifier = Modifier.androidx.compose.foundation.layout.width(160.dp).height(120.dp)) {
+                            GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                navController.navigate("game/${game.id}/daily")
+                            }
+                        }
+                    }
+                }
+            }
+            
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = "All Puzzles",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                )
+            }
+
             items(games) { game ->
                 val streak = streakRepository.getStreak(game.id)
                 val today = java.time.LocalDate.now().toEpochDay()
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-                GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("gameDetail/${game.id}")
+                Box(modifier = Modifier.height(120.dp)) {
+                    GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("gameDetail/${game.id}")
+                    }
                 }
             }
         }

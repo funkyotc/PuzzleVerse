@@ -102,9 +102,14 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                     }
                 }
                 "bonza" -> {
-                    MenuCard(text = "Standard") {
+                    MenuCard(text = "Random Puzzle") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.navigate("game/bonza/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("bonza/puzzles")
                     }
                 }
                 "flowfree" -> {
@@ -168,10 +173,12 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val today = java.time.LocalDate.now().toEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-            Spacer(modifier = Modifier.height(16.dp))
-            MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                navController.navigate("game/$gameId/daily")
+            if (gameId !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle")) {
+                Spacer(modifier = Modifier.height(16.dp))
+                MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    navController.navigate("game/$gameId/daily")
+                }
             }
         }
     }

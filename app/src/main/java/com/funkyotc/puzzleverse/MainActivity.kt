@@ -46,6 +46,7 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
 import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
 import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
+import com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -174,6 +175,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                     )
                 }
             }
+        }
+        composable("bonza/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Bonza Puzzles",
+                gameName = "Bonza",
+                navController = navController,
+                puzzlesByDifficulty = BonzaPregenerated.PUZZLES_BY_THEME,
+                difficultyOrder = listOf("Animals", "Colors", "Space"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/bonza/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/bonza/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            BonzaScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
         }
         composable("flowfree/puzzles") {
             PuzzleBrowserScreen(

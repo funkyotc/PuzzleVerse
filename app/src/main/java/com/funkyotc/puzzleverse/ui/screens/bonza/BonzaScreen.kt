@@ -70,17 +70,19 @@ import androidx.compose.runtime.LaunchedEffect
 fun BonzaScreen(
     navController: NavController,
     mode: String?,
+    puzzleId: String? = null,
     forceNewGame: Boolean = false,
     context: Context = LocalContext.current,
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
-    bonzaViewModel: BonzaViewModel = viewModel(factory = BonzaViewModelFactory(context, mode, forceNewGame, streakRepository))
+    bonzaViewModel: BonzaViewModel = viewModel(factory = BonzaViewModelFactory(context, mode, puzzleId, forceNewGame, streakRepository))
 ) {
     val isGameWon by bonzaViewModel.isGameWon.collectAsState()
     val puzzle by bonzaViewModel.puzzle.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "Bonza") }
 
     if (showHintDialog) {
         AlertDialog(
@@ -105,6 +107,9 @@ fun BonzaScreen(
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markPuzzleComplete(puzzleId)
+            }
         }
     }
 
@@ -147,6 +152,27 @@ fun BonzaScreen(
                         }
                         androidx.compose.material3.Button(onClick = { navController.navigate("game/bonza/standard/new") { popUpTo("home") } }) {
                             androidx.compose.material3.Text("Random Puzzles")
+                        }
+                    }
+                } else if (mode == "puzzle" && puzzleId != null) {
+                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) {
+                            androidx.compose.material3.Text("Back to List")
+                        }
+                        androidx.compose.material3.Button(onClick = {
+                            val currentTheme = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)?.theme
+                            val themePuzzles = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.PUZZLES_BY_THEME[currentTheme] ?: emptyList()
+                            val currentIndex = themePuzzles.indexOfFirst { it.id == puzzleId }
+                            val nextPuzzle = if (currentIndex != -1 && currentIndex + 1 < themePuzzles.size) themePuzzles[currentIndex + 1] else null
+                            if (nextPuzzle != null) {
+                                navController.navigate("game/bonza/puzzle/${nextPuzzle.id}") {
+                                    popUpTo("bonza/puzzles")
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }) {
+                            androidx.compose.material3.Text("Next Puzzle")
                         }
                     }
                 } else {

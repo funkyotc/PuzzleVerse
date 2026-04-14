@@ -10,6 +10,7 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 class BonzaViewModelFactory(
     private val context: Context, 
     private val mode: String?, 
+    private val puzzleId: String? = null,
     private val forceNewGame: Boolean = false, 
     private val streakRepository: StreakRepository
 ) : ViewModelProvider.Factory {
@@ -19,7 +20,7 @@ class BonzaViewModelFactory(
             val puzzleThemes = repository.getPuzzleThemes()
             val puzzleGenerator = BonzaPuzzleGenerator(puzzleThemes)
             @Suppress("UNCHECKED_CAST")
-            return BonzaViewModel(context, mode, forceNewGame, streakRepository, puzzleGenerator) as T
+            return BonzaViewModel(context, mode, puzzleId, forceNewGame, streakRepository, puzzleGenerator) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
