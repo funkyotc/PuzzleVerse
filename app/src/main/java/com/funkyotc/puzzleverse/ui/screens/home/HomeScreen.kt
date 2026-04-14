@@ -92,13 +92,13 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle") }
+                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle", "tfe") }
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = java.time.LocalDate.now().toEpochDay()
                         val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-                        Box(modifier = Modifier.width(160.dp).height(120.dp)) {
+                        Box(modifier = Modifier.width(160.dp).height(90.dp)) {
                             GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/${game.id}/daily")
@@ -121,7 +121,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                 val today = java.time.LocalDate.now().toEpochDay()
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-                Box(modifier = Modifier.height(120.dp)) {
+                Box(modifier = Modifier.height(90.dp)) {
                     GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.navigate("gameDetail/${game.id}")
@@ -147,14 +147,21 @@ fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, onClick: () -> 
         }
     ) {
         Box(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
+                modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(text = game.name, textAlign = TextAlign.Center, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = game.name,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    softWrap = false
+                )
                 if (streak > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
