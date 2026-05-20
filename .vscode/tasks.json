@@ -26,7 +26,7 @@
                 "background": {
                     "activeOnStart": true,
                     "beginsPattern": ".*",
-                    "endsPattern": ".*boot completed.*"
+                    "endsPattern": ".*"
                 }
             },
             "presentation": {
@@ -49,6 +49,9 @@
             "label": "installDebug",
             "type": "shell",
             "command": "./gradlew installDebug",
+            "windows": {
+                "command": ".\\gradlew.bat installDebug"
+            },
             "group": "build",
             "dependsOn": [
                 "Wait for Emulator"
