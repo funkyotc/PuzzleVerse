@@ -50,7 +50,8 @@ val games = listOf(
     Game("nonogram", "Nonogram"),
     Game("blockpuzzle", "Block Puzzle"),
     Game("kakuro", "Kakuro"),
-    Game("flowfree", "Flow Free")
+    Game("flowfree", "Flow Free"),
+    Game("shikaku", "Shikaku")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

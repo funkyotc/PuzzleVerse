@@ -41,6 +41,7 @@ import com.funkyotc.puzzleverse.nonogram.ui.NonogramScreen
 import com.funkyotc.puzzleverse.blockpuzzle.ui.BlockPuzzleScreen
 import com.funkyotc.puzzleverse.kakuro.ui.KakuroScreen
 import com.funkyotc.puzzleverse.flowfree.ui.FlowFreeScreen
+import com.funkyotc.puzzleverse.shikaku.ui.ShikakuScreen
 import com.funkyotc.puzzleverse.core.ui.PuzzleBrowserScreen
 import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
 import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
@@ -49,6 +50,7 @@ import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
 import com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated
 import com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated
+import com.funkyotc.puzzleverse.shikaku.data.ShikakuPregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -146,6 +148,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "blockpuzzle" -> BlockPuzzleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -168,6 +171,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -332,6 +336,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             ShapesScreen(
                 navController = navController,
                 mode = "puzzle",
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("shikaku/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Shikaku Puzzles",
+                gameName = "Shikaku",
+                navController = navController,
+                puzzlesByDifficulty = ShikakuPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/shikaku/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/shikaku/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            ShikakuScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
                 settingsRepository = settingsRepository
             )
         }
