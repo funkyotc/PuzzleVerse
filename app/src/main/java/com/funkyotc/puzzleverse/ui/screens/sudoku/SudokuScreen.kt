@@ -232,25 +232,107 @@ fun SudokuScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
         ) {
-            BoxWithConstraints(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                val boardSize = minOf(maxWidth, maxHeight)
-                SudokuBoard(
-                    board = board,
-                    selectedCell = selectedCell,
-                    modifier = Modifier.size(boardSize),
-                    onCellSelected = sudokuViewModel::onCellSelected
-                )
+            val containerWidth = maxWidth
+            val containerHeight = maxHeight
+            val isLandscape = containerWidth > containerHeight
+
+            if (isLandscape) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val boardSize = minOf(containerWidth * 0.55f, containerHeight - 32.dp).coerceAtLeast(180.dp)
+                    
+                    Box(
+                        modifier = Modifier.size(boardSize),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        SudokuBoard(
+                            board = board,
+                            selectedCell = selectedCell,
+                            modifier = Modifier.fillMaxSize(),
+                            onCellSelected = sudokuViewModel::onCellSelected
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        ActionRow(
+                            isPencilOn = isPencilOn,
+                            onPencilToggle = sudokuViewModel::togglePencil,
+                            onUndo = sudokuViewModel::undo,
+                            onErase = sudokuViewModel::onErase,
+                            isCompact = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        NumberPad(
+                            board = board,
+                            isPencilOn = isPencilOn,
+                            onNumberSelected = sudokuViewModel::onNumberInput,
+                            isCompact = true
+                        )
+                    }
+                }
+            } else {
+                val isCompact = (containerHeight - (containerWidth - 32.dp)) < 260.dp
+                val maxBoardWidth = containerWidth - 32.dp
+                val maxBoardHeight = containerHeight - (if (isCompact) 140.dp else 240.dp)
+                val boardSize = minOf(maxBoardWidth, maxBoardHeight).coerceAtLeast(180.dp)
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        SudokuBoard(
+                            board = board,
+                            selectedCell = selectedCell,
+                            modifier = Modifier.size(boardSize),
+                            onCellSelected = sudokuViewModel::onCellSelected
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        ActionRow(
+                            isPencilOn = isPencilOn,
+                            onPencilToggle = sudokuViewModel::togglePencil,
+                            onUndo = sudokuViewModel::undo,
+                            onErase = sudokuViewModel::onErase,
+                            isCompact = isCompact
+                        )
+                        NumberPad(
+                            board = board,
+                            isPencilOn = isPencilOn,
+                            onNumberSelected = sudokuViewModel::onNumberInput,
+                            isCompact = isCompact
+                        )
+                        Spacer(modifier = Modifier.height(if (isCompact) 4.dp else 16.dp))
+                    }
+                }
             }
-            ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
-            NumberPad(board = board, isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -260,7 +342,6 @@ fun SudokuScreen(
 fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, modifier: Modifier = Modifier, onCellSelected: (Int, Int) -> Unit) {
     Box(
         modifier = modifier
-            .padding(horizontal = 16.dp)
             .aspectRatio(1f)
     ) {
         Column {
@@ -397,17 +478,36 @@ fun PencilMarks(marks: Set<Int>?) {
 
 
 @Composable
-fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Unit, onErase: () -> Unit) {
+fun ActionRow(
+    isPencilOn: Boolean, 
+    onPencilToggle: () -> Unit, 
+    onUndo: () -> Unit, 
+    onErase: () -> Unit,
+    isCompact: Boolean = false
+) {
+    val paddingVal = if (isCompact) 4.dp else 12.dp
+    val spacingVal = if (isCompact) 12.dp else 24.dp
+    val iconSize = if (isCompact) 20.dp else 24.dp
+    val buttonSize = if (isCompact) 36.dp else 48.dp
+
     Row(
-        modifier = Modifier.padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(vertical = paddingVal),
+        horizontalArrangement = Arrangement.spacedBy(spacingVal),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onUndo) {
-            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+        IconButton(
+            onClick = onUndo,
+            modifier = Modifier.size(buttonSize)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Filled.Undo, 
+                contentDescription = "Undo",
+                modifier = Modifier.size(iconSize)
+            )
         }
         IconButton(
             onClick = onPencilToggle,
+            modifier = Modifier.size(buttonSize),
             colors = if (isPencilOn) {
                 IconButtonDefaults.iconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -417,25 +517,46 @@ fun ActionRow(isPencilOn: Boolean, onPencilToggle: () -> Unit, onUndo: () -> Uni
                 IconButtonDefaults.iconButtonColors()
             }
         ) {
-            Icon(Icons.Filled.Create, contentDescription = "Pencil")
+            Icon(
+                Icons.Filled.Create, 
+                contentDescription = "Pencil",
+                modifier = Modifier.size(iconSize)
+            )
         }
-        IconButton(onClick = onErase) {
-            Icon(Icons.Filled.Delete, contentDescription = "Erase")
+        IconButton(
+            onClick = onErase,
+            modifier = Modifier.size(buttonSize)
+        ) {
+            Icon(
+                Icons.Filled.Delete, 
+                contentDescription = "Erase",
+                modifier = Modifier.size(iconSize)
+            )
         }
     }
 }
 
 @Composable
-fun NumberPad(board: SudokuBoard, isPencilOn: Boolean, onNumberSelected: (Int) -> Unit) {
+fun NumberPad(
+    board: SudokuBoard, 
+    isPencilOn: Boolean, 
+    onNumberSelected: (Int) -> Unit,
+    isCompact: Boolean = false
+) {
+    val horizontalPadding = if (isCompact) 8.dp else 16.dp
+    val verticalPadding = if (isCompact) 2.dp else 8.dp
+    val maxPadWidth = if (isCompact) 260.dp else 360.dp
+    val rowSpacing = if (isCompact) 4.dp else 8.dp
+
     Box(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .widthIn(max = 400.dp)
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding)
+            .widthIn(max = maxPadWidth)
             .fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(rowSpacing)
         ) {
             (0..2).forEach { row ->
                 Row(
@@ -445,7 +566,13 @@ fun NumberPad(board: SudokuBoard, isPencilOn: Boolean, onNumberSelected: (Int) -
                     (1..3).forEach { col ->
                         val number = row * 3 + col
                         val isCompleted = board.isNumberCompleted(number)
-                        NumberButton(number = number, isPencilOn = isPencilOn, isCompleted = isCompleted, onClick = { onNumberSelected(number) })
+                        NumberButton(
+                            number = number, 
+                            isPencilOn = isPencilOn, 
+                            isCompleted = isCompleted, 
+                            onClick = { onNumberSelected(number) },
+                            isCompact = isCompact
+                        )
                     }
                 }
             }
@@ -454,17 +581,37 @@ fun NumberPad(board: SudokuBoard, isPencilOn: Boolean, onNumberSelected: (Int) -
 }
 
 @Composable
-fun RowScope.NumberButton(number: Int, isPencilOn: Boolean, isCompleted: Boolean, onClick: () -> Unit) {
+fun RowScope.NumberButton(
+    number: Int, 
+    isPencilOn: Boolean, 
+    isCompleted: Boolean, 
+    onClick: () -> Unit,
+    isCompact: Boolean = false
+) {
     val alpha = if (isCompleted) 0.3f else 1.0f
-    val textStyle = if (isPencilOn) {
-        MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f * alpha))
-    } else {
-        MaterialTheme.typography.headlineMedium.copy(color = MaterialTheme.colorScheme.primary.copy(alpha = alpha))
+    
+    val textStyle = when {
+        isPencilOn && isCompact -> MaterialTheme.typography.bodySmall.copy(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f * alpha),
+            fontSize = 11.sp
+        )
+        isPencilOn -> MaterialTheme.typography.bodyMedium.copy(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f * alpha)
+        )
+        isCompact -> MaterialTheme.typography.headlineSmall.copy(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = alpha),
+            fontSize = 18.sp
+        )
+        else -> MaterialTheme.typography.headlineMedium.copy(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+        )
     }
+
+    val buttonPadding = if (isCompact) 2.dp else 4.dp
 
     Surface(
         modifier = Modifier
-            .padding(4.dp)
+            .padding(buttonPadding)
             .clip(CircleShape)
             .clickable(onClick = onClick, enabled = !isCompleted)
             .weight(1f)
