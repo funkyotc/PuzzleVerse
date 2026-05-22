@@ -248,33 +248,6 @@ fun ShikakuScreen(
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                                     )
                                                 }
-                                            } else if (shikakuCell.rectangleId != null) {
-                                                // Draw a premium color-coded dot showing this cell is covered by a player rectangle
-                                                val parentRect = board.playerRectangles.find { it.id == shikakuCell.rectangleId }
-                                                val dotColor = if (parentRect != null) {
-                                                    val cluesInRect = board.getClueCells().filter { clueCell ->
-                                                        clueCell.row >= parentRect.row && clueCell.row < parentRect.row + parentRect.height &&
-                                                        clueCell.col >= parentRect.col && clueCell.col < parentRect.col + parentRect.width
-                                                    }
-                                                    val rectArea = parentRect.width * parentRect.height
-                                                    val clueCell = cluesInRect.firstOrNull()
-                                                    when {
-                                                        cluesInRect.size == 1 && clueCell != null && rectArea == clueCell.clue -> Color(0xFF00E676)
-                                                        cluesInRect.size > 1 || (cluesInRect.size == 1 && clueCell != null && rectArea > (clueCell.clue ?: 0)) -> Color(0xFFFF1744)
-                                                        else -> Color(0xFF90A4AE)
-                                                    }
-                                                } else {
-                                                    MaterialTheme.colorScheme.primary
-                                                }
-
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(maxOf(6.dp, cellSizeDp * 0.16f))
-                                                        .background(
-                                                            dotColor.copy(alpha = 0.8f),
-                                                            RoundedCornerShape(50)
-                                                        )
-                                                )
                                             }
                                         }
                                     }
@@ -300,15 +273,15 @@ fun ShikakuScreen(
                         val pastelFill = Color(
                             android.graphics.Color.HSVToColor(floatArrayOf(
                                 hue,
-                                0.18f, // Soft pastel saturation
-                                0.95f  // High brightness
+                                0.08f, // Soft pastel saturation (reduced from 0.18f)
+                                0.96f  // High brightness
                             ))
-                        ).copy(alpha = 0.35f) // Transparent fill
+                        ).copy(alpha = 0.20f) // Softer transparent fill (reduced from 0.35f)
                         
                         val borderStroke = when {
-                            isValid -> BorderStroke(2.dp, Color(0xFF00E676)) // Emerald Green
-                            isInvalid -> BorderStroke(2.dp, Color(0xFFFF1744)) // Crimson Red
-                            else -> BorderStroke(2.dp, Color(0xFF90A4AE)) // Slate Gray
+                            isValid -> BorderStroke(2.dp, Color(0xFF81C784)) // Soft Sage/Emerald Green
+                            isInvalid -> BorderStroke(2.dp, Color(0xFFE57373)) // Soft Crimson/Rose Red
+                            else -> BorderStroke(2.dp, Color(0xFFB0BEC5)) // Soft Slate Gray/Silver
                         }
 
                         Box(
