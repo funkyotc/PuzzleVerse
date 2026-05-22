@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -234,11 +236,17 @@ fun SudokuScreen(
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                SudokuBoard(board, selectedCell, sudokuViewModel::onCellSelected)
+                val boardSize = minOf(maxWidth, maxHeight)
+                SudokuBoard(
+                    board = board,
+                    selectedCell = selectedCell,
+                    modifier = Modifier.size(boardSize),
+                    onCellSelected = sudokuViewModel::onCellSelected
+                )
             }
             ActionRow(isPencilOn = isPencilOn, onPencilToggle = sudokuViewModel::togglePencil, onUndo = sudokuViewModel::undo, onErase = sudokuViewModel::onErase)
             NumberPad(board = board, isPencilOn = isPencilOn, onNumberSelected = sudokuViewModel::onNumberInput)
@@ -249,10 +257,9 @@ fun SudokuScreen(
 
 
 @Composable
-fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, onCellSelected: (Int, Int) -> Unit) {
+fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, modifier: Modifier = Modifier, onCellSelected: (Int, Int) -> Unit) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .padding(horizontal = 16.dp)
             .aspectRatio(1f)
     ) {

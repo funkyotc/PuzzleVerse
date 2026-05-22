@@ -40,11 +40,19 @@ class ShapesViewModel(
             val pregen = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
             if (pregen != null) {
                 val originalLevel = pregen.toShapesPuzzle()
+                val colors = listOf(Color(0xFF6B8DD6), Color(0xFF8E37D7), Color(0xFFFFB75E), Color(0xFFED8F03), Color(0xFFFF5252))
+                
                 val scaledPieces = originalLevel.pieces.map { piece ->
                     piece.copy(
-                        initialVertices = piece.initialVertices.map { Offset(it.x * scale, it.y * scale) },
-                        position = piece.solutionPosition, // We don't randomize these right now for simplicity since it's tangrams
-                        solutionPosition = piece.solutionPosition
+                        initialVertices = piece.initialVertices.map { Offset(it.x * scale * 100f, it.y * scale * 100f) },
+                        position = Offset(
+                            cx + piece.solutionPosition.x * scale * 100f,
+                            cy + piece.solutionPosition.y * scale * 100f
+                        ),
+                        solutionPosition = Offset(
+                            cx + piece.solutionPosition.x * scale * 100f,
+                            cy + piece.solutionPosition.y * scale * 100f
+                        )
                     )
                 }
                 
@@ -52,20 +60,18 @@ class ShapesViewModel(
                 val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
                     piece.copy(
                         position = Offset(
-                            150f + Random.nextFloat() * 100f, 
-                            450f + Random.nextFloat() * 150f
-                        )
+                            100f + index * 80f + Random.nextFloat() * 30f, 
+                            480f + Random.nextFloat() * 80f
+                        ),
+                        color = colors.getOrElse(index) { Color.Gray }
                     )
                 }
                 
                 val scaledTarget = TargetShape(originalLevel.target.vertices.map { 
-                    Offset(cx + (it.x) * scale * 100f, cy + (it.y) * scale * 100f) // approximate center offset manually for the generator space
+                    Offset(cx + (it.x) * scale * 100f, cy + (it.y) * scale * 100f)
                 })
                 
-                // Override for the specific generator logic used previously:
-                // Pre-bake shapes used very specific unit values.
-                
-                _puzzle.value = originalLevel
+                _puzzle.value = originalLevel.copy(pieces = shuffledPieces, target = scaledTarget)
                 _isGameWon.value = false
                 return
             }
@@ -142,6 +148,16 @@ class ShapesViewModel(
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
             checkCompletion()
+        }
+    }
+
+    fun movePieceDelta(pieceId: Int, delta: Offset) {
+        _puzzle.value?.let { currentPuzzle ->
+            if (currentPuzzle.isComplete) return
+
+            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
+            val newPosition = Offset(tentativePiece.position.x + delta.x, tentativePiece.position.y + delta.y)
+            movePiece(pieceId, newPosition)
         }
     }
 

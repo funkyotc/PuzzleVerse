@@ -60,7 +60,7 @@ class ConstellationsViewModel(
             Random.nextLong()
         }
         
-        _puzzle.value = generator.generate(size = 10, seed = seed)
+        _puzzle.value = generator.generate(size = 6, seed = seed)
         _isGameWon.value = false
         _moves.value = 0
         _elapsedSeconds.value = 0

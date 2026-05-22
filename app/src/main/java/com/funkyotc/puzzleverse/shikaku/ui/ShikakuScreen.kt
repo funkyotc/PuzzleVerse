@@ -1,5 +1,7 @@
 package com.funkyotc.puzzleverse.shikaku.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -300,19 +302,46 @@ fun ShikakuScreen(
                     }
 
                     // Draw drag preview
-                    currentDragRect?.let { rect ->
+                    val previewRect = currentDragRect
+                    val targetX = if (previewRect != null) cellSizeDp * previewRect.col else 0.dp
+                    val targetY = if (previewRect != null) cellSizeDp * previewRect.row else 0.dp
+                    val targetW = if (previewRect != null) cellSizeDp * previewRect.width else 0.dp
+                    val targetH = if (previewRect != null) cellSizeDp * previewRect.height else 0.dp
+
+                    val animatedX by animateDpAsState(
+                        targetValue = targetX,
+                        label = "dragX"
+                    )
+                    val animatedY by animateDpAsState(
+                        targetValue = targetY,
+                        label = "dragY"
+                    )
+                    val animatedW by animateDpAsState(
+                        targetValue = targetW,
+                        label = "dragW"
+                    )
+                    val animatedH by animateDpAsState(
+                        targetValue = targetH,
+                        label = "dragH"
+                    )
+                    val animatedAlpha by animateFloatAsState(
+                        targetValue = if (currentDragRect != null) 1f else 0f,
+                        label = "dragAlpha"
+                    )
+
+                    if (animatedAlpha > 0.01f) {
                         Box(
                             modifier = Modifier
-                                .align(Alignment.TopStart) // Align to TopStart for absolute offset positioning
-                                .offset(
-                                    x = cellSizeDp * rect.col,
-                                    y = cellSizeDp * rect.row
-                                )
-                                .width(cellSizeDp * rect.width)
-                                .height(cellSizeDp * rect.height)
+                                .align(Alignment.TopStart)
+                                .offset(x = animatedX, y = animatedY)
+                                .width(animatedW)
+                                .height(animatedH)
                                 .padding(2.dp)
-                                .border(BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)), RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), RoundedCornerShape(6.dp))
+                                .border(
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f * animatedAlpha)),
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f * animatedAlpha), RoundedCornerShape(6.dp))
                         )
                     }
 
@@ -361,7 +390,7 @@ fun ShikakuScreen(
                                         val minCol = minOf(start.second, col)
                                         val maxCol = maxOf(start.second, col)
                                         currentDragRect = ShikakuRectangle(
-                                            id = UUID.randomUUID().toString(),
+                                            id = "drag-preview",
                                             row = minRow,
                                             col = minCol,
                                             width = maxCol - minCol + 1,

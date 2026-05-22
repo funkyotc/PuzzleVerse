@@ -250,7 +250,7 @@ fun ShapesScreen(
             ) {
                 Canvas(modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
+                    .pointerInput(puzzleState) {
                         detectTapGestures(
                             onTap = { offset ->
                                 val clickedPiece = puzzleState.pieces.findLast { piece ->
@@ -269,7 +269,7 @@ fun ShapesScreen(
                             }
                         )
                     }
-                    .pointerInput(Unit) {
+                    .pointerInput(puzzleState) {
                         detectDragGestures(
                             onDragStart = { offset ->
                                 val clickedPiece = puzzleState.pieces.findLast { piece ->
@@ -282,10 +282,7 @@ fun ShapesScreen(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 selectedPieceId?.let { id ->
-                                    val piece = puzzleState.pieces.find { it.id == id }
-                                    piece?.let {
-                                        viewModel.movePiece(it.id, it.position + dragAmount)
-                                    }
+                                    viewModel.movePieceDelta(id, dragAmount)
                                 }
                             }
                         )

@@ -315,6 +315,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             ConstellationsScreen(
                 navController = navController,
                 mode = "puzzle",
+                puzzleId = puzzleId,
                 settingsRepository = settingsRepository
             )
         }
@@ -336,6 +337,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             ShapesScreen(
                 navController = navController,
                 mode = "puzzle",
+                puzzleId = puzzleId,
                 settingsRepository = settingsRepository
             )
         }
