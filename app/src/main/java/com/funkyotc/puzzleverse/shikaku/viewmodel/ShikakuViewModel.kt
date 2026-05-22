@@ -93,11 +93,12 @@ class ShikakuViewModel(
     private fun createBoardFromPuzzle(pregen: com.funkyotc.puzzleverse.shikaku.data.PregeneratedShikaku): ShikakuBoard {
         val cells = mutableListOf<ShikakuCell>()
         val gridSize = pregen.grid.size
+        val cluesMap = pregen.clues.associateBy { Pair(it.row, it.col) }
 
         for (r in 0 until gridSize) {
             for (c in 0 until gridSize) {
                 val rectId = pregen.grid[r][c].toString()
-                val clue = if (r == pregen.clueRow && c == pregen.clueCol) pregen.clueValue else null
+                val clue = cluesMap[Pair(r, c)]?.value
                 cells.add(ShikakuCell(r, c, clue, rectId))
             }
         }
