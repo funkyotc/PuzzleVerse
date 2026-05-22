@@ -8,10 +8,10 @@ class ShikakuRepository(context: Context) {
     private val sharedPreferences = context.getSharedPreferences("ShikakuPrefs", Context.MODE_PRIVATE)
     private val gson = Gson()
 
-    fun saveBoard(board: ShikakuBoard) {
+    fun saveBoard(board: ShikakuBoard, key: String = board.puzzleId) {
         try {
             val json = gson.toJson(board)
-            sharedPreferences.edit().putString("savedBoard_${board.puzzleId}", json).apply()
+            sharedPreferences.edit().putString("savedBoard_$key", json).apply()
         } catch (e: Exception) {
             e.printStackTrace()
         }

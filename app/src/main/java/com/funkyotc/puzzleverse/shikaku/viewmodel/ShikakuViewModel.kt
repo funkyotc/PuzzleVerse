@@ -30,6 +30,7 @@ class ShikakuViewModel(
     private val repository = ShikakuRepository(context)
     private val completionRepo = PuzzleCompletionRepository(context, "Shikaku")
     private val dailyChallengeSeed = LocalDate.now().toEpochDay()
+    private val boardKey = if (mode == "daily") "daily_shikaku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_shikaku_board"
 
     private val _board = MutableStateFlow(generateInitialBoard())
     val board: StateFlow<ShikakuBoard> = _board.asStateFlow()
@@ -57,19 +58,19 @@ class ShikakuViewModel(
 
     private fun generateInitialBoard(): ShikakuBoard {
         if (forceNewGame) {
-            return generateNewBoard()
+            val newBoard = generateNewBoard()
+            repository.saveBoard(newBoard, boardKey)
+            return newBoard
         }
 
-        val loadedBoard = repository.loadBoard(currentPuzzleId())
-        if (loadedBoard != null) {
+        val loadedBoard = repository.loadBoard(boardKey)
+        if (loadedBoard != null && loadedBoard.cells.isNotEmpty()) {
             return loadedBoard
         }
 
-        return generateNewBoard()
-    }
-
-    private fun currentPuzzleId(): String {
-        return puzzleId ?: _board.value.puzzleId
+        val newBoard = generateNewBoard()
+        repository.saveBoard(newBoard, boardKey)
+        return newBoard
     }
 
     private fun generateNewBoard(): ShikakuBoard {
@@ -86,7 +87,7 @@ class ShikakuViewModel(
             ShikakuGenerator(System.currentTimeMillis()).generate("easy")
         }
 
-        repository.saveBoard(newBoard)
+        repository.saveBoard(newBoard, boardKey)
         return newBoard
     }
 
@@ -132,7 +133,7 @@ class ShikakuViewModel(
         val newBoard = currentBoard.copy(cells = newCells)
         _board.value = newBoard
         boardHistory.add(newBoard)
-        repository.saveBoard(newBoard)
+        repository.saveBoard(newBoard, boardKey)
         checkWinCondition(newBoard)
     }
 
@@ -151,7 +152,7 @@ class ShikakuViewModel(
         val newBoard = currentBoard.copy(cells = newCells)
         _board.value = newBoard
         boardHistory.add(newBoard)
-        repository.saveBoard(newBoard)
+        repository.saveBoard(newBoard, boardKey)
     }
 
     fun clearAllPlayerMarks() {
@@ -169,7 +170,7 @@ class ShikakuViewModel(
         val newBoard = currentBoard.copy(cells = newCells)
         _board.value = newBoard
         boardHistory.add(newBoard)
-        repository.saveBoard(newBoard)
+        repository.saveBoard(newBoard, boardKey)
     }
 
     fun undo() {
@@ -177,7 +178,7 @@ class ShikakuViewModel(
             boardHistory.removeLast()
             val previousBoard = boardHistory.last()
             _board.value = previousBoard
-            repository.saveBoard(previousBoard)
+            repository.saveBoard(previousBoard, boardKey)
         }
     }
 
@@ -231,7 +232,7 @@ class ShikakuViewModel(
         val newBoard = currentBoard.copy(cells = newCells)
         _board.value = newBoard
         boardHistory.add(newBoard)
-        repository.saveBoard(newBoard)
+        repository.saveBoard(newBoard, boardKey)
         checkWinCondition(newBoard)
     }
 
@@ -269,9 +270,9 @@ class ShikakuViewModel(
                         streakRepository.saveStreak(newStreak)
                     }
                 }
-                repository.clearBoard(board.puzzleId)
+                repository.clearBoard(boardKey)
             } else {
-                repository.saveBoard(ShikakuBoard(emptyList(), board.gridSize, board.seed, board.puzzleId, board.isDaily))
+                repository.saveBoard(ShikakuBoard(emptyList(), board.gridSize, board.seed, board.puzzleId, board.isDaily), boardKey)
             }
 
             settingsRepository?.addWin()
