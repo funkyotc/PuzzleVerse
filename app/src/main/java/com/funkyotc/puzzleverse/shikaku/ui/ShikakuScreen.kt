@@ -61,6 +61,14 @@ fun ShikakuScreen(
 
     var drawStartCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var currentDragRect by remember { mutableStateOf<ShikakuRectangle?>(null) }
+    var dragSessionId by remember { mutableStateOf("") }
+    var lastActiveDragRect by remember { mutableStateOf<ShikakuRectangle?>(null) }
+
+    LaunchedEffect(currentDragRect) {
+        if (currentDragRect != null) {
+            lastActiveDragRect = currentDragRect
+        }
+    }
 
     val context = LocalContext.current
     val soundManager = LocalSoundManager.current
@@ -302,47 +310,50 @@ fun ShikakuScreen(
                     }
 
                     // Draw drag preview
-                    val previewRect = currentDragRect
-                    val targetX = if (previewRect != null) cellSizeDp * previewRect.col else 0.dp
-                    val targetY = if (previewRect != null) cellSizeDp * previewRect.row else 0.dp
-                    val targetW = if (previewRect != null) cellSizeDp * previewRect.width else 0.dp
-                    val targetH = if (previewRect != null) cellSizeDp * previewRect.height else 0.dp
-
-                    val animatedX by animateDpAsState(
-                        targetValue = targetX,
-                        label = "dragX"
-                    )
-                    val animatedY by animateDpAsState(
-                        targetValue = targetY,
-                        label = "dragY"
-                    )
-                    val animatedW by animateDpAsState(
-                        targetValue = targetW,
-                        label = "dragW"
-                    )
-                    val animatedH by animateDpAsState(
-                        targetValue = targetH,
-                        label = "dragH"
-                    )
                     val animatedAlpha by animateFloatAsState(
                         targetValue = if (currentDragRect != null) 1f else 0f,
                         label = "dragAlpha"
                     )
 
-                    if (animatedAlpha > 0.01f) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .offset(x = animatedX, y = animatedY)
-                                .width(animatedW)
-                                .height(animatedH)
-                                .padding(2.dp)
-                                .border(
-                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f * animatedAlpha)),
-                                    RoundedCornerShape(6.dp)
-                                )
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f * animatedAlpha), RoundedCornerShape(6.dp))
+                    key(dragSessionId) {
+                        val activeRect = currentDragRect ?: lastActiveDragRect
+                        val targetX = if (activeRect != null) cellSizeDp * activeRect.col else 0.dp
+                        val targetY = if (activeRect != null) cellSizeDp * activeRect.row else 0.dp
+                        val targetW = if (activeRect != null) cellSizeDp * activeRect.width else 0.dp
+                        val targetH = if (activeRect != null) cellSizeDp * activeRect.height else 0.dp
+
+                        val animatedX by animateDpAsState(
+                            targetValue = targetX,
+                            label = "dragX"
                         )
+                        val animatedY by animateDpAsState(
+                            targetValue = targetY,
+                            label = "dragY"
+                        )
+                        val animatedW by animateDpAsState(
+                            targetValue = targetW,
+                            label = "dragW"
+                        )
+                        val animatedH by animateDpAsState(
+                            targetValue = targetH,
+                            label = "dragH"
+                        )
+
+                        if (animatedAlpha > 0.01f) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(x = animatedX, y = animatedY)
+                                    .width(animatedW)
+                                    .height(animatedH)
+                                    .padding(2.dp)
+                                    .border(
+                                        BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f * animatedAlpha)),
+                                        RoundedCornerShape(6.dp)
+                                    )
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f * animatedAlpha), RoundedCornerShape(6.dp))
+                            )
+                        }
                     }
 
                     // Transparent gesture touch overlay
@@ -364,7 +375,15 @@ fun ShikakuScreen(
                                     onDragStart = { offset ->
                                         val col = (offset.x / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
                                         val row = (offset.y / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                        dragSessionId = UUID.randomUUID().toString()
                                         drawStartCell = Pair(row, col)
+                                        currentDragRect = ShikakuRectangle(
+                                            id = "drag-preview",
+                                            row = row,
+                                            col = col,
+                                            width = 1,
+                                            height = 1
+                                        )
                                     },
                                     onDragEnd = {
                                         drawStartCell?.let { start ->
