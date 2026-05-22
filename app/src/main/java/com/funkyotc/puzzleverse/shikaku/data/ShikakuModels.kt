@@ -15,14 +15,23 @@ data class ShikakuRectangle(
     val col: Int,
     val width: Int,
     val height: Int
-)
+) {
+    fun overlaps(other: ShikakuRectangle): Boolean {
+        return this.row < other.row + other.height &&
+               other.row < this.row + this.height &&
+               this.col < other.col + other.width &&
+               other.col < this.col + this.width
+    }
+}
 
 data class ShikakuBoard(
     val cells: List<ShikakuCell>,
     val gridSize: Int,
     val seed: Long,
     val puzzleId: String,
-    val isDaily: Boolean
+    val isDaily: Boolean,
+    val solutionRectangles: List<ShikakuRectangle> = emptyList(),
+    val playerRectangles: List<ShikakuRectangle> = emptyList()
 ) {
     fun getCell(row: Int, col: Int): ShikakuCell? {
         return cells.find { it.row == row && it.col == col }
@@ -32,7 +41,7 @@ data class ShikakuBoard(
         return cells.filter { it.clue != null }
     }
 
-    fun getSolutionRectangles(): List<ShikakuRectangle> {
+    fun reconstructRectanglesFromCells(): List<ShikakuRectangle> {
         val idToRect = mutableMapOf<String, ShikakuRectangle>()
         cells.forEach { cell ->
             cell.rectangleId?.let { rectId ->
@@ -58,15 +67,5 @@ data class ShikakuBoard(
             }
         }
         return idToRect.values.toList()
-    }
-
-    fun copy(): ShikakuBoard {
-        return ShikakuBoard(
-            cells = cells.map { ShikakuCell(it.row, it.col, it.clue, null) },
-            gridSize = gridSize,
-            seed = seed,
-            puzzleId = puzzleId,
-            isDaily = isDaily
-        )
     }
 }

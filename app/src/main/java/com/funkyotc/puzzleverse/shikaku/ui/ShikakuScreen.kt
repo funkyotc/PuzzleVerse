@@ -1,9 +1,13 @@
 package com.funkyotc.puzzleverse.shikaku.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -70,7 +74,6 @@ fun ShikakuScreen(
     }
 
     val gridSize = board.gridSize
-    val cellSize = calculateCellSize(gridSize)
 
     if (showHowToDialog) {
         AlertDialog(
@@ -185,172 +188,216 @@ fun ShikakuScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Grid
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                val gridPixelSize = gridSize * cellSize
+                val safeGridSize = maxOf(1, gridSize)
+                val actualGridSizeDp = minOf(maxWidth, maxHeight)
+                val cellSizeDp = actualGridSizeDp / safeGridSize
+                val cellSizePx = with(LocalDensity.current) { actualGridSizeDp.toPx() } / safeGridSize
+
+                // Inner perfectly square grid board container
                 Box(
                     modifier = Modifier
-                        .width(gridPixelSize.dp)
-                        .height(gridPixelSize.dp)
-                        .pointerInput(gridSize, cellSize) {
-                            detectDragGestures(
-                                onDragStart = { offset ->
-                                    val col = (offset.x / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                    val row = (offset.y / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                    drawStartCell = Pair(row, col)
-                                },
-                                onDragEnd = {
-                                    drawStartCell?.let { start ->
-                                        currentDragRect?.let { rect ->
-                                            viewModel.onPlayerRectangleDraw(rect)
-                                        }
-                                    }
-                                    drawStartCell = null
-                                    currentDragRect = null
-                                },
-                                onDragCancel = {
-                                    drawStartCell = null
-                                    currentDragRect = null
-                                }
-                            ) { change, _ ->
-                                change.consume()
-                                val offset = change.position
-                                val col = (offset.x / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                val row = (offset.y / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                drawStartCell?.let { start ->
-                                    val minRow = minOf(start.first, row)
-                                    val maxRow = maxOf(start.first, row)
-                                    val minCol = minOf(start.second, col)
-                                    val maxCol = maxOf(start.second, col)
-                                    currentDragRect = ShikakuRectangle(
-                                        id = UUID.randomUUID().toString(),
-                                        row = minRow,
-                                        col = minCol,
-                                        width = maxCol - minCol + 1,
-                                        height = maxRow - minRow + 1
-                                    )
-                                }
-                            }
-                        }
+                        .size(actualGridSizeDp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Draw grid cells
-                    for (r in 0 until gridSize) {
-                        for (c in 0 until gridSize) {
-                            val cell = board.getCell(r, c)
-                            val cellColor = when {
-                                cell != null && cell.clue != null -> Color(0xFFF5F5F5)
-                                cell != null && cell.rectangleId != null -> {
-                                    val hash = cell.rectangleId.hashCode()
-                                    Color(
-                                        android.graphics.Color.HSVToColor(floatArrayOf(
-                                            (hash % 360).toFloat(),
-                                            0.15f,
-                                            0.95f
-                                        ))
-                                    )
-                                }
-                                else -> Color.White
-                            }
-
-                            Box(
+                    // Draw cells
+                    Column(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        for (r in 0 until safeGridSize) {
+                            Row(
                                 modifier = Modifier
-                                    .width(cellSize.dp)
-                                    .height(cellSize.dp)
-                                    .border(0.5.dp, Color.Gray)
-                                    .background(cellColor)
-                                    .pointerInput(r, c) {
-                                        detectDragGestures(
-                                            onDragStart = {
-                                                drawStartCell = Pair(r, c)
-                                            },
-                                            onDragEnd = {
-                                                drawStartCell?.let { start ->
-                                                    currentDragRect?.let { rect ->
-                                                        viewModel.onPlayerRectangleDraw(rect)
-                                                    }
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                for (c in 0 until safeGridSize) {
+                                    val cell = board.getCell(r, c)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .border(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        cell?.let { shikakuCell ->
+                                            if (shikakuCell.clue != null) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(maxOf(24.dp, cellSizeDp * 0.6f))
+                                                        .background(
+                                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                                            RoundedCornerShape(8.dp)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = shikakuCell.clue.toString(),
+                                                        fontSize = when {
+                                                            safeGridSize <= 8 -> 18.sp
+                                                            safeGridSize <= 10 -> 15.sp
+                                                            else -> 12.sp
+                                                        },
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
                                                 }
-                                                drawStartCell = null
-                                                currentDragRect = null
-                                            },
-                                            onDragCancel = {
-                                                drawStartCell = null
-                                                currentDragRect = null
-                                            }
-                                        ) { change, _ ->
-                                            change.consume()
-                                            val offset = change.position
-                                            val col = (offset.x / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                            val row = (offset.y / cellSize).toInt().coerceIn(0, gridSize - 1)
-                                            drawStartCell?.let { start ->
-                                                val minRow = minOf(start.first, row)
-                                                val maxRow = maxOf(start.first, row)
-                                                val minCol = minOf(start.second, col)
-                                                val maxCol = maxOf(start.second, col)
-                                                currentDragRect = ShikakuRectangle(
-                                                    id = UUID.randomUUID().toString(),
-                                                    row = minRow,
-                                                    col = minCol,
-                                                    width = maxCol - minCol + 1,
-                                                    height = maxRow - minRow + 1
+                                            } else if (shikakuCell.rectangleId != null) {
+                                                // Draw a premium color-coded dot showing this cell is covered by a player rectangle
+                                                val parentRect = board.playerRectangles.find { it.id == shikakuCell.rectangleId }
+                                                val dotColor = if (parentRect != null) {
+                                                    val cluesInRect = board.getClueCells().filter { clueCell ->
+                                                        clueCell.row >= parentRect.row && clueCell.row < parentRect.row + parentRect.height &&
+                                                        clueCell.col >= parentRect.col && clueCell.col < parentRect.col + parentRect.width
+                                                    }
+                                                    val rectArea = parentRect.width * parentRect.height
+                                                    val clueCell = cluesInRect.firstOrNull()
+                                                    when {
+                                                        cluesInRect.size == 1 && clueCell != null && rectArea == clueCell.clue -> Color(0xFF00E676)
+                                                        cluesInRect.size > 1 || (cluesInRect.size == 1 && clueCell != null && rectArea > (clueCell.clue ?: 0)) -> Color(0xFFFF1744)
+                                                        else -> Color(0xFF90A4AE)
+                                                    }
+                                                } else {
+                                                    MaterialTheme.colorScheme.primary
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(maxOf(6.dp, cellSizeDp * 0.16f))
+                                                        .background(
+                                                            dotColor.copy(alpha = 0.8f),
+                                                            RoundedCornerShape(50)
+                                                        )
                                                 )
                                             }
                                         }
                                     }
-                            ) {
-                                cell?.let { shikakuCell ->
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        if (shikakuCell.clue != null) {
-                                            Text(
-                                                text = shikakuCell.clue.toString(),
-                                                fontSize = when {
-                                                    gridSize <= 8 -> 18.sp
-                                                    gridSize <= 10 -> 15.sp
-                                                    else -> 13.sp
-                                                },
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.Black
-                                            )
-                                        }
-                                        if (shikakuCell.clue == null && shikakuCell.rectangleId != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(8.dp)
-                                                    .height(8.dp)
-                                                    .background(
-                                                        Color(0xFF2196F3),
-                                                        RoundedCornerShape(4.dp)
-                                                    )
-                                                    .align(Alignment.CenterHorizontally)
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
                     }
 
-                    // Draw current drag rectangle preview
+                    // Render placed player rectangles
+                    board.playerRectangles.forEach { rect ->
+                        val cluesInRect = board.getClueCells().filter { clueCell ->
+                            clueCell.row >= rect.row && clueCell.row < rect.row + rect.height &&
+                            clueCell.col >= rect.col && clueCell.col < rect.col + rect.width
+                        }
+                        val rectArea = rect.width * rect.height
+                        val clueCell = cluesInRect.firstOrNull()
+                        val isValid = cluesInRect.size == 1 && clueCell != null && rectArea == clueCell.clue
+                        val isInvalid = cluesInRect.size > 1 || (cluesInRect.size == 1 && clueCell != null && rectArea > (clueCell.clue ?: 0))
+                        
+                        // Generate premium dynamic HSV pastel color unique to this rectangle
+                        val hash = rect.id.hashCode()
+                        val hue = (hash % 360).let { if (it < 0) it + 360 else it }.toFloat()
+                        val pastelFill = Color(
+                            android.graphics.Color.HSVToColor(floatArrayOf(
+                                hue,
+                                0.18f, // Soft pastel saturation
+                                0.95f  // High brightness
+                            ))
+                        ).copy(alpha = 0.35f) // Transparent fill
+                        
+                        val borderStroke = when {
+                            isValid -> BorderStroke(2.dp, Color(0xFF00E676)) // Emerald Green
+                            isInvalid -> BorderStroke(2.dp, Color(0xFFFF1744)) // Crimson Red
+                            else -> BorderStroke(2.dp, Color(0xFF90A4AE)) // Slate Gray
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart) // Align to TopStart for absolute offset positioning
+                                .offset(
+                                    x = cellSizeDp * rect.col,
+                                    y = cellSizeDp * rect.row
+                                )
+                                .width(cellSizeDp * rect.width)
+                                .height(cellSizeDp * rect.height)
+                                .padding(2.dp)
+                                .background(pastelFill, RoundedCornerShape(6.dp))
+                                .border(borderStroke, RoundedCornerShape(6.dp))
+                        )
+                    }
+
+                    // Draw drag preview
                     currentDragRect?.let { rect ->
                         Box(
                             modifier = Modifier
-                                .width((rect.width * cellSize).dp)
-                                .height((rect.height * cellSize).dp)
+                                .align(Alignment.TopStart) // Align to TopStart for absolute offset positioning
                                 .offset(
-                                    x = (rect.col * cellSize).dp,
-                                    y = (rect.row * cellSize).dp
+                                    x = cellSizeDp * rect.col,
+                                    y = cellSizeDp * rect.row
                                 )
-                                .border(2.dp, Color.Blue.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
-                                .background(Color.Blue.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
+                                .width(cellSizeDp * rect.width)
+                                .height(cellSizeDp * rect.height)
+                                .padding(2.dp)
+                                .border(BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)), RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), RoundedCornerShape(6.dp))
                         )
                     }
+
+                    // Transparent gesture touch overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(gridSize, cellSizePx) {
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        val col = (offset.x / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                        val row = (offset.y / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        viewModel.onCellClear(row, col)
+                                    }
+                                )
+                            }
+                            .pointerInput(gridSize, cellSizePx) {
+                                detectDragGestures(
+                                    onDragStart = { offset ->
+                                        val col = (offset.x / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                        val row = (offset.y / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                        drawStartCell = Pair(row, col)
+                                    },
+                                    onDragEnd = {
+                                        drawStartCell?.let { start ->
+                                            currentDragRect?.let { rect ->
+                                                viewModel.onPlayerRectangleDraw(rect)
+                                            }
+                                        }
+                                        drawStartCell = null
+                                        currentDragRect = null
+                                    },
+                                    onDragCancel = {
+                                        drawStartCell = null
+                                        currentDragRect = null
+                                    }
+                                ) { change, _ ->
+                                    change.consume()
+                                    val offset = change.position
+                                    val col = (offset.x / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                    val row = (offset.y / cellSizePx).toInt().coerceIn(0, safeGridSize - 1)
+                                    drawStartCell?.let { start ->
+                                        val minRow = minOf(start.first, row)
+                                        val maxRow = maxOf(start.first, row)
+                                        val minCol = minOf(start.second, col)
+                                        val maxCol = maxOf(start.second, col)
+                                        currentDragRect = ShikakuRectangle(
+                                            id = UUID.randomUUID().toString(),
+                                            row = minRow,
+                                            col = minCol,
+                                            width = maxCol - minCol + 1,
+                                            height = maxRow - minRow + 1
+                                        )
+                                    }
+                                }
+                            }
+                    )
                 }
             }
 

@@ -137,7 +137,7 @@ class ShikakuGeneratorTest {
         }
 
         // 3. Verify rectangles are valid
-        val solutionRects = board.getSolutionRectangles()
+        val solutionRects = board.reconstructRectanglesFromCells()
         assertTrue(solutionRects.isNotEmpty())
 
         // Check each rectangle
