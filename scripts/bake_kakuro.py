@@ -64,8 +64,8 @@ def main():
                 if t == "BLACK":
                     cell_strs.append(f'KakuroCell(CellType.BLACK, null, null, {cr}, {cc})')
                 elif t == "CLUE":
-                    cv = cell["clue"]["v"]
-                    ch = cell["clue"]["h"]
+                    cv = cell["clue"].get("verticalSum")
+                    ch = cell["clue"].get("horizontalSum")
                     v_str = str(cv) if cv is not None else "null"
                     h_str = str(ch) if ch is not None else "null"
                     cell_strs.append(f'KakuroCell(CellType.CLUE, Clue({h_str}, {v_str}), null, {cr}, {cc})')

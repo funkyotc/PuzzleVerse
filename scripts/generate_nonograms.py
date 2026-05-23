@@ -19,8 +19,11 @@ class NonogramGenerator:
         if count > 0: clues.append(count)
         return clues
 
-    def solve_line(self, clues, length):
-        """Memoized line solver."""
+    def solve_line(self, clues, length, current_line=None):
+        """Memoized line solver with dynamic constraint pruning."""
+        if current_line is None:
+            current_line = np.full(length, -1, dtype=int)
+            
         memo = {}
 
         def solve(clue_idx, start_pos):
@@ -28,30 +31,52 @@ class NonogramGenerator:
             if state in memo: return memo[state]
             
             if clue_idx == len(clues):
-                # No more clues, remaining must be empty
+                # Ensure no remaining cells are constrained to be filled (1)
+                for p in range(start_pos, length):
+                    if current_line[p] == 1:
+                        memo[state] = []
+                        return []
                 res = [[False] * (length - start_pos)]
                 memo[state] = res
                 return res
 
             res = []
             clue = clues[clue_idx]
-            # Calculate min space needed for remaining clues
             remaining_clues = clues[clue_idx+1:]
             min_needed = sum(remaining_clues) + len(remaining_clues)
             
-            # Try placing current clue at all possible positions
             for p in range(start_pos, length - min_needed - clue + 1):
-                # Ensure gap before if not the first clue
                 if clue_idx > 0 and p == start_pos: continue
                 
-                prefix = [False] * (p - start_pos) + [True] * clue
-                # Must follow with a gap if not last
+                # Check constraints before the clue
+                valid = True
+                for i in range(start_pos, p):
+                    if current_line[i] == 1:
+                        valid = False
+                        break
+                if not valid: continue
+                
+                # Check constraints inside the clue
+                for i in range(p, p + clue):
+                    if current_line[i] == 0:
+                        valid = False
+                        break
+                if not valid: continue
+                
+                # Check constraint immediately after the clue (must be a gap)
+                next_start = p + clue
                 if clue_idx < len(clues) - 1:
-                    prefix.append(False)
-                    
-                sub_solutions = solve(clue_idx + 1, p + clue + (1 if clue_idx < len(clues) - 1 else 0))
-                for sub in sub_solutions:
-                    res.append(prefix + sub)
+                    if current_line[p + clue] == 1:
+                        continue
+                    next_start += 1
+                
+                sub_solutions = solve(clue_idx + 1, next_start)
+                if sub_solutions:
+                    prefix = [False] * (p - start_pos) + [True] * clue
+                    if clue_idx < len(clues) - 1:
+                        prefix.append(False)
+                    for sub in sub_solutions:
+                        res.append(prefix + sub)
             
             memo[state] = res
             return res
@@ -63,8 +88,20 @@ class NonogramGenerator:
         size = self.size
         state = np.full((size, size), -1, dtype=int) # -1: unknown, 0: empty, 1: filled
         
-        row_poss = [self.solve_line(c, size) for c in row_clues]
-        col_poss = [self.solve_line(c, size) for c in col_clues]
+        # Initial solve with constraints. Reject early if highly ambiguous.
+        row_poss = []
+        for r in range(size):
+            poss = self.solve_line(row_clues[r], size, state[r, :])
+            if not poss or len(poss) > 300:
+                return False
+            row_poss.append(poss)
+            
+        col_poss = []
+        for c in range(size):
+            poss = self.solve_line(col_clues[c], size, state[:, c])
+            if not poss or len(poss) > 300:
+                return False
+            col_poss.append(poss)
         
         changed = True
         while changed:
@@ -100,17 +137,30 @@ class NonogramGenerator:
         return np.all(state != -1)
 
     def generate(self, difficulty):
+        attempts = 0
         while True:
-            # Generate random shape with some symmetry
+            attempts += 1
+            # Generate random shape with strong symmetry
             self.grid.fill(False)
-            density = random.uniform(0.3, 0.6)
+            density = random.uniform(0.4, 0.55)
             self.grid = np.random.rand(self.size, self.size) < density
             
-            if random.random() < 0.5: # Symmetric
+            # Apply symmetry to make it highly solvable and visually appealing
+            if random.random() < 0.7:  # 70% chance of horizontal symmetry
                 self.grid = self.grid | self.grid[:, ::-1]
+            if random.random() < 0.7:  # 70% chance of vertical symmetry
+                self.grid = self.grid | self.grid[::-1, :]
                 
             row_clues = [self.get_clues(self.grid[r, :]) for r in range(self.size)]
             col_clues = [self.get_clues(self.grid[:, c]) for c in range(self.size)]
+            
+            # If finding a unique solution is taking too many attempts, force full symmetry
+            if attempts > 100:
+                self.grid = self.grid | self.grid[:, ::-1]
+                self.grid = self.grid | self.grid[::-1, :]
+                row_clues = [self.get_clues(self.grid[r, :]) for r in range(self.size)]
+                col_clues = [self.get_clues(self.grid[:, c]) for c in range(self.size)]
+                attempts = 0
             
             if self.is_unique(row_clues, col_clues):
                 return {

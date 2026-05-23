@@ -40,7 +40,15 @@ class ShapesViewModel(
             val pregen = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
             if (pregen != null) {
                 val originalLevel = pregen.toShapesPuzzle()
-                val colors = listOf(Color(0xFF6B8DD6), Color(0xFF8E37D7), Color(0xFFFFB75E), Color(0xFFED8F03), Color(0xFFFF5252))
+                val colors = listOf(
+                    Color(0xFF6B8DD6), // Light Blue
+                    Color(0xFF8E37D7), // Purple
+                    Color(0xFFFFB75E), // Light Orange
+                    Color(0xFFED8F03), // Dark Orange
+                    Color(0xFFFF5252), // Coral/Red
+                    Color(0xFF4CAF50), // Green
+                    Color(0xFF00BCD4)  // Cyan
+                )
                 
                 val scaledPieces = originalLevel.pieces.map { piece ->
                     piece.copy(
@@ -56,13 +64,15 @@ class ShapesViewModel(
                     )
                 }
                 
-                // Shuffle tangram pieces onto the bottom
+                // Shuffle tangram pieces into a neat 2-row grid at the bottom of the screen
                 val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
+                    val row = index / 4
+                    val col = index % 4
+                    val startX = if (row == 0) 50f else 80f
+                    val x = startX + col * 80f + Random.nextFloat() * 15f
+                    val y = 460f + row * 85f + Random.nextFloat() * 15f
                     piece.copy(
-                        position = Offset(
-                            100f + index * 80f + Random.nextFloat() * 30f, 
-                            480f + Random.nextFloat() * 80f
-                        ),
+                        position = Offset(x, y),
                         color = colors.getOrElse(index) { Color.Gray }
                     )
                 }
