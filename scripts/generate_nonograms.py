@@ -126,14 +126,14 @@ def main():
     output_dir = os.path.join(script_dir, "output", "nonogram")
     os.makedirs(output_dir, exist_ok=True)
     
-    configs = [(5, "Easy", 15), (10, "Medium", 15), (15, "Hard", 10)]
+    configs = [(10, "Easy", 15), (15, "Medium", 15), (20, "Hard", 10)]
     
     for size, diff, count in configs:
         gen = NonogramGenerator(size)
         for i in range(count):
             p = gen.generate(diff)
             p["id"] = f"nonogram_{diff.lower()}_{i+1}"
-            with open(os.path.join(out_dir if 'out_dir' in locals() else output_dir, f"{p['id']}.json"), "w") as f:
+            with open(os.path.join(output_dir, f"{p['id']}.json"), "w") as f:
                 json.dump(p, f, indent=2)
             print(f"Generated Nonogram {diff} {i+1}")
 

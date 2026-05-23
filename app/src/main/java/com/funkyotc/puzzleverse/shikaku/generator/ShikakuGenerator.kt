@@ -41,6 +41,27 @@ class ShikakuGenerator(private val seed: Long) {
         )
     }
 
+    private fun hasValidSplit(rect: ShikakuRectangle): Boolean {
+        val canSplitVertically = rect.width > 1
+        val canSplitHorizontally = rect.height > 1
+        
+        if (canSplitVertically) {
+            for (splitCol in 1 until rect.width) {
+                if (splitCol * rect.height >= 2 && (rect.width - splitCol) * rect.height >= 2) {
+                    return true
+                }
+            }
+        }
+        if (canSplitHorizontally) {
+            for (splitRow in 1 until rect.height) {
+                if (rect.width * splitRow >= 2 && rect.width * (rect.height - splitRow) >= 2) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     private fun generateRectangles(rows: Int, cols: Int, maxArea: Int, targetRectangles: Int): List<ShikakuRectangle> {
         val rectangles = mutableListOf<ShikakuRectangle>(
             ShikakuRectangle(UUID.randomUUID().toString(), 0, 0, cols, rows)
@@ -51,12 +72,16 @@ class ShikakuGenerator(private val seed: Long) {
         while (attempts++ < maxAttempts) {
             val oversized = rectangles.filter { it.width * it.height > maxArea }
             if (oversized.isNotEmpty()) {
-                val toSplit = oversized[random.nextInt(oversized.size)]
+                val splittableOversized = oversized.filter { hasValidSplit(it) }
+                if (splittableOversized.isEmpty()) {
+                    break
+                }
+                val toSplit = splittableOversized[random.nextInt(splittableOversized.size)]
                 if (!splitRectangle(toSplit, rectangles)) {
                     break
                 }
             } else if (rectangles.size < targetRectangles) {
-                val splittable = rectangles.filter { it.width > 1 || it.height > 1 }
+                val splittable = rectangles.filter { hasValidSplit(it) }
                 if (splittable.isEmpty()) break
                 val toSplit = splittable[random.nextInt(splittable.size)]
                 splitRectangle(toSplit, rectangles)
@@ -72,9 +97,35 @@ class ShikakuGenerator(private val seed: Long) {
         val canSplitHorizontally = rect.height > 1
         if (!canSplitVertically && !canSplitHorizontally) return false
 
+        val validVerticalSplits = mutableListOf<Int>()
+        if (canSplitVertically) {
+            for (splitCol in 1 until rect.width) {
+                val r1Area = splitCol * rect.height
+                val r2Area = (rect.width - splitCol) * rect.height
+                if (r1Area >= 2 && r2Area >= 2) {
+                    validVerticalSplits.add(splitCol)
+                }
+            }
+        }
+
+        val validHorizontalSplits = mutableListOf<Int>()
+        if (canSplitHorizontally) {
+            for (splitRow in 1 until rect.height) {
+                val r1Area = rect.width * splitRow
+                val r2Area = rect.width * (rect.height - splitRow)
+                if (r1Area >= 2 && r2Area >= 2) {
+                    validHorizontalSplits.add(splitRow)
+                }
+            }
+        }
+
+        val canSplitV = validVerticalSplits.isNotEmpty()
+        val canSplitH = validHorizontalSplits.isNotEmpty()
+        if (!canSplitV && !canSplitH) return false
+
         val splitVertical = when {
-            canSplitVertically && canSplitHorizontally -> random.nextBoolean()
-            canSplitVertically -> true
+            canSplitV && canSplitH -> random.nextBoolean()
+            canSplitV -> true
             else -> false
         }
 
@@ -82,11 +133,11 @@ class ShikakuGenerator(private val seed: Long) {
         val r2: ShikakuRectangle
 
         if (splitVertical) {
-            val splitCol = 1 + random.nextInt(rect.width - 1)
+            val splitCol = validVerticalSplits[random.nextInt(validVerticalSplits.size)]
             r1 = ShikakuRectangle(UUID.randomUUID().toString(), rect.row, rect.col, splitCol, rect.height)
             r2 = ShikakuRectangle(UUID.randomUUID().toString(), rect.row, rect.col + splitCol, rect.width - splitCol, rect.height)
         } else {
-            val splitRow = 1 + random.nextInt(rect.height - 1)
+            val splitRow = validHorizontalSplits[random.nextInt(validHorizontalSplits.size)]
             r1 = ShikakuRectangle(UUID.randomUUID().toString(), rect.row, rect.col, rect.width, splitRow)
             r2 = ShikakuRectangle(UUID.randomUUID().toString(), rect.row + splitRow, rect.col, rect.width, rect.height - splitRow)
         }

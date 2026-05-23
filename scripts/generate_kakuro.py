@@ -98,7 +98,7 @@ def main():
     output_dir = os.path.join(script_dir, "output", "kakuro")
     os.makedirs(output_dir, exist_ok=True)
     
-    configs = [(4, "Easy", 15), (6, "Medium", 10), (8, "Hard", 10)]
+    configs = [(5, "Easy", 15), (7, "Medium", 10), (9, "Hard", 10)]
     
     for size, diff, count in configs:
         gen = KakuroGenerator(size)
