@@ -52,6 +52,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberUpdatedState
@@ -423,14 +424,16 @@ fun ShapesScreen(
                             }
                             
                             drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
-                            drawPath(
-                                targetPath, 
-                                Color(0xFF38BDF8), // Cyan silhouette outline
-                                style = Stroke(
-                                    width = 2.5f,
-                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                            clipPath(targetPath) {
+                                drawPath(
+                                    targetPath, 
+                                    Color(0xFF38BDF8), // Cyan silhouette outline
+                                    style = Stroke(
+                                        width = 5.0f, // Doubled for internal clipping (2.5f visible)
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                                    )
                                 )
-                            )
+                            }
 
                             // 4. Draw Pieces
                             puzzleState.pieces.forEach { piece ->
@@ -472,11 +475,13 @@ fun ShapesScreen(
 
                                 // Draw piece fill and elegant outline
                                 drawPath(piecePath, piece.color, style = Fill)
-                                drawPath(
-                                    piecePath, 
-                                    if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f), // Gold border for selected
-                                    style = Stroke(width = if (isSelected) 3.5f else 1.5f)
-                                )
+                                clipPath(piecePath) {
+                                    drawPath(
+                                        piecePath, 
+                                        if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f), // Gold border for selected
+                                        style = Stroke(width = if (isSelected) 7.0f else 3.0f) // Doubled for internal clipping (3.5f or 1.5f visible)
+                                    )
+                                }
                             }
                         }
                     }

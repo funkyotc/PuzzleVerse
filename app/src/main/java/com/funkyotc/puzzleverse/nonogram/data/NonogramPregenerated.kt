@@ -1,14 +1,18 @@
 package com.funkyotc.puzzleverse.nonogram.data
 
+import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
+
 data class PregeneratedNonogram(
-    val id: String,
-    val difficulty: String,
+    override val id: String,
+    override val difficulty: String,
     val size: Int,
     val rowClues: List<List<Int>>,
     val colClues: List<List<Int>>,
     val gridStr: String
-) {
+) : BrowseablePuzzle {
     val grid: List<List<Boolean>> get() = gridStr.map { it == '1' }.chunked(size)
+    override val label: String get() = "Nonogram ${id.substringAfterLast("_")}"
+    override val subtitle: String get() = "${size}x${size}"
 }
 
 object NonogramPregenerated {

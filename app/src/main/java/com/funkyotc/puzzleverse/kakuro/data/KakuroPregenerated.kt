@@ -1,12 +1,17 @@
 package com.funkyotc.puzzleverse.kakuro.data
 
+import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
+
 data class PregeneratedKakuro(
-    val id: String,
-    val difficulty: String,
+    override val id: String,
+    override val difficulty: String,
     val rows: Int,
     val cols: Int,
     val grid: List<List<KakuroCell>>
-)
+) : BrowseablePuzzle {
+    override val label: String get() = "Kakuro ${id.substringAfterLast("_")}"
+    override val subtitle: String get() = "${rows}x${cols}"
+}
 
 object KakuroPregenerated {
 
