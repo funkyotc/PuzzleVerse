@@ -45,6 +45,15 @@ import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.rememberUpdatedState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,97 +251,203 @@ fun ShapesScreen(
              }
         }
     ) { paddingValues ->
+        val currentPuzzleState by rememberUpdatedState(puzzle)
+
         puzzle?.let { puzzleState ->
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                val density = LocalDensity.current
+                val actualWidth = with(density) { maxWidth.toPx() }
+                val actualHeight = with(density) { maxHeight.toPx() }
+
+                // The standard virtual size of our shape board
+                val virtualWidth = 400f
+                val virtualHeight = 700f
+
+                val scaleX = actualWidth / virtualWidth
+                val scaleY = actualHeight / virtualHeight
+                val scale = minOf(scaleX, scaleY)
+
+                val offsetX = (actualWidth - virtualWidth * scale) / 2f
+                val offsetY = (actualHeight - virtualHeight * scale) / 2f
+
                 Canvas(modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(puzzleState) {
+                    .pointerInput(Unit) {
                         detectTapGestures(
-                            onTap = { offset ->
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
+                            onTap = { actualOffset ->
+                                currentPuzzleState?.let { puzzleVal ->
+                                    val virtualOffset = Offset(
+                                        (actualOffset.x - offsetX) / scale,
+                                        (actualOffset.y - offsetY) / scale
+                                    )
+                                    val clickedPiece = puzzleVal.pieces.findLast { piece ->
+                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                    }
+                                    selectedPieceId = clickedPiece?.id
                                 }
-                                selectedPieceId = clickedPiece?.id
                             },
-                            onDoubleTap = { offset ->
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
-                                }
-                                if (clickedPiece != null) {
-                                    selectedPieceId = clickedPiece.id
-                                    viewModel.rotatePiece(clickedPiece.id, 90f)
+                            onDoubleTap = { actualOffset ->
+                                currentPuzzleState?.let { puzzleVal ->
+                                    val virtualOffset = Offset(
+                                        (actualOffset.x - offsetX) / scale,
+                                        (actualOffset.y - offsetY) / scale
+                                    )
+                                    val clickedPiece = puzzleVal.pieces.findLast { piece ->
+                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                    }
+                                    if (clickedPiece != null) {
+                                        selectedPieceId = clickedPiece.id
+                                        viewModel.rotatePiece(clickedPiece.id, 90f)
+                                    }
                                 }
                             }
                         )
                     }
-                    .pointerInput(puzzleState) {
+                    .pointerInput(Unit) {
                         detectDragGestures(
-                            onDragStart = { offset ->
-                                val clickedPiece = puzzleState.pieces.findLast { piece ->
-                                     GeometryUtils.isPointInPolygon(offset, piece.currentVertices)
-                                }
-                                if (clickedPiece != null) {
-                                    selectedPieceId = clickedPiece.id
+                            onDragStart = { actualOffset ->
+                                currentPuzzleState?.let { puzzleVal ->
+                                    val virtualOffset = Offset(
+                                        (actualOffset.x - offsetX) / scale,
+                                        (actualOffset.y - offsetY) / scale
+                                    )
+                                    val clickedPiece = puzzleVal.pieces.findLast { piece ->
+                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                    }
+                                    if (clickedPiece != null) {
+                                        selectedPieceId = clickedPiece.id
+                                    }
                                 }
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 selectedPieceId?.let { id ->
-                                    viewModel.movePieceDelta(id, dragAmount)
+                                    val virtualDragAmount = Offset(dragAmount.x / scale, dragAmount.y / scale)
+                                    viewModel.movePieceDelta(id, virtualDragAmount)
+                                }
+                            },
+                            onDragEnd = {
+                                selectedPieceId?.let { id ->
+                                    viewModel.snapPiece(id)
+                                }
+                            },
+                            onDragCancel = {
+                                selectedPieceId?.let { id ->
+                                    viewModel.snapPiece(id)
                                 }
                             }
                         )
                     }
                 ) {
-                    // 1. Draw Target Silhouette
-                    val targetPath = Path().apply {
-                        if (puzzleState.target.vertices.isNotEmpty()) {
-                            val first = puzzleState.target.vertices.first()
-                            moveTo(first.x, first.y)
-                            puzzleState.target.vertices.drop(1).forEach {
-                                lineTo(it.x, it.y)
+                    translate(offsetX, offsetY) {
+                        scale(scale, pivot = Offset.Zero) {
+                            // 1. Draw Blueprint Background Grid
+                            val gridSpacing = 40f
+                            for (x in 0..400 step 40) {
+                                drawLine(
+                                    color = Color(0x15FFFFFF),
+                                    start = Offset(x.toFloat(), 0f),
+                                    end = Offset(x.toFloat(), 700f),
+                                    strokeWidth = 1f
+                                )
                             }
-                            close()
-                        }
-                    }
-                    
-                    drawPath(targetPath, Color.LightGray.copy(alpha = 0.5f), style = Fill)
-                    drawPath(targetPath, Color.Black, style = Stroke(width = 3f))
+                            for (y in 0..700 step 40) {
+                                drawLine(
+                                    color = Color(0x15FFFFFF),
+                                    start = Offset(0f, y.toFloat()),
+                                    end = Offset(400f, y.toFloat()),
+                                    strokeWidth = 1f
+                                )
+                            }
 
-                    // 2. Draw Pieces
-                    puzzleState.pieces.forEach { piece ->
-                        val isSelected = piece.id == selectedPieceId
-                        val piecePath = Path().apply {
-                            val vertices = piece.currentVertices
-                            if (vertices.isNotEmpty()) {
-                                val first = vertices.first()
-                                moveTo(first.x, first.y)
-                                vertices.drop(1).forEach {
-                                    lineTo(it.x, it.y)
-                                }
-                                close()
+                            // 2. Draw piece dock tray at the bottom (visually holds the pieces)
+                            val trayPath = Path().apply {
+                                addRoundRect(
+                                    RoundRect(
+                                        left = 15f,
+                                        top = 425f,
+                                        right = 385f,
+                                        bottom = 685f,
+                                        cornerRadius = CornerRadius(24f, 24f)
+                                    )
+                                )
                             }
-                        }
-                        
-                        if (isSelected) {
-                            // Draw a shadow for selected piece to give depth
+                            drawPath(trayPath, Color.White.copy(alpha = 0.04f), style = Fill)
                             drawPath(
-                                piecePath,
-                                Color.Black.copy(alpha = 0.3f),
-                                style = Stroke(width = 12f)
+                                trayPath, 
+                                Color.White.copy(alpha = 0.12f), 
+                                style = Stroke(
+                                    width = 1.5f,
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f), 0f)
+                                )
                             )
-                        }
 
-                        drawPath(piecePath, piece.color, style = Fill)
-                        drawPath(
-                            piecePath, 
-                            if (isSelected) Color.White else Color.Black, 
-                            style = Stroke(width = if (isSelected) 5f else 2f)
-                        )
+                            // 3. Draw Target Silhouette
+                            val targetPath = Path().apply {
+                                if (puzzleState.target.vertices.isNotEmpty()) {
+                                    val first = puzzleState.target.vertices.first()
+                                    moveTo(first.x, first.y)
+                                    puzzleState.target.vertices.drop(1).forEach {
+                                        lineTo(it.x, it.y)
+                                    }
+                                    close()
+                                }
+                            }
+                            
+                            drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
+                            drawPath(
+                                targetPath, 
+                                Color(0xFF38BDF8), // Cyan silhouette outline
+                                style = Stroke(
+                                    width = 2.5f,
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                                )
+                            )
+
+                            // 4. Draw Pieces
+                            puzzleState.pieces.forEach { piece ->
+                                val isSelected = piece.id == selectedPieceId
+                                val piecePath = Path().apply {
+                                    val vertices = piece.currentVertices
+                                    if (vertices.isNotEmpty()) {
+                                        val first = vertices.first()
+                                        moveTo(first.x, first.y)
+                                        vertices.drop(1).forEach {
+                                            lineTo(it.x, it.y)
+                                        }
+                                        close()
+                                    }
+                                }
+                                
+                                // Draw beautiful 3D drop shadow
+                                val shadowOffset = if (isSelected) Offset(3f, 6f) else Offset(1.5f, 3f)
+                                val shadowAlpha = if (isSelected) 0.4f else 0.25f
+                                val shadowPath = Path().apply {
+                                    val vertices = piece.currentVertices
+                                    if (vertices.isNotEmpty()) {
+                                        val first = vertices.first()
+                                        moveTo(first.x + shadowOffset.x, first.y + shadowOffset.y)
+                                        vertices.drop(1).forEach {
+                                            lineTo(it.x + shadowOffset.x, it.y + shadowOffset.y)
+                                        }
+                                        close()
+                                    }
+                                }
+                                drawPath(shadowPath, Color.Black.copy(alpha = shadowAlpha), style = Fill)
+
+                                // Draw piece fill and elegant outline
+                                drawPath(piecePath, piece.color, style = Fill)
+                                drawPath(
+                                    piecePath, 
+                                    if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f), // Gold border for selected
+                                    style = Stroke(width = if (isSelected) 3.5f else 1.5f)
+                                )
+                            }
+                        }
                     }
                 }
             }

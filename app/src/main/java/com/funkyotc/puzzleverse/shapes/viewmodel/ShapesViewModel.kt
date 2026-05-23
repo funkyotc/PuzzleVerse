@@ -116,38 +116,14 @@ class ShapesViewModel(
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
 
-            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
-            val pieceWithNewPos = tentativePiece.copy(position = newPosition)
-
-            // Vertex snapping logic
-            var bestSnapDelta = Offset.Zero
-            var minDistance = 30f // Threshold for snapping
-
-            val targetVertices = currentPuzzle.target.vertices
-            val otherPiecesVertices = currentPuzzle.pieces.filter { it.id != pieceId }.flatMap { it.currentVertices }
-            val allSnapPoints = targetVertices + otherPiecesVertices
-
-            for (vertex in pieceWithNewPos.currentVertices) {
-                for (snapPoint in allSnapPoints) {
-                    val dist = kotlin.math.hypot(vertex.x - snapPoint.x, vertex.y - snapPoint.y)
-                    if (dist < minDistance) {
-                        minDistance = dist
-                        bestSnapDelta = Offset(snapPoint.x - vertex.x, snapPoint.y - vertex.y)
-                    }
-                }
-            }
-
-            val finalPosition = Offset(newPosition.x + bestSnapDelta.x, newPosition.y + bestSnapDelta.y)
-
             val updatedPieces = currentPuzzle.pieces.map {
                 if (it.id == pieceId && !it.isLocked) {
-                    it.copy(position = finalPosition)
+                    it.copy(position = newPosition)
                 } else {
                     it
                 }
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
-            checkCompletion()
         }
     }
 
@@ -158,6 +134,44 @@ class ShapesViewModel(
             val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
             val newPosition = Offset(tentativePiece.position.x + delta.x, tentativePiece.position.y + delta.y)
             movePiece(pieceId, newPosition)
+        }
+    }
+
+    fun snapPiece(pieceId: Int) {
+        _puzzle.value?.let { currentPuzzle ->
+            if (currentPuzzle.isComplete) return
+
+            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
+
+            // Vertex snapping logic
+            var bestSnapDelta = Offset.Zero
+            var minDistance = 30f // Threshold for snapping
+
+            val targetVertices = currentPuzzle.target.vertices
+            val otherPiecesVertices = currentPuzzle.pieces.filter { it.id != pieceId }.flatMap { it.currentVertices }
+            val allSnapPoints = targetVertices + otherPiecesVertices
+
+            for (vertex in tentativePiece.currentVertices) {
+                for (snapPoint in allSnapPoints) {
+                    val dist = kotlin.math.hypot(vertex.x - snapPoint.x, vertex.y - snapPoint.y)
+                    if (dist < minDistance) {
+                        minDistance = dist
+                        bestSnapDelta = Offset(snapPoint.x - vertex.x, snapPoint.y - vertex.y)
+                    }
+                }
+            }
+
+            val finalPosition = Offset(tentativePiece.position.x + bestSnapDelta.x, tentativePiece.position.y + bestSnapDelta.y)
+
+            val updatedPieces = currentPuzzle.pieces.map {
+                if (it.id == pieceId && !it.isLocked) {
+                    it.copy(position = finalPosition)
+                } else {
+                    it
+                }
+            }
+            _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
+            checkCompletion()
         }
     }
 
@@ -218,16 +232,35 @@ class ShapesViewModel(
     private fun checkCompletion() {
         val currentPuzzle = _puzzle.value ?: return
         
+        // Check 1: Solution position proximity check
+        // Highly robust and reliable check based on solution design coordinates
+        val allAtSolution = currentPuzzle.pieces.all { piece ->
+            val dist = kotlin.math.hypot(piece.position.x - piece.solutionPosition.x, piece.position.y - piece.solutionPosition.y)
+            val normRot = (piece.rotation % 360f + 360f) % 360f
+            val normSolRot = (piece.solutionRotation % 360f + 360f) % 360f
+            val rotDiff = kotlin.math.abs(normRot - normSolRot) % 360f
+            val isRotCorrect = rotDiff < 10f || rotDiff > 350f
+            
+            dist < 10f && isRotCorrect
+        }
+        
+        if (allAtSolution) {
+            _isGameWon.value = true
+            _puzzle.value = currentPuzzle.copy(isComplete = true)
+            return
+        }
+
+        // Check 2: Strict polygon inclusion check (for manual placement / edge cases)
         // 1. Check if ANY piece overlaps with ANY OTHER piece (strictTangram rules)
         for (i in currentPuzzle.pieces.indices) {
              for (j in i + 1 until currentPuzzle.pieces.size) {
-                 if (GeometryUtils.doPolygonsIntersect(
-                         currentPuzzle.pieces[i].currentVertices, 
-                         currentPuzzle.pieces[j].currentVertices
-                     )) {
-                     // Overlap detected, invalid state (not won)
-                     return
-                 }
+                  if (GeometryUtils.doPolygonsIntersect(
+                          currentPuzzle.pieces[i].currentVertices, 
+                          currentPuzzle.pieces[j].currentVertices
+                      )) {
+                      // Overlap detected, invalid state (not won)
+                      return
+                  }
              }
         }
 

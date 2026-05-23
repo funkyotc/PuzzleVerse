@@ -10,6 +10,18 @@ object GeometryUtils {
      * Checks if a point is inside a polygon (Ray Casting algorithm).
      */
     fun isPointInPolygon(point: Offset, vertices: List<Offset>): Boolean {
+        // First check if the point is extremely close to any vertex (for snapped pieces)
+        for (v in vertices) {
+            if (kotlin.math.hypot(point.x - v.x, point.y - v.y) < 1f) return true
+        }
+
+        // Check if the point lies on any segment
+        for (i in vertices.indices) {
+            val p1 = vertices[i]
+            val p2 = vertices[(i + 1) % vertices.size]
+            if (distanceToSegment(point, p1, p2) < 1f) return true
+        }
+
         var isInside = false
         var j = vertices.size - 1
         for (i in vertices.indices) {
@@ -21,6 +33,15 @@ object GeometryUtils {
             j = i
         }
         return isInside
+    }
+
+    private fun distanceToSegment(p: Offset, a: Offset, b: Offset): Float {
+        val l2 = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y)
+        if (l2 == 0f) return kotlin.math.hypot(p.x - a.x, p.y - a.y)
+        var t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2
+        t = t.coerceIn(0f, 1f)
+        val projection = Offset(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y))
+        return kotlin.math.hypot(p.x - projection.x, p.y - projection.y)
     }
 
     /**
@@ -116,32 +137,17 @@ object GeometryUtils {
         val rad = Math.toRadians(rotationDegrees.toDouble())
         val cos = cos(rad).toFloat()
         val sin = sin(rad).toFloat()
-        
-        // Find center for rotation? Or rotate around (0,0) of the piece definition?
-        // Usually pieces are defined around their centroid or top-left.
-        // Let's assume rotating around the center of the bounding box of the base vertices?
-        // Or just rotate around (0,0) local space.
-        
-        // Let's find the centroid of the base vertices to rotate around it
-        val cx = vertices.map { it.x }.average().toFloat()
-        val cy = vertices.map { it.y }.average().toFloat()
 
         return vertices.map { vertex ->
-            // 1. Center
-            val dx = vertex.x - cx
-            val dy = vertex.y - cy
+            // 1. Flip around local (0, 0)
+            val fx = if (isFlipped) -vertex.x else vertex.x
+            val fy = vertex.y
             
-            // 2. Flip
-            val fx = if (isFlipped) -dx else dx
-            val fy = dy
-            
-            // 3. Rotate
+            // 2. Rotate around local (0, 0)
             val rx = fx * cos - fy * sin
             val ry = fx * sin + fy * cos
             
-            // 4. Translate back + Position
-            // The position in PuzzlePiece likely represents the center or top-left in WORLD space.
-            // If it's world space, we just add it.
+            // 3. Translate to world position
             Offset(rx + translation.x, ry + translation.y)
         }
     }
