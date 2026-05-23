@@ -18,6 +18,8 @@ class SoundManager(private val context: Context) {
     }
 
     fun playSound(soundId: Int) {
+        val sharedPreferences = context.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE)
+        if (!sharedPreferences.getBoolean("sound_effects_enabled", true)) return
         sounds[soundId]?.let { soundPool?.play(it, 1f, 1f, 1, 0, 1f) }
     }
 

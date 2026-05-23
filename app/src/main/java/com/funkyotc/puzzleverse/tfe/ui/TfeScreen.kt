@@ -32,6 +32,8 @@ import com.funkyotc.puzzleverse.tfe.viewmodel.TfeViewModel
 import com.funkyotc.puzzleverse.tfe.viewmodel.TfeViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import kotlin.math.abs
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +45,7 @@ fun TfeScreen(
     viewModel: TfeViewModel = viewModel(factory = TfeViewModelFactory(streakRepository, mode))
 ) {
     val state by viewModel.state.collectAsState()
+    val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
 
@@ -57,7 +60,9 @@ fun TfeScreen(
             onDismissRequest = { showHowToDialog = false },
             title = { Text("How To Play") },
             text = { Text("Swipe to move tiles. Tiles with the same number merge into one when they touch. Get to 2048!") },
-            confirmButton = { TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
+            confirmButton = { TextButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showHowToDialog = false }) { Text("OK") } }
         )
     }
 
@@ -69,16 +74,25 @@ fun TfeScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/tfe/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/tfe/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else {
 
-                Button(onClick = { viewModel.startNewGame() }) { Text("Try Again") }
+                Button(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.startNewGame()
+                }) { Text("Try Again") }
 
                 }
             }
@@ -93,16 +107,25 @@ fun TfeScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/tfe/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/tfe/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else {
 
-                Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+                Button(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.startNewGame()
+                }) { Text("Play Again") }
 
                 }
             }
@@ -116,12 +139,15 @@ fun TfeScreen(
             text = { Text("Are you sure you want to start over?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.startNewGame()
                     showNewGameDialog = false
                 }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -131,16 +157,25 @@ fun TfeScreen(
             TopAppBar(
                 title = { Text("2048") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
                     }
@@ -175,7 +210,10 @@ fun TfeScreen(
                         var swipeDirection: Direction? = null
                         detectDragGestures(
                             onDragEnd = {
-                                swipeDirection?.let { viewModel.move(it) }
+                                swipeDirection?.let {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    viewModel.move(it)
+                                }
                                 swipeDirection = null
                             },
                         ) { change, dragAmount ->

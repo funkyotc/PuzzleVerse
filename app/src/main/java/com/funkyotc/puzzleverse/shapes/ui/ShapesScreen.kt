@@ -59,6 +59,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +73,7 @@ fun ShapesScreen(
     viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by viewModel.puzzle.collectAsState()
+    val soundManager = LocalSoundManager.current
     val isGameWon by viewModel.isGameWon.collectAsState()
     var selectedPieceId by remember { mutableStateOf<Int?>(null) }
     var showNewGameDialog by remember { mutableStateOf(false) }
@@ -87,13 +90,16 @@ fun ShapesScreen(
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     showHintDialog = false
                     viewModel.hint() }) {
                     Text("Yes")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showHintDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -127,16 +133,25 @@ fun ShapesScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/shapes/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/shapes/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else {
 
-                TextButton(onClick = { showHowToDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) {
                     Text("OK")
 
                 }
@@ -153,16 +168,25 @@ fun ShapesScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/shapes/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/shapes/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle" && puzzleId != null) {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.popBackStack() }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             Text("Back to List")
                         }
                         val currentPuzzle = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
@@ -176,6 +200,7 @@ fun ShapesScreen(
                         } else null
                         if (nextPuzzle != null) {
                             Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/shapes/puzzle/${nextPuzzle.id}") {
                                     popUpTo("shapes/puzzles")
                                 }
@@ -186,7 +211,10 @@ fun ShapesScreen(
                     }
                 } else {
 
-                Button(onClick = { viewModel.loadNewPuzzle() }) {
+                Button(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.loadNewPuzzle()
+                }) {
                     Text("New Puzzle")
 
                 }
@@ -202,6 +230,7 @@ fun ShapesScreen(
             text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.loadNewPuzzle()
                     showNewGameDialog = false
                     selectedPieceId = null // Deselect on new game
@@ -210,7 +239,10 @@ fun ShapesScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -222,19 +254,31 @@ fun ShapesScreen(
             TopAppBar(
                 title = { Text("Shapes") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    IconButton(onClick = { showHintDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHintDialog = true
+                    }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }
                     }
@@ -252,14 +296,20 @@ fun ShapesScreen(
                  verticalAlignment = Alignment.CenterVertically
              ) {
                   Button(
-                      onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, -45f) } },
+                      onClick = {
+                          soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                          selectedPieceId?.let { viewModel.rotatePiece(it, -45f) }
+                      },
                       enabled = selectedPieceId != null
                   ) {
                       Text("Rotate L")
                   }
                   Spacer(modifier = Modifier.width(16.dp))
                   Button(
-                      onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, 45f) } },
+                      onClick = {
+                          soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                          selectedPieceId?.let { viewModel.rotatePiece(it, 45f) }
+                      },
                       enabled = selectedPieceId != null
                   ) {
                       Text("Rotate R")
@@ -312,6 +362,9 @@ fun ShapesScreen(
                                     val clickedPiece = puzzleVal.pieces.findLast { piece ->
                                          GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
                                     }
+                                    if (clickedPiece != null) {
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    }
                                     selectedPieceId = clickedPiece?.id
                                 }
                             },
@@ -325,6 +378,7 @@ fun ShapesScreen(
                                           GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
                                      }
                                      if (clickedPiece != null) {
+                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                          selectedPieceId = clickedPiece.id
                                          viewModel.rotatePiece(clickedPiece.id, 45f)
                                      }
@@ -344,6 +398,7 @@ fun ShapesScreen(
                                          GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
                                     }
                                     if (clickedPiece != null) {
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                         selectedPieceId = clickedPiece.id
                                     }
                                 }
@@ -357,11 +412,13 @@ fun ShapesScreen(
                             },
                             onDragEnd = {
                                 selectedPieceId?.let { id ->
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                     viewModel.snapPiece(id)
                                 }
                             },
                             onDragCancel = {
                                 selectedPieceId?.let { id ->
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                     viewModel.snapPiece(id)
                                 }
                             }

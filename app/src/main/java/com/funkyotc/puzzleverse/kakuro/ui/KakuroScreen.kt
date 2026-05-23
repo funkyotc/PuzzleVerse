@@ -27,6 +27,8 @@ import com.funkyotc.puzzleverse.kakuro.viewmodel.KakuroViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +40,7 @@ fun KakuroScreen(
     puzzleId: String? = null,
     viewModel: KakuroViewModel = viewModel(factory = KakuroViewModelFactory(streakRepository, mode, puzzleId))
 ) {
+    val soundManager = LocalSoundManager.current
     val state by viewModel.state.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
@@ -62,7 +65,10 @@ fun KakuroScreen(
             title = { Text("How To Play") },
             text = { Text("Fill white cells with numbers 1-9. Numbers in a run cannot repeat, and must sum up to the clue numbers. The top-right number is the horizontal sum, bottom-left is vertical.") },
             confirmButton = {
-                TextButton(onClick = { showHowToDialog = false }) { Text("OK") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) { Text("OK") }
             }
         )
     }
@@ -75,16 +81,25 @@ fun KakuroScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/kakuro/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/kakuro/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             androidx.compose.material3.Text("Back to List")
                         }
                         val nextId = puzzleId?.let { id ->
@@ -94,6 +109,7 @@ fun KakuroScreen(
                         }
                         if (nextId != null) {
                             androidx.compose.material3.Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.popBackStack()
                                 navController.navigate("game/kakuro/puzzle/$nextId")
                             }) {
@@ -102,7 +118,10 @@ fun KakuroScreen(
                         }
                     }
                 } else {
-                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+                    Button(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.startNewGame()
+                    }) { Text("Play Again") }
                 }
             }
         )
@@ -115,12 +134,16 @@ fun KakuroScreen(
             text = { Text("Are you sure you want to start over?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.startNewGame()
                     showNewGameDialog = false
                 }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) { Text("Cancel") }
             }
         )
     }
@@ -130,16 +153,25 @@ fun KakuroScreen(
             TopAppBar(
                 title = { Text("Kakuro") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
                     }
@@ -167,7 +199,7 @@ fun KakuroScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
-                        .background(Color.Black)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         for (r in 0 until state.rows) {
@@ -178,9 +210,10 @@ fun KakuroScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
-                                            .border(1.dp, Color.Gray)
+                                            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                                             .clickable {
                                                 if (cell.type == CellType.PLAYER_INPUT) {
+                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                     selectedCell = Pair(r, c)
                                                 }
                                             }
@@ -207,6 +240,7 @@ fun KakuroScreen(
                             val num = row * 3 + col
                             Button(
                                 onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                     selectedCell?.let { (r, c) ->
                                         viewModel.setCellValue(r, c, num)
                                     }
@@ -226,23 +260,24 @@ fun KakuroScreen(
 @Composable
 fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
     if (cell.type == CellType.BLACK) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray))
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
     } else if (cell.type == CellType.CLUE) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) {
+        val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val canvasWidth = size.width
                 val canvasHeight = size.height
                 drawLine(
                     start = androidx.compose.ui.geometry.Offset(0f, 0f),
                     end = androidx.compose.ui.geometry.Offset(canvasWidth, canvasHeight),
-                    color = Color.LightGray,
+                    color = lineColor,
                     strokeWidth = 2f
                 )
             }
             if (cell.clue?.horizontalSum != null) {
                 Text(
                     text = cell.clue.horizontalSum.toString(),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 2.dp)
                 )
@@ -250,7 +285,7 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
             if (cell.clue?.verticalSum != null) {
                 Text(
                     text = cell.clue.verticalSum.toString(),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = 4.dp, bottom = 2.dp)
                 )
@@ -260,7 +295,10 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(if (isSelected) Color.Yellow.copy(alpha = 0.3f) else Color.White),
+                .background(
+                    if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    else MaterialTheme.colorScheme.surface
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (cell.playerValue != null) {
@@ -268,7 +306,7 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
                     text = cell.playerValue.toString(),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

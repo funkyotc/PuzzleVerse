@@ -17,11 +17,19 @@ class SettingsRepository(context: Context) {
     private val _totalWins = MutableStateFlow(sharedPreferences.getInt("total_wins", 0))
     val totalWins: Flow<Int> = _totalWins
 
+    private val _soundEffectsEnabled = MutableStateFlow(sharedPreferences.getBoolean("sound_effects_enabled", true))
+    val soundEffectsEnabled: Flow<Boolean> = _soundEffectsEnabled
+
     fun setActiveTheme(theme: String) {
         if (_unlockedThemes.value.contains(theme)) {
             sharedPreferences.edit().putString("active_theme", theme).apply()
             _activeTheme.value = theme
         }
+    }
+
+    fun setSoundEffectsEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("sound_effects_enabled", enabled).apply()
+        _soundEffectsEnabled.value = enabled
     }
 
     fun addWin() {

@@ -24,6 +24,8 @@ import com.funkyotc.puzzleverse.nonogram.viewmodel.NonogramViewModel
 import com.funkyotc.puzzleverse.nonogram.viewmodel.NonogramViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,8 +38,10 @@ fun NonogramScreen(
     viewModel: NonogramViewModel = viewModel(factory = NonogramViewModelFactory(streakRepository, mode, puzzleId))
 ) {
     val state by viewModel.state.collectAsState()
+    val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var isFillMode by remember { mutableStateOf(true) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val completionRepo = remember { PuzzleCompletionRepository(context, "Nonogram") }
@@ -57,7 +61,9 @@ fun NonogramScreen(
             title = { Text("How To Play") },
             text = { Text("Use numbers on the top and left to fill the grid. The numbers tell you how many unbroken lines of filled squares there are in any given row or column.") },
             confirmButton = {
-                TextButton(onClick = { showHowToDialog = false }) { Text("OK") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false }) { Text("OK") }
             }
         )
     }
@@ -70,16 +76,25 @@ fun NonogramScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/nonogram/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/nonogram/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.popBackStack() }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             androidx.compose.material3.Text("Back to List")
                         }
                         val nextId = puzzleId?.let { id ->
@@ -89,6 +104,7 @@ fun NonogramScreen(
                         }
                         if (nextId != null) {
                             androidx.compose.material3.Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.popBackStack()
                                 navController.navigate("game/nonogram/puzzle/$nextId")
                             }) {
@@ -97,7 +113,9 @@ fun NonogramScreen(
                         }
                     }
                 } else {
-                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+                    Button(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.startNewGame() }) { Text("Play Again") }
                 }
             }
         )
@@ -110,12 +128,15 @@ fun NonogramScreen(
             text = { Text("Are you sure you want to start over?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.startNewGame()
                     showNewGameDialog = false
                 }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -125,16 +146,25 @@ fun NonogramScreen(
             TopAppBar(
                 title = { Text("Nonogram") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
                     }
@@ -190,15 +220,19 @@ fun NonogramScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .border(0.5.dp, Color.Gray)
-                                    .background(if (cellState == CellState.FILLED) Color.Black else Color.White)
+                                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    .background(
+                                        if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface 
+                                        else MaterialTheme.colorScheme.surface
+                                    )
                                     .clickable {
-                                        viewModel.toggleCell(r, c, isFillAction = true)
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        viewModel.toggleCell(r, c, isFillAction = isFillMode)
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (cellState == CellState.CROSSED) {
-                                    Text("X", color = Color.Red, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    Text("X", color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -209,17 +243,28 @@ fun NonogramScreen(
             Spacer(modifier = Modifier.height(32.dp))
             
             // Interaction Mode Toggle (for mobile)
-            var isFillMode by remember { mutableStateOf(true) }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(
-                    onClick = { isFillMode = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (isFillMode) MaterialTheme.colorScheme.primary else Color.Gray)
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        isFillMode = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 ) {
                     Text("Fill")
                 }
                 Button(
-                    onClick = { isFillMode = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (!isFillMode) MaterialTheme.colorScheme.primary else Color.Gray)
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        isFillMode = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (!isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (!isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 ) {
                     Text("Cross (X)")
                 }

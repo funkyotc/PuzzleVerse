@@ -33,6 +33,8 @@ import androidx.compose.material.icons.filled.BarChart // Standard BarChart
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.wordle.data.WordleStatsRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -53,6 +55,7 @@ fun WordleScreen(
     )
 ) {
     val gameState by viewModel.wordleState.collectAsState()
+    val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
     var showStatsDialog by remember { mutableStateOf(false) }
@@ -72,6 +75,7 @@ fun WordleScreen(
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     showHintDialog = false
                     viewModel.hint()
                 }) {
@@ -79,7 +83,10 @@ fun WordleScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showHintDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -94,18 +101,26 @@ fun WordleScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/wordle/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/wordle/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else {
 
-                TextButton(onClick = { showHowToDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) {
                     Text("OK")
-
                 }
                 }
             }
@@ -124,22 +139,37 @@ fun WordleScreen(
             TopAppBar(
                 title = { Text("Wordle", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    IconButton(onClick = { showHintDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHintDialog = true
+                    }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
-                    IconButton(onClick = { showStatsDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showStatsDialog = true
+                    }) {
                         Icon(Icons.Filled.BarChart, contentDescription = "Stats")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { viewModel.startNewGame() }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            viewModel.startNewGame()
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }
                     }
@@ -218,18 +248,27 @@ fun WordleScreen(
                         text = { Text("You discovered the word correctly!") },
                         confirmButton = {
                             if (mode == "daily") {
-                                Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                Button(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    navController.navigate("home") { popUpTo(0) }
+                                }) {
                                     Text("Main Menu")
                                 }
                             } else {
-                                Button(onClick = { viewModel.startNewGame() }) {
+                                Button(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    viewModel.startNewGame()
+                                }) {
                                     Text("Play Again")
                                 }
                             }
                         },
                         dismissButton = {
                             if (mode != "daily") {
-                                TextButton(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                TextButton(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    navController.navigate("home") { popUpTo(0) }
+                                }) {
                                     Text("Main Menu")
                                 }
                             }
@@ -242,18 +281,27 @@ fun WordleScreen(
                         text = { Text("The correct word was ${state.solution}") },
                         confirmButton = {
                             if (mode == "daily") {
-                                Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                Button(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    navController.navigate("home") { popUpTo(0) }
+                                }) {
                                     Text("Main Menu")
                                 }
                             } else {
-                                Button(onClick = { viewModel.startNewGame() }) {
+                                Button(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    viewModel.startNewGame()
+                                }) {
                                     Text("Play Again")
                                 }
                             }
                         },
                         dismissButton = {
                             if (mode != "daily") {
-                                TextButton(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                TextButton(onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    navController.navigate("home") { popUpTo(0) }
+                                }) {
                                     Text("Main Menu")
                                 }
                             }
@@ -349,13 +397,17 @@ fun KeyboardKey(char: Char, state: LetterState, onClick: () -> Unit) {
         LetterState.EMPTY -> Color(0xFF37474F) // Light dark for keys
     }
 
+    val soundManager = LocalSoundManager.current
     Box(
         modifier = Modifier
             .height(54.dp)
             .width(32.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(bgColor)
-            .clickable { onClick() },
+            .clickable {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -369,13 +421,17 @@ fun KeyboardKey(char: Char, state: LetterState, onClick: () -> Unit) {
 
 @Composable
 fun KeyboardActionKey(text: String, onClick: () -> Unit) {
+    val soundManager = LocalSoundManager.current
     Box(
         modifier = Modifier
             .height(54.dp)
             .padding(horizontal = 2.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(Color(0xFF37474F))
-            .clickable { onClick() }
+            .clickable {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onClick()
+            }
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {

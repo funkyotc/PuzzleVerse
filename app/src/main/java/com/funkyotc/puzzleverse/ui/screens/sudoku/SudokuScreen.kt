@@ -66,6 +66,8 @@ import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModel
 import com.funkyotc.puzzleverse.sudoku.viewmodel.SudokuViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.runtime.LaunchedEffect
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +85,7 @@ fun SudokuScreen(
 ) {
     val board by sudokuViewModel.board.collectAsState()
     val selectedCell by sudokuViewModel.selectedCell.collectAsState()
+    val soundManager = LocalSoundManager.current
     val isGameWon by sudokuViewModel.isGameWon.collectAsState()
     val isPencilOn by sudokuViewModel.isPencilOn.collectAsState()
     var showNewGameDialog by remember { mutableStateOf(false) }
@@ -96,13 +99,16 @@ fun SudokuScreen(
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     showHintDialog = false
                     sudokuViewModel.hint() }) {
                     Text("Yes")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showHintDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -123,16 +129,25 @@ fun SudokuScreen(
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             androidx.compose.material3.Text("Main Menu")
                         }
-                        androidx.compose.material3.Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                        androidx.compose.material3.Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/sudoku/standard/new") { popUpTo("home") }
+                        }) {
                             androidx.compose.material3.Text("Random Puzzles")
                         }
                     }
                 } else {
 
-                TextButton(onClick = { showHowToDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) {
                     Text("OK")
 
                 }
@@ -149,16 +164,25 @@ fun SudokuScreen(
             confirmButton = {
                 if (mode == "daily") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             Text("Main Menu")
                         }
-                        Button(onClick = { navController.navigate("game/sudoku/standard/new") { popUpTo("home") } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/sudoku/standard/new") { popUpTo("home") }
+                        }) {
                             Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle" && puzzleId != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.popBackStack() }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             Text("Back to List")
                         }
                         val currentPuzzle = com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.getPuzzleById(puzzleId)
@@ -172,6 +196,7 @@ fun SudokuScreen(
                         } else null
                         if (nextPuzzle != null) {
                             Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/sudoku/puzzle/${nextPuzzle.id}") {
                                     popUpTo("sudoku/puzzles")
                                 }
@@ -181,7 +206,10 @@ fun SudokuScreen(
                         }
                     }
                 } else {
-                    Button(onClick = { sudokuViewModel.newGame() }) {
+                    Button(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        sudokuViewModel.newGame()
+                    }) {
                         Text("New Game")
                     }
                 }
@@ -196,6 +224,7 @@ fun SudokuScreen(
             text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     sudokuViewModel.newGame()
                     showNewGameDialog = false
                 }) {
@@ -203,7 +232,10 @@ fun SudokuScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -215,19 +247,31 @@ fun SudokuScreen(
             TopAppBar(
                 title = { Text("Sudoku") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    IconButton(onClick = { showHintDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHintDialog = true
+                    }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }
                     }
@@ -464,12 +508,16 @@ fun RowScope.SudokuCellView(
         else -> subgridColor
     }
 
+    val soundManager = LocalSoundManager.current
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .weight(1f)
             .background(backgroundColor)
-            .clickable { onCellSelected(cell.row, cell.col) },
+            .clickable {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onCellSelected(cell.row, cell.col)
+            },
         contentAlignment = Alignment.Center
     ) {
         if (cell.number != 0) {
@@ -544,13 +592,17 @@ fun ActionRow(
     val iconSize = if (isCompact) 20.dp else 24.dp
     val buttonSize = if (isCompact) 36.dp else 48.dp
 
+    val soundManager = LocalSoundManager.current
     Row(
         modifier = Modifier.padding(vertical = paddingVal),
         horizontalArrangement = Arrangement.spacedBy(spacingVal),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
-            onClick = onUndo,
+            onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onUndo()
+            },
             modifier = Modifier.size(buttonSize)
         ) {
             Icon(
@@ -560,7 +612,10 @@ fun ActionRow(
             )
         }
         IconButton(
-            onClick = onPencilToggle,
+            onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onPencilToggle()
+            },
             modifier = Modifier.size(buttonSize),
             colors = if (isPencilOn) {
                 IconButtonDefaults.iconButtonColors(
@@ -578,7 +633,10 @@ fun ActionRow(
             )
         }
         IconButton(
-            onClick = onErase,
+            onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onErase()
+            },
             modifier = Modifier.size(buttonSize)
         ) {
             Icon(
@@ -664,11 +722,15 @@ fun RowScope.NumberButton(
 
     val buttonPadding = if (isCompact) 2.dp else 4.dp
 
+    val soundManager = LocalSoundManager.current
     Surface(
         modifier = Modifier
             .padding(buttonPadding)
             .clip(CircleShape)
-            .clickable(onClick = onClick, enabled = !isCompleted)
+            .clickable(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                onClick()
+            }, enabled = !isCompleted)
             .weight(1f)
             .aspectRatio(1f),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f * alpha)

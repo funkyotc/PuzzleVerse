@@ -32,6 +32,8 @@ import com.funkyotc.puzzleverse.blockpuzzle.data.BoxType
 import com.funkyotc.puzzleverse.blockpuzzle.viewmodel.BlockPuzzleViewModel
 import com.funkyotc.puzzleverse.blockpuzzle.viewmodel.BlockPuzzleViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,16 +45,28 @@ fun BlockPuzzleScreen(
     mode: String? = "standard",
     viewModel: BlockPuzzleViewModel = viewModel(factory = BlockPuzzleViewModelFactory(streakRepository, mode))
 ) {
+    val soundManager = LocalSoundManager.current
     val state by viewModel.state.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.isGameOver) {
+        if (state.isGameOver && state.score >= 300) {
+            settingsRepository.addWin()
+        }
+    }
 
     if (showHowToDialog) {
         AlertDialog(
             onDismissRequest = { showHowToDialog = false },
             title = { Text("How To Play") },
             text = { Text("Drag shapes from the bottom tray onto the board. Make full rows or columns to clear them and score points!") },
-            confirmButton = { TextButton(onClick = { showHowToDialog = false }) { Text("OK") } }
+            confirmButton = {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) { Text("OK") }
+            }
         )
     }
 
@@ -62,7 +76,10 @@ fun BlockPuzzleScreen(
             title = { Text("Game Over") },
             text = { Text("No more space for the blocks. Final Score: ${state.score}") },
             confirmButton = {
-                Button(onClick = { viewModel.startNewGame() }) { Text("Try Again") }
+                Button(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.startNewGame()
+                }) { Text("Try Again") }
             }
         )
     }
@@ -74,12 +91,16 @@ fun BlockPuzzleScreen(
             text = { Text("Are you sure you want to start over?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.startNewGame()
                     showNewGameDialog = false
                 }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) { Text("Cancel") }
             }
         )
     }
@@ -89,16 +110,25 @@ fun BlockPuzzleScreen(
             TopAppBar(
                 title = { Text("Block Puzzle") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
                     }
@@ -220,6 +250,7 @@ fun DraggableShape(
     gridWidth: Float,
     onDrop: (Int, Int) -> Unit
 ) {
+    val soundManager = LocalSoundManager.current
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -243,6 +274,7 @@ fun DraggableShape(
                     onDragStart = { isDragging = true },
                     onDragEnd = {
                         isDragging = false
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         if (blockPx > 0f) {
                             val currentPosition = initialPosition + Offset(offsetX, offsetY)
                             val localDropX = currentPosition.x - gridOffset.x

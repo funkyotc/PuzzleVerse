@@ -32,6 +32,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.settings.viewmodel.SettingsViewModel
 import com.funkyotc.puzzleverse.settings.viewmodel.SettingsViewModelFactory
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,12 +42,17 @@ fun SettingsScreen(
     onBackPress: () -> Unit
 ) {
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModelFactory(settingsRepository))
+    val soundManager = LocalSoundManager.current
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
                 navigationIcon = {
-                    IconButton(onClick = onBackPress) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        onBackPress()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -75,12 +82,40 @@ fun SettingsScreen(
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(unlockedThemes.toList()) { themeName ->
                     OutlinedButton(
-                        onClick = { viewModel.setActiveTheme(themeName) },
+                        onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            viewModel.setActiveTheme(themeName)
+                        },
                         colors = if (themeName == activeTheme) ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else ButtonDefaults.outlinedButtonColors()
                     ) {
                         Text(themeName.replaceFirstChar { it.uppercase() })
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val soundEnabled by viewModel.soundEffectsEnabled.collectAsState()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sound Effects", style = MaterialTheme.typography.titleMedium)
+                    Text("Play clicks and audio cues during gameplay", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                androidx.compose.material3.Switch(
+                    checked = soundEnabled,
+                    onCheckedChange = {
+                        viewModel.setSoundEffectsEnabled(it)
+                        if (it) {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        }
+                    }
+                )
             }
         }
     }

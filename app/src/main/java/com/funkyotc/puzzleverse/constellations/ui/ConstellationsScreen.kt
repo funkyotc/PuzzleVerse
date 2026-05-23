@@ -54,6 +54,8 @@ import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import androidx.compose.runtime.LaunchedEffect
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +68,7 @@ fun ConstellationsScreen(
     constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
+    val soundManager = LocalSoundManager.current
     val isGameWon by constellationsViewModel.isGameWon.collectAsState()
     val elapsedSeconds by constellationsViewModel.elapsedSeconds.collectAsState()
     val moves by constellationsViewModel.moves.collectAsState()
@@ -83,6 +86,7 @@ fun ConstellationsScreen(
             text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     showHintDialog = false
                     constellationsViewModel.hint()
                 }) {
@@ -90,7 +94,10 @@ fun ConstellationsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showHintDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -122,7 +129,10 @@ fun ConstellationsScreen(
             title = { Text("How To Play") },
             text = { Text("Place one star in every row, column, and colored region. Stars cannot touch each other, not even diagonally.") },
             confirmButton = {
-                TextButton(onClick = { showHowToDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) {
                     Text("OK")
                 }
             }
@@ -137,16 +147,25 @@ fun ConstellationsScreen(
             confirmButton = {
                 if (mode == "daily") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             Text("Main Menu")
                         }
-                        Button(onClick = { navController.navigate("game/constellations/standard/new") { popUpTo("home") } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/constellations/standard/new") { popUpTo("home") }
+                        }) {
                             Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle" && puzzleId != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.popBackStack() }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             Text("Back to List")
                         }
                         val currentPuzzle = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
@@ -160,6 +179,7 @@ fun ConstellationsScreen(
                         } else null
                         if (nextPuzzle != null) {
                             Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/constellations/puzzle/${nextPuzzle.id}") {
                                     popUpTo("constellations/puzzles")
                                 }
@@ -169,7 +189,10 @@ fun ConstellationsScreen(
                         }
                     }
                 } else {
-                    Button(onClick = { constellationsViewModel.loadNewPuzzle() }) {
+                    Button(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        constellationsViewModel.loadNewPuzzle()
+                    }) {
                         Text("New Game")
                     }
                 }
@@ -184,6 +207,7 @@ fun ConstellationsScreen(
             text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     constellationsViewModel.loadNewPuzzle()
                     showNewGameDialog = false
                 }) {
@@ -191,7 +215,10 @@ fun ConstellationsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) {
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) {
                     Text("Cancel")
                 }
             }
@@ -203,22 +230,37 @@ fun ConstellationsScreen(
             TopAppBar(
                 title = { Text("Constellations") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
-                    IconButton(onClick = { showHintDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHintDialog = true
+                    }) {
                         Icon(Icons.Filled.Search, contentDescription = "Hint")
                     }
-                    IconButton(onClick = { constellationsViewModel.errorCheck() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        constellationsViewModel.errorCheck()
+                    }) {
                         Icon(Icons.Filled.Warning, contentDescription = "Check Errors")
                     }
                     if (mode != "daily") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
                         }
                     }
@@ -258,6 +300,7 @@ fun ConstellationsScreen(
                                 val col = (offset.x / cellSize).toInt()
                                 val row = (offset.y / cellSize).toInt()
                                 if (row in 0 until p.size && col in 0 until p.size) {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                     constellationsViewModel.onCellClicked(row, col)
                                 }
                             }
@@ -269,6 +312,7 @@ fun ConstellationsScreen(
                                     val col = (offset.x / cellSize).toInt()
                                     val row = (offset.y / cellSize).toInt()
                                     if (row in 0 until p.size && col in 0 until p.size) {
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                         constellationsViewModel.onDragStart(row, col)
                                     }
                                 },

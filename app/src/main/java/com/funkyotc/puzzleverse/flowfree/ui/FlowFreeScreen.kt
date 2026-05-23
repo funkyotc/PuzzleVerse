@@ -35,6 +35,8 @@ import com.funkyotc.puzzleverse.flowfree.viewmodel.FlowFreeViewModel
 import com.funkyotc.puzzleverse.flowfree.viewmodel.FlowFreeViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +48,7 @@ fun FlowFreeScreen(
     puzzleId: String? = null,
     viewModel: FlowFreeViewModel = viewModel(factory = FlowFreeViewModelFactory(streakRepository, mode, puzzleId))
 ) {
+    val soundManager = LocalSoundManager.current
     val state by viewModel.state.collectAsState()
     val isGenerating by viewModel.isGenerating.collectAsState()
     val currentDifficulty by viewModel.difficulty.collectAsState()
@@ -64,7 +67,10 @@ fun FlowFreeScreen(
             title = { Text("How To Play") },
             text = { Text("Connect matching colors with pipes to create a flow. Pair all colors, and cover the entire board to solve each puzzle. Pipes cannot branch or cross each other.") },
             confirmButton = {
-                TextButton(onClick = { showHowToDialog = false }) { Text("OK") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHowToDialog = false
+                }) { Text("OK") }
             }
         )
     }
@@ -87,16 +93,25 @@ fun FlowFreeScreen(
             confirmButton = {
                 if (mode == "daily") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("home") { popUpTo(0) }
+                        }) {
                             Text("Main Menu")
                         }
-                        Button(onClick = { navController.navigate("game/flowfree/standard/new") { popUpTo("home") } }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/flowfree/standard/new") { popUpTo("home") }
+                        }) {
                             Text("Random Puzzles")
                         }
                     }
                 } else if (mode == "puzzle" && puzzleId != null) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { navController.popBackStack() }) {
+                        Button(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.popBackStack()
+                        }) {
                             Text("Back to List")
                         }
                         // Find next puzzle in same size group
@@ -112,6 +127,7 @@ fun FlowFreeScreen(
 
                         if (nextPuzzle != null) {
                             Button(onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/flowfree/puzzle/${nextPuzzle.id}") {
                                     popUpTo("flowfree/puzzles")
                                 }
@@ -121,7 +137,10 @@ fun FlowFreeScreen(
                         }
                     }
                 } else {
-                    Button(onClick = { viewModel.startNewGame() }) { Text("Play Again") }
+                    Button(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.startNewGame()
+                    }) { Text("Play Again") }
                 }
             }
         )
@@ -134,12 +153,16 @@ fun FlowFreeScreen(
             text = { Text("Are you sure you want to start over?") },
             confirmButton = {
                 TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.startNewGame()
                     showNewGameDialog = false
                 }) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewGameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = false
+                }) { Text("Cancel") }
             }
         )
     }
@@ -149,22 +172,37 @@ fun FlowFreeScreen(
             TopAppBar(
                 title = { Text("Flow Free") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.undo() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.undo()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
                     }
-                    IconButton(onClick = { viewModel.restartLevel() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.restartLevel()
+                    }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Restart")
                     }
-                    IconButton(onClick = { showHowToDialog = true }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showHowToDialog = true
+                    }) {
                         Icon(Icons.Filled.Info, contentDescription = "How To")
                     }
                     if (mode != "daily" && mode != "puzzle") {
-                        IconButton(onClick = { showNewGameDialog = true }) {
+                        IconButton(onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            showNewGameDialog = true
+                        }) {
                             Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
                         }
                     }
@@ -243,12 +281,14 @@ fun FlowFreeScreen(
 
                                     val dot = state.dots.find { it.start == Point(r, c) || it.end == Point(r, c) }
                                     if (dot != null) {
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                         activeColorId = dot.colorId
                                         viewModel.startPath(dot.colorId, r, c)
                                     } else {
                                         // Resume path from middle
                                         val path = state.paths.find { it.path.contains(Point(r, c)) }
                                         if (path != null) {
+                                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                             activeColorId = path.colorId
                                         }
                                     }
@@ -278,7 +318,7 @@ fun FlowFreeScreen(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
-                                            .border(0.5.dp, Color.DarkGray)
+                                            .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                                     )
                                 }
                             }

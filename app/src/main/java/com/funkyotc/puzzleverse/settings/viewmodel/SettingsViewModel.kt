@@ -19,9 +19,18 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val totalWins: StateFlow<Int> = repository.totalWins
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val soundEffectsEnabled: StateFlow<Boolean> = repository.soundEffectsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     fun setActiveTheme(theme: String) {
         viewModelScope.launch {
             repository.setActiveTheme(theme)
+        }
+    }
+
+    fun setSoundEffectsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setSoundEffectsEnabled(enabled)
         }
     }
 }

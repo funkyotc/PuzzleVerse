@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +37,7 @@ fun PuzzleBrowserScreen(
     onPuzzleClick: (BrowseablePuzzle) -> Unit
 ) {
     val context = LocalContext.current
+    val soundManager = LocalSoundManager.current
     val completionRepo = remember { PuzzleCompletionRepository(context, gameName) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var completedIds by remember { mutableStateOf(completionRepo.getCompletedIds()) }
@@ -48,7 +51,10 @@ fun PuzzleBrowserScreen(
             TopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -67,7 +73,10 @@ fun PuzzleBrowserScreen(
                     val completed = puzzles.count { it.id in completedIds }
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            selectedTab = index
+                        },
                         text = { 
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 GameTypePreview(gameName = gameName, isCompleted = false)
@@ -102,7 +111,12 @@ fun PuzzleBrowserScreen(
                         gameName = gameName,
                         isCompleted = isCompleted,
                         isLocked = isLocked,
-                        onClick = { if (!isLocked) onPuzzleClick(puzzle) }
+                        onClick = {
+                            if (!isLocked) {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                onPuzzleClick(puzzle)
+                            }
+                        }
                     )
                 }
             }
