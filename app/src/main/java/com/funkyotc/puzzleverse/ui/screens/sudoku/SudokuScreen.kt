@@ -55,6 +55,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
@@ -243,6 +245,11 @@ fun SudokuScreen(
             val isLandscape = containerWidth > containerHeight
 
             if (isLandscape) {
+                // Calculate custom maximum width for NumberPad in landscape to prevent vertical overflow
+                val maxPadHeight = (containerHeight - 32.dp) - 44.dp - 8.dp // container height minus screen padding (32.dp), action row (44.dp), and spacer (8.dp)
+                val maxPadWidthFromHeight = (maxPadHeight - 12.dp).coerceAtLeast(120.dp) // Capped based on 3 rows aspect ratio
+                val customMaxPadWidth = minOf(260.dp, maxPadWidthFromHeight)
+
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -260,6 +267,7 @@ fun SudokuScreen(
                             board = board,
                             selectedCell = selectedCell,
                             modifier = Modifier.fillMaxSize(),
+                            boardSize = boardSize,
                             onCellSelected = sudokuViewModel::onCellSelected
                         )
                     }
@@ -283,14 +291,37 @@ fun SudokuScreen(
                             board = board,
                             isPencilOn = isPencilOn,
                             onNumberSelected = sudokuViewModel::onNumberInput,
-                            isCompact = true
+                            isCompact = true,
+                            customMaxPadWidth = customMaxPadWidth
                         )
                     }
                 }
             } else {
-                val isCompact = (containerHeight - (containerWidth - 32.dp)) < 260.dp
+                val isCompact = (containerHeight - (containerWidth - 32.dp)) < 280.dp
+                
+                // Let's compute the exact padding and size values used by ActionRow and NumberPad in portrait
+                val horizontalPadding = if (isCompact) 8.dp else 16.dp
+                val verticalPadding = if (isCompact) 2.dp else 8.dp
+                val maxPadWidth = if (isCompact) 260.dp else 360.dp
+                val rowSpacing = if (isCompact) 4.dp else 8.dp
+                val paddingVal = if (isCompact) 4.dp else 12.dp
+                val buttonSize = if (isCompact) 36.dp else 48.dp
+                val bottomSpacer = if (isCompact) 4.dp else 16.dp
+
+                // Number pad width in portrait is:
+                val padWidth = minOf(containerWidth - (horizontalPadding * 2), maxPadWidth)
+                
+                // Number pad height is padWidth (since 3 rows of weight(1f) aspect 1f buttons = padWidth) + vertical paddings + row spacings
+                val numberPadHeight = padWidth + (verticalPadding * 2) + (rowSpacing * 2)
+                
+                // Action row height is buttonSize + paddingVal * 2
+                val actionRowHeight = buttonSize + (paddingVal * 2)
+                
+                // Total height needed by bottom controls
+                val totalBottomHeight = actionRowHeight + numberPadHeight + bottomSpacer
+                
                 val maxBoardWidth = containerWidth - 32.dp
-                val maxBoardHeight = containerHeight - (if (isCompact) 140.dp else 240.dp)
+                val maxBoardHeight = containerHeight - totalBottomHeight - 16.dp // 16.dp safety margin
                 val boardSize = minOf(maxBoardWidth, maxBoardHeight).coerceAtLeast(180.dp)
 
                 Column(
@@ -308,6 +339,7 @@ fun SudokuScreen(
                             board = board,
                             selectedCell = selectedCell,
                             modifier = Modifier.size(boardSize),
+                            boardSize = boardSize,
                             onCellSelected = sudokuViewModel::onCellSelected
                         )
                     }
@@ -339,7 +371,16 @@ fun SudokuScreen(
 
 
 @Composable
-fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, modifier: Modifier = Modifier, onCellSelected: (Int, Int) -> Unit) {
+fun SudokuBoard(
+    board: SudokuBoard, 
+    selectedCell: SudokuCell?, 
+    modifier: Modifier = Modifier, 
+    boardSize: Dp,
+    onCellSelected: (Int, Int) -> Unit
+) {
+    val fontSize = (boardSize.value / 18f).sp
+    val pencilFontSize = (boardSize.value / 40f).coerceAtLeast(6f).sp
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -349,7 +390,13 @@ fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, modifier: Modifie
                 Row {
                     (0..8).forEach { col ->
                         val cell = board.getCell(row, col)
-                        SudokuCellView(cell, selectedCell, onCellSelected)
+                        SudokuCellView(
+                            cell = cell, 
+                            selectedCell = selectedCell, 
+                            fontSize = fontSize,
+                            pencilFontSize = pencilFontSize,
+                            onCellSelected = onCellSelected
+                        )
                     }
                 }
             }
@@ -392,7 +439,13 @@ fun SudokuBoard(board: SudokuBoard, selectedCell: SudokuCell?, modifier: Modifie
 
 
 @Composable
-fun RowScope.SudokuCellView(cell: SudokuCell, selectedCell: SudokuCell?, onCellSelected: (Int, Int) -> Unit) {
+fun RowScope.SudokuCellView(
+    cell: SudokuCell, 
+    selectedCell: SudokuCell?, 
+    fontSize: TextUnit,
+    pencilFontSize: TextUnit,
+    onCellSelected: (Int, Int) -> Unit
+) {
     val isSelected = cell == selectedCell
     val isHighlighted = selectedCell != null && (cell.row == selectedCell.row || cell.col == selectedCell.col || (cell.row / 3 == selectedCell.row / 3 && cell.col / 3 == selectedCell.col / 3))
     val isSameNumber = selectedCell != null && selectedCell.number != 0 && cell.number == selectedCell.number
@@ -420,25 +473,25 @@ fun RowScope.SudokuCellView(cell: SudokuCell, selectedCell: SudokuCell?, onCellS
     ) {
         if (cell.number != 0) {
             val textStyle = if (cell.isHint) {
-                TextStyle.Default.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 20.sp)
+                TextStyle.Default.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = fontSize)
             } else if (cell.isError) {
-                TextStyle.Default.copy(color = MaterialTheme.colorScheme.error, fontSize = 20.sp)
+                TextStyle.Default.copy(color = MaterialTheme.colorScheme.error, fontSize = fontSize)
             } else {
-                TextStyle.Default.copy(color = MaterialTheme.colorScheme.primary, fontSize = 20.sp)
+                TextStyle.Default.copy(color = MaterialTheme.colorScheme.primary, fontSize = fontSize)
             }
             Text(
                 text = cell.number.toString(),
                 style = textStyle
             )
         } else {
-            PencilMarks(marks = cell.pencilMarks)
+            PencilMarks(marks = cell.pencilMarks, fontSize = pencilFontSize)
         }
     }
 }
 
 
 @Composable
-fun PencilMarks(marks: Set<Int>?) {
+fun PencilMarks(marks: Set<Int>?, fontSize: TextUnit) {
     // Gracefully handle null or empty sets to prevent crashes and unnecessary composition.
     if (marks.isNullOrEmpty()) {
         return
@@ -464,7 +517,7 @@ fun PencilMarks(marks: Set<Int>?) {
                         // If the number is in the marks set, display it. Otherwise, display an empty string to maintain grid alignment.
                         text = if (marks.contains(number)) number.toString() else "",
                         style = TextStyle.Default.copy(
-                            fontSize = 9.sp,
+                            fontSize = fontSize,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         ),
@@ -541,11 +594,12 @@ fun NumberPad(
     board: SudokuBoard, 
     isPencilOn: Boolean, 
     onNumberSelected: (Int) -> Unit,
-    isCompact: Boolean = false
+    isCompact: Boolean = false,
+    customMaxPadWidth: Dp? = null
 ) {
     val horizontalPadding = if (isCompact) 8.dp else 16.dp
     val verticalPadding = if (isCompact) 2.dp else 8.dp
-    val maxPadWidth = if (isCompact) 260.dp else 360.dp
+    val maxPadWidth = customMaxPadWidth ?: (if (isCompact) 260.dp else 360.dp)
     val rowSpacing = if (isCompact) 4.dp else 8.dp
 
     Box(
