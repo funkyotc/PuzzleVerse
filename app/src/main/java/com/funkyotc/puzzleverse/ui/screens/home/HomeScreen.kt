@@ -93,14 +93,14 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle", "tfe") }
+                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle", "tfe") }
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = java.time.LocalDate.now().toEpochDay()
                         val isDailyCompleted = streak.lastCompletedEpochDay == today
 
                         Box(modifier = Modifier.width(160.dp).height(90.dp)) {
-                            GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
+                            GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted, enabled = !isDailyCompleted) {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/${game.id}/daily")
                             }
@@ -123,7 +123,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
 
                 Box(modifier = Modifier.height(90.dp)) {
-                    GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
+                    GameCard(game = game, streak = 0, isDailyCompleted = isDailyCompleted) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.navigate("gameDetail/${game.id}")
                     }
@@ -134,11 +134,11 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
 }
 
 @Composable
-fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, onClick: () -> Unit) {
+fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
     androidx.compose.material3.ElevatedCard(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         colors = if (isDailyCompleted) {
             CardDefaults.elevatedCardColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer

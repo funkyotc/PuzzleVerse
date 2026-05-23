@@ -190,7 +190,6 @@ fun NonogramScreen(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .aspectRatio(1f)
                                     .border(0.5.dp, Color.Gray)
                                     .background(if (cellState == CellState.FILLED) Color.Black else Color.White)
                                     .clickable {

@@ -151,4 +151,28 @@ object GeometryUtils {
             Offset(rx + translation.x, ry + translation.y)
         }
     }
+
+    fun transformPolygonAnimated(
+        vertices: List<Offset>,
+        translation: Offset,
+        rotationDegrees: Float,
+        scaleX: Float
+    ): List<Offset> {
+        val rad = Math.toRadians(rotationDegrees.toDouble())
+        val cos = cos(rad).toFloat()
+        val sin = sin(rad).toFloat()
+
+        return vertices.map { vertex ->
+            // 1. Flip (scale X) around local (0, 0)
+            val fx = vertex.x * scaleX
+            val fy = vertex.y
+            
+            // 2. Rotate around local (0, 0)
+            val rx = fx * cos - fy * sin
+            val ry = fx * sin + fy * cos
+            
+            // 3. Translate to world position
+            Offset(rx + translation.x, ry + translation.y)
+        }
+    }
 }

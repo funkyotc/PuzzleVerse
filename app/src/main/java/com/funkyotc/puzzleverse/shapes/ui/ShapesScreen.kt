@@ -55,6 +55,9 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,7 +122,7 @@ fun ShapesScreen(
         AlertDialog(
             onDismissRequest = { showHowToDialog = false },
             title = { Text("How To Play") },
-            text = { Text("Drag, rotate, and flip the pieces so they fit perfectly into the target shape.") },
+            text = { Text("Drag and rotate the pieces so they fit perfectly into the target shape.") },
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
@@ -239,27 +242,27 @@ fun ShapesScreen(
         },
         bottomBar = {
              // Controls for the selected piece
-             if (selectedPieceId != null) {
-                 Row(
-                     modifier = Modifier
-                         .fillMaxWidth()
-                         .padding(16.dp)
-                         .background(MaterialTheme.colorScheme.surface),
-                     horizontalArrangement = Arrangement.Center,
-                     verticalAlignment = Alignment.CenterVertically
-                 ) {
-                     Button(onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, -90f) } }) {
-                         Text("Rotate L")
-                     }
-                     Spacer(modifier = Modifier.width(16.dp))
-                     Button(onClick = { selectedPieceId?.let { viewModel.flipPiece(it) } }) {
-                         Text("Flip")
-                     }
-                     Spacer(modifier = Modifier.width(16.dp))
-                     Button(onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, 90f) } }) {
-                         Text("Rotate R")
-                     }
-                 }
+             Row(
+                 modifier = Modifier
+                     .fillMaxWidth()
+                     .padding(16.dp)
+                     .background(MaterialTheme.colorScheme.surface),
+                 horizontalArrangement = Arrangement.Center,
+                 verticalAlignment = Alignment.CenterVertically
+             ) {
+                  Button(
+                      onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, -45f) } },
+                      enabled = selectedPieceId != null
+                  ) {
+                      Text("Rotate L")
+                  }
+                  Spacer(modifier = Modifier.width(16.dp))
+                  Button(
+                      onClick = { selectedPieceId?.let { viewModel.rotatePiece(it, 45f) } },
+                      enabled = selectedPieceId != null
+                  ) {
+                      Text("Rotate R")
+                  }
              }
         }
     ) { paddingValues ->
@@ -271,6 +274,15 @@ fun ShapesScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                val pieceAnimations = puzzleState.pieces.associate { piece ->
+                    val animatedRotation by animateFloatAsState(
+                        targetValue = piece.rotation,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "rotation_anim_${piece.id}"
+                    )
+                    piece.id to animatedRotation
+                }
+
                 val density = LocalDensity.current
                 val actualWidth = with(density) { maxWidth.toPx() }
                 val actualHeight = with(density) { maxHeight.toPx() }
@@ -304,17 +316,17 @@ fun ShapesScreen(
                             },
                             onDoubleTap = { actualOffset ->
                                 currentPuzzleState?.let { puzzleVal ->
-                                    val virtualOffset = Offset(
-                                        (actualOffset.x - offsetX) / scale,
-                                        (actualOffset.y - offsetY) / scale
-                                    )
-                                    val clickedPiece = puzzleVal.pieces.findLast { piece ->
-                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
-                                    }
-                                    if (clickedPiece != null) {
-                                        selectedPieceId = clickedPiece.id
-                                        viewModel.rotatePiece(clickedPiece.id, 90f)
-                                    }
+                                     val virtualOffset = Offset(
+                                         (actualOffset.x - offsetX) / scale,
+                                         (actualOffset.y - offsetY) / scale
+                                     )
+                                     val clickedPiece = puzzleVal.pieces.findLast { piece ->
+                                          GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                     }
+                                     if (clickedPiece != null) {
+                                         selectedPieceId = clickedPiece.id
+                                         viewModel.rotatePiece(clickedPiece.id, 45f)
+                                     }
                                 }
                             }
                         )
@@ -423,12 +435,20 @@ fun ShapesScreen(
                             // 4. Draw Pieces
                             puzzleState.pieces.forEach { piece ->
                                 val isSelected = piece.id == selectedPieceId
+                                val animRotation = pieceAnimations[piece.id] ?: piece.rotation
+
+                                val animatedVertices = GeometryUtils.transformPolygon(
+                                    piece.initialVertices,
+                                    piece.position,
+                                    animRotation,
+                                    isFlipped = false
+                                )
+
                                 val piecePath = Path().apply {
-                                    val vertices = piece.currentVertices
-                                    if (vertices.isNotEmpty()) {
-                                        val first = vertices.first()
+                                    if (animatedVertices.isNotEmpty()) {
+                                        val first = animatedVertices.first()
                                         moveTo(first.x, first.y)
-                                        vertices.drop(1).forEach {
+                                        animatedVertices.drop(1).forEach {
                                             lineTo(it.x, it.y)
                                         }
                                         close()
@@ -439,11 +459,10 @@ fun ShapesScreen(
                                 val shadowOffset = if (isSelected) Offset(3f, 6f) else Offset(1.5f, 3f)
                                 val shadowAlpha = if (isSelected) 0.4f else 0.25f
                                 val shadowPath = Path().apply {
-                                    val vertices = piece.currentVertices
-                                    if (vertices.isNotEmpty()) {
-                                        val first = vertices.first()
+                                    if (animatedVertices.isNotEmpty()) {
+                                        val first = animatedVertices.first()
                                         moveTo(first.x + shadowOffset.x, first.y + shadowOffset.y)
-                                        vertices.drop(1).forEach {
+                                        animatedVertices.drop(1).forEach {
                                             lineTo(it.x + shadowOffset.x, it.y + shadowOffset.y)
                                         }
                                         close()

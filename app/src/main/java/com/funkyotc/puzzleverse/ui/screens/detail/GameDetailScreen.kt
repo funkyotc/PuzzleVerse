@@ -206,7 +206,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val today = java.time.LocalDate.now().toEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-            if (gameId !in listOf("flowfree", "kakuro", "nonogram", "minesweeper", "blockpuzzle")) {
+            if (gameId !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle")) {
                 Spacer(modifier = Modifier.height(16.dp))
                 MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)

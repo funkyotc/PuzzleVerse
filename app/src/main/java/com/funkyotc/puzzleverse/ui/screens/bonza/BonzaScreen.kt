@@ -282,9 +282,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
         val screenWidth = constraints.maxWidth.toFloat()
         val screenHeight = constraints.maxHeight.toFloat()
         
-        androidx.compose.runtime.LaunchedEffect(puzzle, isDragging, screenWidth, screenHeight) {
-            if (isDragging) return@LaunchedEffect
-            
+        androidx.compose.runtime.LaunchedEffect(puzzle.theme, puzzle.words, screenWidth, screenHeight) {
             val bounds = viewModel.getPuzzleBounds()
             if (!bounds.isEmpty && screenWidth > 0 && screenHeight > 0) {
                  val boundsWidthPx = bounds.width * letterBoxSizePx
