@@ -94,6 +94,7 @@ class SudokuViewModel(
 
         _selectedCell.value?.let { cell ->
             if (!cell.isHint) {
+                val enteredNumber = if (cell.number == number) 0 else number
                 val newCells = _board.value.cells.map {
                     if (it.row == cell.row && it.col == cell.col) {
                         if (_isPencilOn.value) {
@@ -105,11 +106,18 @@ class SudokuViewModel(
                             }
                             it.copy(pencilMarks = newPencilMarks, number = 0)
                         } else {
-                            val newNumber = if (it.number == number) 0 else number
-                            it.copy(number = newNumber, pencilMarks = emptySet())
+                            it.copy(number = enteredNumber, pencilMarks = emptySet())
                         }
                     } else {
-                        it
+                        if (!_isPencilOn.value && enteredNumber != 0 &&
+                            (it.row == cell.row || it.col == cell.col || (it.row / 3 == cell.row / 3 && it.col / 3 == cell.col / 3))
+                        ) {
+                            val newPencilMarks = it.pencilMarks.toMutableSet()
+                            newPencilMarks.remove(enteredNumber)
+                            it.copy(pencilMarks = newPencilMarks)
+                        } else {
+                            it
+                        }
                     }
                 }
                 val newBoard = validateBoard(SudokuBoard(newCells))
@@ -181,7 +189,13 @@ class SudokuViewModel(
                 // We set isHint = true to lock it permanently
                 it.copy(number = correctNumber, pencilMarks = emptySet(), isHint = true, isError = false)
             } else {
-                it
+                if (it.row == targetCell.row || it.col == targetCell.col || (it.row / 3 == targetCell.row / 3 && it.col / 3 == targetCell.col / 3)) {
+                    val newPencilMarks = it.pencilMarks.toMutableSet()
+                    newPencilMarks.remove(correctNumber)
+                    it.copy(pencilMarks = newPencilMarks)
+                } else {
+                    it
+                }
             }
         }
         val newBoard = validateBoard(SudokuBoard(newCells))

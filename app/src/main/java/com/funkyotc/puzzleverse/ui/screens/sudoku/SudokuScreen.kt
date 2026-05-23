@@ -69,6 +69,7 @@ import androidx.compose.runtime.LaunchedEffect
 
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UnusedBoxWithConstraintsScope")
 @Composable
 fun SudokuScreen(
     navController: NavController, 
@@ -240,8 +241,8 @@ fun SudokuScreen(
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            val containerWidth = maxWidth
-            val containerHeight = maxHeight
+            val containerWidth = this.maxWidth
+            val containerHeight = this.maxHeight
             val isLandscape = containerWidth > containerHeight
 
             if (isLandscape) {
