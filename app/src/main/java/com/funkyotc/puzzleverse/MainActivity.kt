@@ -139,8 +139,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
-                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository)
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
+                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
@@ -316,7 +316,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
-                settingsRepository = settingsRepository
+                settingsRepository = settingsRepository,
+                streakRepository = streakRepository
             )
         }
         composable("shapes/puzzles") {
@@ -338,7 +339,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
-                settingsRepository = settingsRepository
+                settingsRepository = settingsRepository,
+                streakRepository = streakRepository
             )
         }
         composable("shikaku/puzzles") {

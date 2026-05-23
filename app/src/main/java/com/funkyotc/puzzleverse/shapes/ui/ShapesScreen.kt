@@ -44,6 +44,7 @@ import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.geometry.RoundRect
@@ -62,6 +63,7 @@ fun ShapesScreen(
     mode: String? = "standard",
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
+    streakRepository: StreakRepository,
     viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by viewModel.puzzle.collectAsState()
@@ -99,6 +101,16 @@ fun ShapesScreen(
             settingsRepository.addWin()
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
+            } else if (mode == "daily") {
+                val today = java.time.LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("shapes")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newStreak = streak.copy(
+                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                        lastCompletedEpochDay = today
+                    )
+                    streakRepository.saveStreak(newStreak)
+                }
             }
         }
     }

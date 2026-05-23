@@ -52,6 +52,7 @@ import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModel
 import com.funkyotc.puzzleverse.constellations.viewmodel.ConstellationsViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +62,7 @@ fun ConstellationsScreen(
     mode: String? = "standard",
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
+    streakRepository: StreakRepository,
     constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode, puzzleId))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
@@ -100,6 +102,16 @@ fun ConstellationsScreen(
             settingsRepository.addWin()
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
+            } else if (mode == "daily") {
+                val today = java.time.LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("constellations")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newStreak = streak.copy(
+                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                        lastCompletedEpochDay = today
+                    )
+                    streakRepository.saveStreak(newStreak)
+                }
             }
         }
     }

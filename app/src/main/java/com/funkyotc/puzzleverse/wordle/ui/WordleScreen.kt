@@ -217,8 +217,21 @@ fun WordleScreen(
                         title = { Text("Magnificent!") },
                         text = { Text("You discovered the word correctly!") },
                         confirmButton = {
-                            Button(onClick = { viewModel.startNewGame() }) {
-                                Text("Play Again")
+                            if (mode == "daily") {
+                                Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                    Text("Main Menu")
+                                }
+                            } else {
+                                Button(onClick = { viewModel.startNewGame() }) {
+                                    Text("Play Again")
+                                }
+                            }
+                        },
+                        dismissButton = {
+                            if (mode != "daily") {
+                                TextButton(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                    Text("Main Menu")
+                                }
                             }
                         }
                     )
@@ -228,8 +241,21 @@ fun WordleScreen(
                         title = { Text("Game Over") },
                         text = { Text("The correct word was ${state.solution}") },
                         confirmButton = {
-                            Button(onClick = { viewModel.startNewGame() }) {
-                                Text("Play Again")
+                            if (mode == "daily") {
+                                Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                    Text("Main Menu")
+                                }
+                            } else {
+                                Button(onClick = { viewModel.startNewGame() }) {
+                                    Text("Play Again")
+                                }
+                            }
+                        },
+                        dismissButton = {
+                            if (mode != "daily") {
+                                TextButton(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                                    Text("Main Menu")
+                                }
                             }
                         }
                     )
