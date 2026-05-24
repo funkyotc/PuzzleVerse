@@ -134,6 +134,66 @@ class MinesweeperViewModel(
         }
     }
 
+    fun revealNeighbors(row: Int, col: Int) {
+        val st = _state.value
+        if (st.isGameOver || st.isWon) return
+        val cell = st.grid[row][col]
+        if (!cell.isRevealed || cell.neighboringMines == 0) return
+
+        var flagCount = 0
+        for (dr in -1..1) {
+            for (dc in -1..1) {
+                val nr = row + dr
+                val nc = col + dc
+                if (nr in 0 until st.rows && nc in 0 until st.cols && st.grid[nr][nc].isFlagged) {
+                    flagCount++
+                }
+            }
+        }
+
+        if (flagCount == cell.neighboringMines) {
+            val grid = st.grid.map { it.toMutableList() }.toMutableList()
+            var hitMine = false
+            val toReveal = mutableListOf<Pair<Int, Int>>()
+            
+            for (dr in -1..1) {
+                for (dc in -1..1) {
+                    val nr = row + dr
+                    val nc = col + dc
+                    if (nr in 0 until st.rows && nc in 0 until st.cols) {
+                        val nCell = grid[nr][nc]
+                        if (!nCell.isRevealed && !nCell.isFlagged) {
+                            toReveal.add(Pair(nr, nc))
+                        }
+                    }
+                }
+            }
+            
+            for (pos in toReveal) {
+                val r = pos.first
+                val c = pos.second
+                if (grid[r][c].isMine) {
+                    hitMine = true
+                }
+                floodFillReveal(grid, r, c, st.rows, st.cols)
+            }
+            
+            if (hitMine) {
+                for (r in 0 until st.rows) {
+                    for (c in 0 until st.cols) {
+                        if (grid[r][c].isMine) {
+                            grid[r][c] = grid[r][c].copy(isRevealed = true)
+                        }
+                    }
+                }
+                _state.update { it.copy(grid = grid, isGameOver = true) }
+            } else {
+                val isWon = checkWin(grid, st.rows, st.cols, st.totalMines)
+                _state.update { it.copy(grid = grid, isWon = isWon) }
+            }
+        }
+    }
+
     fun toggleFlag(row: Int, col: Int) {
         val st = _state.value
         if (st.isGameOver || st.isWon || !st.firstClickDone) return

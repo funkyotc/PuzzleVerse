@@ -42,6 +42,7 @@ class SettingsRepository(context: Context) {
         if (newWins >= 5) newUnlocks.add("ocean")
         if (newWins >= 10) newUnlocks.add("forest")
         if (newWins >= 20) newUnlocks.add("sunset")
+        if (newWins >= 30) newUnlocks.add("2048")
         if (newWins >= 50) newUnlocks.add("cyberpunk")
 
         if (newUnlocks.size > _unlockedThemes.value.size) {

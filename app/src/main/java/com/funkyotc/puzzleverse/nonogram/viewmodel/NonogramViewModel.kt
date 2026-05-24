@@ -89,6 +89,18 @@ class NonogramViewModel(
         
         _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
     }
+
+    fun setCellState(r: Int, c: Int, newState: CellState) {
+        val st = _state.value
+        if (st.isWon || st.isGameOver) return
+        if (st.playerGrid[r][c] == newState) return
+        
+        val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
+        newPlayerGrid[r][c] = newState
+        
+        val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
+        _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+    }
     
     private fun checkWin(player: List<List<CellState>>, solution: List<List<Boolean>>, rows: Int, cols: Int): Boolean {
         for (r in 0 until rows) {

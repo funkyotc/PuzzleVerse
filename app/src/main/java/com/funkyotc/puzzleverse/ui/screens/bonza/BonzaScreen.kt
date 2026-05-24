@@ -370,6 +370,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
         }
         
         val draggedGroupId by viewModel.draggedGroupId.collectAsState()
+        val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
         val soundManager = LocalSoundManager.current
         Box(
@@ -380,6 +381,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                     detectDragGestures(
                         onDragStart = { position ->
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             isDragging = true
                             // Convert screen position to puzzle space (Grid Units)
                             val currentScale = scale.value
@@ -396,10 +398,12 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                         },
                         onDragEnd = { 
                             isDragging = false
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             viewModel.onDragEnd() 
                         },
                         onDragCancel = {
                             isDragging = false
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             viewModel.onDragEnd()
                         }
                     )
@@ -416,23 +420,41 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                 )
                 
                 // Vertical lift animation
-                val liftUnit = if (isDragged) -0.5f else 0f
+                val liftUnit = if (isDragged) -0.3f else 0f
                 val verticalLift by animateFloatAsState(
                     targetValue = liftUnit,
                     animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "lift_anim_${fragment.id}"
                 )
+
+                // Scale animation
+                val scaleUnit = if (isDragged) 1.08f else 1.0f
+                val animatedScale by animateFloatAsState(
+                    targetValue = scaleUnit,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "scale_anim_${fragment.id}"
+                )
+
+                // Alpha animation
+                val alphaUnit = if (isDragged) 0.85f else 1.0f
+                val animatedAlpha by animateFloatAsState(
+                    targetValue = alphaUnit,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "alpha_anim_${fragment.id}"
+                )
                 
-                fragment.id to Pair(animatedPos, verticalLift)
+                fragment.id to Triple(animatedPos, verticalLift, Pair(animatedScale, animatedAlpha))
             }
 
             Canvas(modifier = Modifier.fillMaxSize()) {
                 translate(offsetX.value, offsetY.value) {
                     scale(scale.value, pivot = Offset.Zero) {
                         puzzle.fragments.forEach { fragment ->
-                            val animData = fragmentAnimations[fragment.id]
-                            val animPos = animData?.first ?: fragment.currentPosition
-                            val vLift = animData?.second ?: 0f
+                            val animTriple = fragmentAnimations[fragment.id]
+                            val animPos = animTriple?.first ?: fragment.currentPosition
+                            val vLift = animTriple?.second ?: 0f
+                            val scaleVal = animTriple?.third?.first ?: 1.0f
+                            val alphaVal = animTriple?.third?.second ?: 1.0f
 
                             fragment.text.forEachIndexed { index, char ->
                                 val gridPos = if (fragment.direction == ConnectionDirection.HORIZONTAL) {
@@ -443,33 +465,37 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                                 
                                 val letterOffset = gridPos * letterBoxSizePx
     
-                                drawRoundRect(
-                                    color = primaryColor,
-                                    topLeft = letterOffset,
-                                    size = Size(letterBoxSizePx, letterBoxSizePx),
-                                    cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius)
-                                )
-    
-                                drawRoundRect(
-                                    color = Color.Black,
-                                    topLeft = letterOffset,
-                                    size = Size(letterBoxSizePx, letterBoxSizePx),
-                                    cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
-                                    style = Stroke(width = 2f)
-                                )
-    
-                                val textLayoutResult = textMeasurer.measure(
-                                    text = char.toString(),
-                                    style = TextStyle(color = Color.White, fontSize = 24.sp)
-                                )
-    
-                                drawText(
-                                    textLayoutResult,
-                                    topLeft = letterOffset + Offset(
-                                        (letterBoxSizePx - textLayoutResult.size.width) / 2,
-                                        (letterBoxSizePx - textLayoutResult.size.height) / 2
+                                scale(scale = scaleVal, pivot = letterOffset + Offset(letterBoxSizePx / 2f, letterBoxSizePx / 2f)) {
+                                    drawRoundRect(
+                                        color = primaryColor,
+                                        topLeft = letterOffset,
+                                        size = Size(letterBoxSizePx, letterBoxSizePx),
+                                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
+                                        alpha = alphaVal
                                     )
-                                )
+        
+                                    drawRoundRect(
+                                        color = Color.Black,
+                                        topLeft = letterOffset,
+                                        size = Size(letterBoxSizePx, letterBoxSizePx),
+                                        cornerRadius = CornerRadius(letterBoxCornerRadius, letterBoxCornerRadius),
+                                        style = Stroke(width = 2f),
+                                        alpha = alphaVal
+                                    )
+        
+                                    val textLayoutResult = textMeasurer.measure(
+                                        text = char.toString(),
+                                        style = TextStyle(color = Color.White.copy(alpha = alphaVal), fontSize = 24.sp)
+                                    )
+        
+                                    drawText(
+                                        textLayoutResult,
+                                        topLeft = letterOffset + Offset(
+                                            (letterBoxSizePx - textLayoutResult.size.width) / 2,
+                                            (letterBoxSizePx - textLayoutResult.size.height) / 2
+                                        )
+                                    )
+                                }
                             }
                         }
                     }

@@ -331,6 +331,23 @@ fun PuzzleVerseTheme(
                 outline = Color(0xFFFF003C)
             )
         }
+        "2048" -> {
+            lightColorScheme(
+                primary = Color(0xFF8F7A66),
+                onPrimary = Color(0xFFFAF8EF),
+                primaryContainer = Color(0xFFEDC22E),
+                onPrimaryContainer = Color(0xFFFAF8EF),
+                secondary = Color(0xFFF2B179),
+                onSecondary = Color(0xFFFAF8EF),
+                background = Color(0xFFFAF8EF),
+                onBackground = Color(0xFF776E65),
+                surface = Color(0xFFBBADA0),
+                onSurface = Color(0xFF776E65),
+                surfaceVariant = Color(0xFFEEE4DA),
+                onSurfaceVariant = Color(0xFF776E65),
+                outline = Color(0xFF8F7A66)
+            )
+        }
         "dark" -> DarkColorScheme
         "light" -> LightColorScheme
         else -> {

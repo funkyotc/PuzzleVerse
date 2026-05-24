@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -251,6 +253,7 @@ fun DraggableShape(
     onDrop: (Int, Int) -> Unit
 ) {
     val soundManager = LocalSoundManager.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
     var isDragging by remember { mutableStateOf(false) }
@@ -261,6 +264,17 @@ fun DraggableShape(
     val blockPx = if (gridWidth > 0f) gridWidth / 10f else 0f
     val cellSizeDp = if (blockPx > 0f) with(density) { blockPx.toDp() } else 20.dp
 
+    val scale by animateFloatAsState(
+        targetValue = if (isDragging) 1.15f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+        label = "scale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (isDragging) 0.85f else 1.0f,
+        animationSpec = androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+        label = "alpha"
+    )
+
     Box(
         modifier = Modifier
             .onGloballyPositioned { coordinates ->
@@ -269,12 +283,18 @@ fun DraggableShape(
                 }
             }
             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            .scale(scale)
+            .graphicsLayer(alpha = alpha)
             .pointerInput(gridWidth) {
                 detectDragGestures(
-                    onDragStart = { isDragging = true },
+                    onDragStart = { 
+                        isDragging = true 
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    },
                     onDragEnd = {
                         isDragging = false
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (blockPx > 0f) {
                             val currentPosition = initialPosition + Offset(offsetX, offsetY)
                             val localDropX = currentPosition.x - gridOffset.x
@@ -294,6 +314,7 @@ fun DraggableShape(
                     },
                     onDragCancel = {
                         isDragging = false
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         offsetX = 0f
                         offsetY = 0f
                     }

@@ -36,7 +36,21 @@ object ShapeLibrary {
         // 2x2 square
         BoxShape(blocks = listOf(Point(0,0), Point(0,1), Point(1,0), Point(1,1))),
         // L shape (3x3 corner)
-        BoxShape(blocks = listOf(Point(0,0), Point(1,0), Point(2,0), Point(2,1), Point(2,2)))
+        BoxShape(blocks = listOf(Point(0,0), Point(1,0), Point(2,0), Point(2,1), Point(2,2))),
+        // Tetris T-shape
+        BoxShape(blocks = listOf(Point(0,1), Point(1,0), Point(1,1), Point(1,2))),
+        // Tetris L-shape
+        BoxShape(blocks = listOf(Point(0,0), Point(1,0), Point(2,0), Point(2,1))),
+        // Tetris J-shape
+        BoxShape(blocks = listOf(Point(0,1), Point(1,1), Point(2,0), Point(2,1))),
+        // Tetris S-shape
+        BoxShape(blocks = listOf(Point(0,1), Point(0,2), Point(1,0), Point(1,1))),
+        // Tetris Z-shape
+        BoxShape(blocks = listOf(Point(0,0), Point(0,1), Point(1,1), Point(1,2))),
+        // Tetris I-shape horizontal
+        BoxShape(blocks = listOf(Point(0,0), Point(0,1), Point(0,2), Point(0,3))),
+        // Tetris I-shape vertical
+        BoxShape(blocks = listOf(Point(0,0), Point(1,0), Point(2,0), Point(3,0)))
     )
 
     fun getRandomShape(): BoxShape {

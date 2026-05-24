@@ -263,32 +263,74 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
     } else if (cell.type == CellType.CLUE) {
         val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant)) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val canvasWidth = size.width
-                val canvasHeight = size.height
-                drawLine(
-                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(canvasWidth, canvasHeight),
-                    color = lineColor,
-                    strokeWidth = 2f
-                )
-            }
-            if (cell.clue?.horizontalSum != null) {
+        val hasHorizontal = cell.clue?.horizontalSum != null
+        val hasVertical = cell.clue?.verticalSum != null
+        
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f))
+        ) {
+            if (hasHorizontal && hasVertical) {
+                // Both clues present: Draw diagonal split line
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val canvasWidth = size.width
+                    val canvasHeight = size.height
+                    drawLine(
+                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        end = androidx.compose.ui.geometry.Offset(canvasWidth, canvasHeight),
+                        color = lineColor,
+                        strokeWidth = 2f
+                    )
+                }
                 Text(
-                    text = cell.clue.horizontalSum.toString(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
+                    text = cell.clue?.horizontalSum.toString(),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 2.dp)
                 )
-            }
-            if (cell.clue?.verticalSum != null) {
                 Text(
-                    text = cell.clue.verticalSum.toString(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
+                    text = cell.clue?.verticalSum.toString(),
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.BottomStart).padding(start = 4.dp, bottom = 2.dp)
                 )
+            } else if (hasHorizontal) {
+                // Only horizontal sum: Single number on the right side with arrow
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(end = 6.dp),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${cell.clue?.horizontalSum} ▶",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+            } else if (hasVertical) {
+                // Only vertical sum: Single number at the bottom side with arrow
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 4.dp),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "${cell.clue?.verticalSum}\n▼",
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontSize = 12.sp,
+                        lineHeight = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
         }
     } else {

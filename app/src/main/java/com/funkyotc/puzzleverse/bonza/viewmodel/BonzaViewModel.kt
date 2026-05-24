@@ -44,19 +44,23 @@ class BonzaViewModel(
     }
 
     private fun generatePuzzle(): BonzaPuzzle {
-        if (mode == "puzzle" && puzzleId != null) {
+        val basePuzzle = if (mode == "puzzle" && puzzleId != null) {
             val pregenerated = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)
             if (pregenerated != null) {
-                return pregenerated.toBonzaPuzzle()
+                pregenerated.toBonzaPuzzle()
+            } else {
+                val seed = kotlin.random.Random.nextLong()
+                puzzleGenerator.generate(seed)
             }
-        }
-        
-        val seed = if (mode == "daily") {
-            java.time.LocalDate.now().toEpochDay()
         } else {
-            kotlin.random.Random.nextLong()
+            val seed = if (mode == "daily") {
+                java.time.LocalDate.now().toEpochDay()
+            } else {
+                kotlin.random.Random.nextLong()
+            }
+            puzzleGenerator.generate(seed)
         }
-        return puzzleGenerator.generate(seed)
+        return initializePuzzle(basePuzzle)
     }
 
     fun hint() {
@@ -146,9 +150,24 @@ class BonzaViewModel(
             }
             
             if (!groupSnapped) {
-               // Optional: Visual bounce back or just leave it
+                // Snap the entire group to the nearest integer grid coordinates!
+                val leadFragment = draggedGroupFragments.firstOrNull()
+                if (leadFragment != null) {
+                    val currentPos = leadFragment.currentPosition
+                    val snappedX = Math.round(currentPos.x).toFloat()
+                    val snappedY = Math.round(currentPos.y).toFloat()
+                    val snapDelta = Offset(snappedX - currentPos.x, snappedY - currentPos.y)
+                    
+                    val updatedFragments = _puzzle.value.fragments.map { fragment ->
+                        if (fragment.groupId == groupId) {
+                            fragment.copy(currentPosition = fragment.currentPosition + snapDelta)
+                        } else {
+                            fragment
+                        }
+                    }
+                    _puzzle.value = _puzzle.value.copy(fragments = updatedFragments)
+                }
             }
-            
             
             checkWinCondition()
         }
@@ -275,5 +294,135 @@ class BonzaViewModel(
         if (mode == "daily") return // usually new game is disabled manually, but as fallback
         _isGameWon.value = false
         _puzzle.value = generatePuzzle()
+    }
+
+    private fun initializePuzzle(puzzle: BonzaPuzzle): BonzaPuzzle {
+        val random = kotlin.random.Random(puzzle.theme.hashCode().toLong())
+        
+        // 1. Calculate connections if empty
+        val connections = if (puzzle.connections.isEmpty()) {
+            calculateConnections(puzzle.fragments)
+        } else {
+            puzzle.connections
+        }
+        
+        // 2. Perform non-overlapping layout for fragments snapped to grid!
+        val laidOutFragments = layoutFragmentsWithoutOverlaps(puzzle.fragments, random)
+        
+        return puzzle.copy(
+            fragments = laidOutFragments,
+            connections = connections
+        )
+    }
+
+    private fun layoutFragmentsWithoutOverlaps(
+        fragments: List<WordFragment>,
+        random: kotlin.random.Random
+    ): List<WordFragment> {
+        val laidOut = mutableListOf<WordFragment>()
+        val sorted = fragments.sortedByDescending { it.text.length }
+        val placedBoxes = mutableListOf<Rect>()
+        
+        for (fragment in sorted) {
+            val w = if (fragment.direction == ConnectionDirection.HORIZONTAL) fragment.text.length else 1
+            val h = if (fragment.direction == ConnectionDirection.VERTICAL) fragment.text.length else 1
+            
+            var found = false
+            var attempts = 0
+            var targetX = 0f
+            var targetY = 0f
+            
+            while (!found && attempts < 1000) {
+                val rx = random.nextInt(0, 12).toFloat()
+                val ry = random.nextInt(0, 16).toFloat()
+                
+                val newRect = Rect(rx, ry, rx + w, ry + h)
+                val overlaps = placedBoxes.any { placed ->
+                    !(newRect.right <= placed.left || placed.right <= newRect.left ||
+                      newRect.bottom <= placed.top || placed.bottom <= newRect.top)
+                }
+                
+                if (!overlaps) {
+                    targetX = rx
+                    targetY = ry
+                    placedBoxes.add(newRect)
+                    found = true
+                }
+                attempts++
+            }
+            
+            if (!found) {
+                for (ry in 0..50) {
+                    for (rx in 0..50) {
+                        val fx = rx.toFloat()
+                        val fy = ry.toFloat()
+                        val newRect = Rect(fx, fy, fx + w, fy + h)
+                        val overlaps = placedBoxes.any { placed ->
+                            !(newRect.right <= placed.left || placed.right <= newRect.left ||
+                              newRect.bottom <= placed.top || placed.bottom <= newRect.top)
+                        }
+                        if (!overlaps) {
+                            targetX = fx
+                            targetY = fy
+                            placedBoxes.add(newRect)
+                            found = true
+                            break
+                        }
+                    }
+                    if (found) break
+                }
+            }
+            
+            laidOut.add(fragment.copy(
+                initialPosition = Offset(targetX, targetY),
+                currentPosition = Offset(targetX, targetY),
+                groupId = fragment.id
+            ))
+        }
+        
+        return laidOut
+    }
+
+    private fun calculateConnections(fragments: List<WordFragment>): List<BonzaConnection> {
+        val connections = mutableListOf<BonzaConnection>()
+        val gridOwners = mutableMapOf<Pair<Int, Int>, Int>()
+        
+        for (frag in fragments) {
+            val solvedX = frag.solvedPosition?.x?.toInt() ?: 0
+            val solvedY = frag.solvedPosition?.y?.toInt() ?: 0
+            for (i in frag.text.indices) {
+                val cx = solvedX + if (frag.direction == ConnectionDirection.HORIZONTAL) i else 0
+                val cy = solvedY + if (frag.direction == ConnectionDirection.VERTICAL) i else 0
+                gridOwners[Pair(cx, cy)] = frag.id
+            }
+        }
+        
+        for (frag in fragments) {
+            val solvedX = frag.solvedPosition?.x?.toInt() ?: 0
+            val solvedY = frag.solvedPosition?.y?.toInt() ?: 0
+            for (i in frag.text.indices) {
+                val cx = solvedX + if (frag.direction == ConnectionDirection.HORIZONTAL) i else 0
+                val cy = solvedY + if (frag.direction == ConnectionDirection.VERTICAL) i else 0
+                
+                val neighbors = listOf(
+                    Pair(cx + 1, cy) to ConnectionDirection.HORIZONTAL,
+                    Pair(cx - 1, cy) to ConnectionDirection.HORIZONTAL,
+                    Pair(cx, cy + 1) to ConnectionDirection.VERTICAL,
+                    Pair(cx, cy - 1) to ConnectionDirection.VERTICAL
+                )
+                
+                for ((nPos, dir) in neighbors) {
+                    val neighborId = gridOwners[nPos]
+                    if (neighborId != null && neighborId != frag.id) {
+                        if (frag.id < neighborId) {
+                            if (connections.none { it.fragment1Id == frag.id && it.fragment2Id == neighborId }) {
+                                connections.add(BonzaConnection(frag.id, neighborId, dir))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return connections
     }
 }

@@ -228,7 +228,11 @@ fun MinesweeperScreen(
                                                 detectTapGestures(
                                                     onTap = {
                                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        viewModel.revealCell(r, c)
+                                                        if (cell.isRevealed) {
+                                                            viewModel.revealNeighbors(r, c)
+                                                        } else {
+                                                            viewModel.revealCell(r, c)
+                                                        }
                                                     },
                                                     onLongPress = {
                                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -245,8 +249,8 @@ fun MinesweeperScreen(
                                                 Text(
                                                     text = cell.neighboringMines.toString(),
                                                     color = getNumberColor(cell.neighboringMines),
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 18.sp
+                                                    fontWeight = FontWeight.Black,
+                                                    fontSize = 20.sp
                                                 )
                                             }
                                         } else if (cell.isFlagged) {
@@ -265,14 +269,14 @@ fun MinesweeperScreen(
 
 fun getNumberColor(count: Int): Color {
     return when (count) {
-        1 -> Color.Blue
-        2 -> Color(0xFF388E3C) // Dark Green
-        3 -> Color.Red
-        4 -> Color(0xFF303F9F) // Dark Blue
-        5 -> Color(0xFF7B1FA2) // Purple
-        6 -> Color(0xFF0097A7) // Cyan
-        7 -> Color.Black
-        8 -> Color.DarkGray
+        1 -> Color(0xFF1976D2) // Vibrant Blue
+        2 -> Color(0xFF388E3C) // Vibrant Green
+        3 -> Color(0xFFD32F2F) // Vibrant Red
+        4 -> Color(0xFF7B1FA2) // Vibrant Purple
+        5 -> Color(0xFFFF5722) // Vibrant Orange
+        6 -> Color(0xFF0097A7) // Vibrant Teal
+        7 -> Color(0xFFE91E63) // Vibrant Pink
+        8 -> Color(0xFF4E342E) // Vibrant Brown
         else -> Color.Black
     }
 }

@@ -166,13 +166,7 @@ class FlowFreeViewModel(
             if (!p.path.contains(d.start) || !p.path.contains(d.end)) return false
         }
 
-        // 2. All grid cells must be covered by SOME path
-        var coveredCount = 0
-        for (p in paths) {
-            coveredCount += p.path.size
-        }
-        if (coveredCount != rows * cols) return false
-
+        // Grid coverage is optional; all dot connections are sufficient to complete!
         return true
     }
 }

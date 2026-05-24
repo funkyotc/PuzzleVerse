@@ -3,7 +3,10 @@ package com.funkyotc.puzzleverse.nonogram.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -181,58 +184,142 @@ fun NonogramScreen(
             verticalArrangement = Arrangement.Center
         ) {
             
-            // Draw Top Clues
-            Row(modifier = Modifier.fillMaxWidth().padding(start = 32.dp)) {
-                for (c in 0 until state.cols) {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (state.cols > 0 && state.rows > 0) {
+                    val availableWidth = maxWidth - 32.dp
+                    val availableHeight = maxHeight - 64.dp
+                    val gridWidthDp = minOf(availableWidth, availableHeight)
+
                     Column(
-                        modifier = Modifier.weight(1f).height(64.dp),
-                        verticalArrangement = Arrangement.Bottom,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.size(gridWidthDp + 32.dp, gridWidthDp + 64.dp)
                     ) {
-                        state.colClues[c].forEach { clue ->
-                            Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-            
-            // Draw Rows
-            Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                for (r in 0 until state.rows) {
-                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        // Left Clues
-                        Row(
-                            modifier = Modifier.width(32.dp).fillMaxHeight(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            state.rowClues[r].forEachIndexed { index, clue ->
-                                Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                if (index < state.rowClues[r].size - 1) Spacer(modifier = Modifier.width(2.dp))
+                        // Draw Top Clues
+                        Row(modifier = Modifier.fillMaxWidth().height(64.dp).padding(start = 32.dp)) {
+                            for (c in 0 until state.cols) {
+                                Column(
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                    verticalArrangement = Arrangement.Bottom,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    state.colClues[c].forEach { clue ->
+                                        Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
-                            Spacer(modifier = Modifier.width(2.dp))
                         }
-                        
-                        // Grid Cells
-                        for (c in 0 until state.cols) {
-                            val cellState = state.playerGrid[r][c]
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                                    .background(
-                                        if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface 
-                                        else MaterialTheme.colorScheme.surface
+
+                        // Draw Grid Container with Tap & Drag pointerInputs
+                        Column(
+                            modifier = Modifier
+                                .size(gridWidthDp + 32.dp, gridWidthDp)
+                                .pointerInput(gridWidthDp, isFillMode) {
+                                    detectTapGestures(
+                                        onTap = { offset ->
+                                            val cellWidthPx = (gridWidthDp.toPx()) / state.cols
+                                            val cellHeightPx = (gridWidthDp.toPx()) / state.rows
+                                            val gridX = offset.x - 32.dp.toPx()
+                                            val gridY = offset.y
+                                            val col = (gridX / cellWidthPx).toInt()
+                                            val row = (gridY / cellHeightPx).toInt()
+                                            if (row in 0 until state.rows && col in 0 until state.cols) {
+                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                viewModel.toggleCell(row, col, isFillAction = isFillMode)
+                                            }
+                                        }
                                     )
-                                    .clickable {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                        viewModel.toggleCell(r, c, isFillAction = isFillMode)
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (cellState == CellState.CROSSED) {
-                                    Text("X", color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                                .pointerInput(gridWidthDp, isFillMode) {
+                                    var dragActionState: CellState? = null
+                                    val cellsModifiedDuringDrag = mutableSetOf<Pair<Int, Int>>()
+                                    detectDragGestures(
+                                        onDragStart = { offset ->
+                                            val cellWidthPx = (gridWidthDp.toPx()) / state.cols
+                                            val cellHeightPx = (gridWidthDp.toPx()) / state.rows
+                                            val gridX = offset.x - 32.dp.toPx()
+                                            val gridY = offset.y
+                                            val col = (gridX / cellWidthPx).toInt()
+                                            val row = (gridY / cellHeightPx).toInt()
+                                            if (row in 0 until state.rows && col in 0 until state.cols) {
+                                                val current = state.playerGrid[row][col]
+                                                val targetModeState = if (isFillMode) CellState.FILLED else CellState.CROSSED
+                                                val target = if (current == targetModeState) CellState.EMPTY else targetModeState
+                                                
+                                                dragActionState = target
+                                                cellsModifiedDuringDrag.clear()
+                                                cellsModifiedDuringDrag.add(Pair(row, col))
+                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                viewModel.setCellState(row, col, target)
+                                            }
+                                        },
+                                        onDrag = { change, _ ->
+                                            change.consume()
+                                            if (dragActionState != null) {
+                                                val cellWidthPx = (gridWidthDp.toPx()) / state.cols
+                                                val cellHeightPx = (gridWidthDp.toPx()) / state.rows
+                                                val gridX = change.position.x - 32.dp.toPx()
+                                                val gridY = change.position.y
+                                                val col = (gridX / cellWidthPx).toInt()
+                                                val row = (gridY / cellHeightPx).toInt()
+                                                if (row in 0 until state.rows && col in 0 until state.cols) {
+                                                    val cellPair = Pair(row, col)
+                                                    if (!cellsModifiedDuringDrag.contains(cellPair)) {
+                                                        cellsModifiedDuringDrag.add(cellPair)
+                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                        viewModel.setCellState(row, col, dragActionState!!)
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            dragActionState = null
+                                            cellsModifiedDuringDrag.clear()
+                                        },
+                                        onDragCancel = {
+                                            dragActionState = null
+                                            cellsModifiedDuringDrag.clear()
+                                        }
+                                    )
+                                }
+                        ) {
+                            for (r in 0 until state.rows) {
+                                Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                    // Left Clues
+                                    Row(
+                                        modifier = Modifier.width(32.dp).fillMaxHeight(),
+                                        horizontalArrangement = Arrangement.End,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        state.rowClues[r].forEachIndexed { index, clue ->
+                                            Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            if (index < state.rowClues[r].size - 1) Spacer(modifier = Modifier.width(2.dp))
+                                        }
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                    }
+
+                                    // Grid Cells
+                                    for (c in 0 until state.cols) {
+                                        val cellState = state.playerGrid[r][c]
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                                .background(
+                                                    if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface 
+                                                    else MaterialTheme.colorScheme.surface
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (cellState == CellState.CROSSED) {
+                                                Text("X", color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
