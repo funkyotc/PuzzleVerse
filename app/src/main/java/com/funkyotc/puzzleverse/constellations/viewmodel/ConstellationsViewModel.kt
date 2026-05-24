@@ -55,7 +55,7 @@ class ConstellationsViewModel(
         }
     
         val seed = if (mode == "daily") {
-            LocalDate.now().toEpochDay()
+            LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
         } else {
             Random.nextLong()
         }

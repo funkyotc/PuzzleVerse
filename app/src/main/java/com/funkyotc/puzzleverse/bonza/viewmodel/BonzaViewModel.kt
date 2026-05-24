@@ -54,7 +54,7 @@ class BonzaViewModel(
             }
         } else {
             val seed = if (mode == "daily") {
-                java.time.LocalDate.now().toEpochDay()
+                java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
             } else {
                 kotlin.random.Random.nextLong()
             }
@@ -241,7 +241,7 @@ class BonzaViewModel(
 
         if (isSolved) {
             if (!_isGameWon.value && mode == "daily") {
-                val today = java.time.LocalDate.now().toEpochDay()
+                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
                 val streak = streakRepository.getStreak("bonza")
                 if (streak.lastCompletedEpochDay != today) {
                     val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1

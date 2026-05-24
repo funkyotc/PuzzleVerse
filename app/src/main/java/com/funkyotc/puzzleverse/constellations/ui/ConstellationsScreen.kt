@@ -110,7 +110,7 @@ fun ConstellationsScreen(
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
             } else if (mode == "daily") {
-                val today = java.time.LocalDate.now().toEpochDay()
+                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
                 val streak = streakRepository.getStreak("constellations")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

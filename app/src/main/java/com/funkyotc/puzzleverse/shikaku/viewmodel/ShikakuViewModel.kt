@@ -29,7 +29,7 @@ class ShikakuViewModel(
     private val generator = ShikakuGenerator(System.currentTimeMillis())
     private val repository = ShikakuRepository(context)
     private val completionRepo = PuzzleCompletionRepository(context, "Shikaku")
-    private val dailyChallengeSeed = LocalDate.now().toEpochDay()
+    private val dailyChallengeSeed = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
     private val boardKey = if (mode == "daily") "daily_shikaku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_shikaku_board"
 
     private val _board = MutableStateFlow(generateInitialBoard())
@@ -355,7 +355,7 @@ class ShikakuViewModel(
         }
 
         if (mode == "daily") {
-            val today = LocalDate.now().toEpochDay()
+            val today = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
             streakRepository?.getStreak("shikaku")?.let { streak ->
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

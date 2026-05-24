@@ -62,7 +62,7 @@ class FlowFreeViewModel(
             }
 
             val puzzle = if (mode == "daily") {
-                val today = java.time.LocalDate.now()
+                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                 val seed = today.toEpochDay()
                 FlowFreePuzzleLibrary.getDailyPuzzle(seed)
             } else {

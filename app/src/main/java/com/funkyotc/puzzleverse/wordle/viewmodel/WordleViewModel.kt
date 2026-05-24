@@ -29,7 +29,7 @@ class WordleViewModel(
         val emptyGuesses = List(6) { 
             WordleGuess(List(5) { WordleLetter(' ', LetterState.EMPTY) })
         }
-        val seed = if (mode == "daily") LocalDate.now().toEpochDay() else System.currentTimeMillis()
+        val seed = if (mode == "daily") LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay() else System.currentTimeMillis()
         val solution = dictionary.random(Random(seed))
         _wordleState.value = WordleState(
             guesses = emptyGuesses, 
@@ -140,7 +140,7 @@ class WordleViewModel(
             statsRepository.recordResult(won = true, guesses = currentState.currentGuessIndex + 1)
             
             if (mode == "daily") {
-                val today = LocalDate.now().toEpochDay()
+                val today = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
                 val streak = streakRepository.getStreak("wordle")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

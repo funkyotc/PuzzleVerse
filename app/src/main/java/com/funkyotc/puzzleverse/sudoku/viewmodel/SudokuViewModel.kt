@@ -24,7 +24,7 @@ class SudokuViewModel(
     private val generator = SudokuGenerator()
     private val repository = SudokuRepository(context)
     private val completionRepo = PuzzleCompletionRepository(context, "Sudoku")
-    private val dailyChallengeSeed = LocalDate.now().toEpochDay()
+    private val dailyChallengeSeed = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
     private val boardKey = if (mode == "daily") "daily_sudoku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_sudoku_board"
 
     private val _board: MutableStateFlow<SudokuBoard>
@@ -256,7 +256,7 @@ class SudokuViewModel(
             }
 
             if (mode == "daily") {
-                val today = LocalDate.now().toEpochDay()
+                val today = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
                 val streak = streakRepository.getStreak("sudoku")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(
