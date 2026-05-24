@@ -23,12 +23,20 @@ class NonogramViewModel(
     }
 
     fun startNewGame() {
-        val finalSolution = if (puzzleId != null) {
+        val baseSolution = if (puzzleId != null) {
             val pregen = com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES.find { it.id == puzzleId }
-            pregen?.grid ?: com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+            pregen?.grid
         } else {
-            com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle()
+            null
         }
+
+        val finalSolution = if (baseSolution != null && com.funkyotc.puzzleverse.nonogram.data.NonogramSolver.isSolvableWithoutGuessing(baseSolution)) {
+            baseSolution
+        } else {
+            val targetSize = baseSolution?.size ?: 10
+            com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle(targetSize)
+        }
+
         val rows = finalSolution.size
         val cols = if (rows > 0) finalSolution[0].size else 0
         
