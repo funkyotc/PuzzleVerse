@@ -5,7 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -60,7 +60,7 @@ import com.funkyotc.puzzleverse.core.audio.SoundManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConstellationsScreen(
-    navController: NavController, 
+    navController: NavController,
     mode: String? = "standard",
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
@@ -143,7 +143,13 @@ fun ConstellationsScreen(
         AlertDialog(
             onDismissRequest = { /* Do nothing, wait for user entry */ },
             title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle!") },
+            text = {
+                Column {
+                    Text(text = "You solved the puzzle!")
+                    Text(text = "Moves: $moveCount")
+                    Text(text = "Time: ${elapsedTime / 60}:${"%02d".format(elapsedTime % 60)}")
+                }
+            },
             confirmButton = {
                 if (mode == "daily") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -199,7 +205,7 @@ fun ConstellationsScreen(
             }
         )
     }
-    
+
     if (showNewGameDialog) {
         AlertDialog(
             onDismissRequest = { showNewGameDialog = false },
@@ -273,6 +279,7 @@ fun ConstellationsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             val timeFormatted = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
@@ -337,7 +344,12 @@ fun ConstellationsScreen(
                                             .weight(1f)
                                             .aspectRatio(1f)
                                             .background(regionColors[cell.regionId] ?: Color.LightGray)
-                                            .border(1.dp, Color.Black),
+                                            .border(1.dp, Color.Black)
+                                            .alpha(if (showErrorHighlight && cell.isAuto) 0.5f else 1.0f)
+                                            .border(
+                                                width = if (hintPosition != null && hintPosition.first == row && hintPosition.second == col) 3.dp else 0.dp,
+                                                color = Color.Yellow
+                                            ),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         when (cell.state) {

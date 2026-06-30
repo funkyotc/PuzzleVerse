@@ -1,17 +1,21 @@
 package com.funkyotc.puzzleverse.shapes.viewmodel
 
+import android.content.Context
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.shapes.generator.ShapesPuzzleGenerator
+import com.funkyotc.puzzleverse.shapes.model.PieceDefinition
 import com.funkyotc.puzzleverse.shapes.model.PuzzlePiece
 import com.funkyotc.puzzleverse.shapes.model.ShapesPuzzle
-import com.funkyotc.puzzleverse.shapes.model.TargetShape
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import kotlin.math.abs
 import kotlin.random.Random
 
 class ShapesViewModel(
@@ -122,16 +126,25 @@ class ShapesViewModel(
         currentLevel++
     }
 
+    /** Get current world-space vertices for a piece */
+    fun getPieceVertices(piece: PuzzlePiece): List<Offset> {
+        val def = pieceDefinitions[piece.definitionId] ?: return emptyList()
+        return GeometryUtils.transformPolygon(
+            def.localVertices,
+            piece.position,
+            piece.rotation,
+            isFlipped = piece.isFlipped
+        )
+    }
+
     fun movePiece(pieceId: Int, newPosition: Offset) {
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
 
-            val updatedPieces = currentPuzzle.pieces.map {
-                if (it.id == pieceId && !it.isLocked) {
-                    it.copy(position = newPosition)
-                } else {
-                    it
-                }
+            val updatedPieces = currentPuzzle.pieces.map { piece ->
+                if (piece.definitionId == pieceId && !piece.isLocked) {
+                    piece.copy(position = newPosition)
+                } else piece
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
         }
@@ -189,32 +202,27 @@ class ShapesViewModel(
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
 
-           val updatedPieces = currentPuzzle.pieces.map {
-                if (it.id == pieceId && !it.isLocked) {
-                    val newRotation = (it.rotation + angle) % 360f
-                    it.copy(rotation = newRotation)
-                } else {
-                    it
-                }
+            val updatedPieces = currentPuzzle.pieces.map { piece ->
+                if (piece.definitionId == pieceId && !piece.isLocked) {
+                    piece.copy(rotation = (piece.rotation + angle) % 360f)
+                } else piece
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
-            checkCompletion()
+            checkAndSnap()
         }
     }
-    
+
     fun flipPiece(pieceId: Int) {
-          _puzzle.value?.let { currentPuzzle ->
+        _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
 
-           val updatedPieces = currentPuzzle.pieces.map {
-                if (it.id == pieceId && !it.isLocked) {
-                    it.copy(isFlipped = !it.isFlipped)
-                } else {
-                    it
-                }
+            val updatedPieces = currentPuzzle.pieces.map { piece ->
+                if (piece.definitionId == pieceId && !piece.isLocked) {
+                    piece.copy(isFlipped = !piece.isFlipped)
+                } else piece
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
-            checkCompletion()
+            checkAndSnap()
         }
     }
 
@@ -274,14 +282,27 @@ class ShapesViewModel(
              }
         }
 
-        // 2. Check if ALL pieces are INSIDE the target
-        val allInside = currentPuzzle.pieces.all { piece ->
-            GeometryUtils.isPolygonInside(piece.currentVertices, currentPuzzle.target.vertices)
+        // Check all inside target
+        val target = _puzzle.value?.target ?: return
+        val allInside = pieces.all { piece ->
+            GeometryUtils.isPolygonInside(getPieceVertices(piece), target.vertices)
         }
 
         if (allInside) {
-             _isGameWon.value = true
-             _puzzle.value = currentPuzzle.copy(isComplete = true)
+            _isGameWon.value = true
+            _puzzle.value = _puzzle.value?.copy(isComplete = true)
+
+            if (mode == "daily") {
+                val today = LocalDate.now().toEpochDay()
+                val streak = streakRepository.getStreak("shapes")
+                if (streak.lastCompletedEpochDay != today) {
+                    val newStreak = streak.copy(
+                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                        lastCompletedEpochDay = today
+                    )
+                    streakRepository.saveStreak(newStreak)
+                }
+            }
         }
     }
 }

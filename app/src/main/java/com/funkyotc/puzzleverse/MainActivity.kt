@@ -133,6 +133,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 navArgument("mode") { type = NavType.StringType }
             )
         ) { backStackEntry ->
+            val context = LocalContext.current
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
 

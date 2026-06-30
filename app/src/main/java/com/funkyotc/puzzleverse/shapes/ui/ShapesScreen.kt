@@ -1,5 +1,6 @@
 package com.funkyotc.puzzleverse.shapes.ui
 
+import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -27,7 +29,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,7 +72,7 @@ import com.funkyotc.puzzleverse.core.audio.SoundManager
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShapesScreen(
-    navController: NavController, 
+    navController: NavController,
     mode: String? = "standard",
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
@@ -162,9 +169,9 @@ fun ShapesScreen(
 
     if (isGameWon) {
         AlertDialog(
-            onDismissRequest = { viewModel.loadNewPuzzle() },
+            onDismissRequest = { /* wait for button */ },
             title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle! All pieces fit perfectly.") },
+            text = { Text(text = "You solved the puzzle! All 7 pieces fit perfectly.") },
             confirmButton = {
                 if (mode == "daily") {
                     androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
@@ -222,18 +229,18 @@ fun ShapesScreen(
             }
         )
     }
-    
+
     if (showNewGameDialog) {
         AlertDialog(
             onDismissRequest = { showNewGameDialog = false },
             title = { Text("New Puzzle") },
-            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
+            text = { Text("Start a new puzzle? Your current progress will be lost.") },
             confirmButton = {
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     viewModel.loadNewPuzzle()
                     showNewGameDialog = false
-                    selectedPieceId = null // Deselect on new game
+                    selectedPieceId = null
                 }) {
                     Text("Confirm")
                 }
@@ -543,7 +550,44 @@ fun ShapesScreen(
                         }
                     }
                 }
+
+                // Lock indicator overlay (shows how many pieces placed)
+                val lockedCount = puzzleState.pieces.count { it.isLocked }
+                if (lockedCount > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "$lockedCount / ${puzzleState.pieces.size}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+private fun buildPolyPath(vertices: List<androidx.compose.ui.geometry.Offset>): androidx.compose.ui.graphics.Path {
+    return androidx.compose.ui.graphics.Path().apply {
+        if (vertices.isEmpty()) return@apply
+        moveTo(vertices.first().x, vertices.first().y)
+        vertices.drop(1).forEach { lineTo(it.x, it.y) }
+        close()
     }
 }
