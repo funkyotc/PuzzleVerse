@@ -400,19 +400,29 @@ fun CubeShooterScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (i in 0 until 5) {
-                                if (i < state.storageTray.size) {
-                                    val tank = state.storageTray[i]
-                                    val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(
-                                                getComposeColor(tank.color).copy(
-                                                    alpha = if (isDispatchEnabled) 1f else 0.4f
-                                                )
-                                            )
-                                            .clickable(enabled = isDispatchEnabled) {
+                                 if (i < state.storageTray.size) {
+                                     val tank = state.storageTray[i]
+                                     val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
+                                     val borderModifier = if (isDispatchEnabled) {
+                                         Modifier.border(
+                                             width = 2.dp,
+                                             color = MaterialTheme.colorScheme.primary,
+                                             shape = RoundedCornerShape(6.dp)
+                                         )
+                                     } else {
+                                         Modifier
+                                     }
+                                     Box(
+                                         modifier = Modifier
+                                             .size(40.dp)
+                                             .then(borderModifier)
+                                             .clip(RoundedCornerShape(6.dp))
+                                             .background(
+                                                 getComposeColor(tank.color).copy(
+                                                     alpha = if (isDispatchEnabled) 1f else 0.4f
+                                                 )
+                                             )
+                                             .clickable(enabled = isDispatchEnabled) {
                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                 viewModel.dispatchFromStorage(i)
                                             },

@@ -53,34 +53,49 @@ def main():
     sb.append("")
     sb.append("object CubeShooterPregenerated {")
     sb.append("")
+
+    # Chunk size of 5 levels to safely avoid JVM MethodTooLargeException
+    chunk_size = 5
+    chunks_count = (len(all_levels) + chunk_size - 1) // chunk_size
+
+    for chunk_idx in range(chunks_count):
+        start = chunk_idx * chunk_size
+        end = min(start + chunk_size, len(all_levels))
+        chunk_levels = all_levels[start:end]
+
+        sb.append(f"    private fun getChunk{chunk_idx}(): List<PregeneratedLevel> {{")
+        sb.append("        return listOf(")
+
+        for p in chunk_levels:
+            sb.append(
+                f'            PregeneratedLevel("{p["id"]}", "{p["difficulty"]}", '
+                f'{p["cols"]}, {p["rows"]}, listOf('
+            )
+            rows = p["grid"]
+            for r_idx, row in enumerate(rows):
+                sb.append("                listOf(")
+                cells = []
+                for v in row:
+                    cells.append("null" if v is None else str(v))
+                sb.append("                    " + ", ".join(cells))
+                sb.append(
+                    "                )" + ("," if r_idx < len(rows) - 1 else "")
+                )
+            sb.append("            ), listOf(")
+            tray = p["tray"]
+            for t_idx, t in enumerate(tray):
+                sb.append(
+                    f'                Tank({t["color"]}, {t["ammo"]})'
+                    + ("," if t_idx < len(tray) - 1 else "")
+                )
+            sb.append("            )),")
+
+        sb.append("        )")
+        sb.append("    }")
+        sb.append("")
+
     sb.append("    val ALL_LEVELS: List<PregeneratedLevel> by lazy {")
-    sb.append("        listOf(")
-
-    for p in all_levels:
-        sb.append(
-            f'            PregeneratedLevel("{p["id"]}", "{p["difficulty"]}", '
-            f'{p["cols"]}, {p["rows"]}, listOf('
-        )
-        rows = p["grid"]
-        for r_idx, row in enumerate(rows):
-            sb.append("                listOf(")
-            cells = []
-            for v in row:
-                cells.append("null" if v is None else str(v))
-            sb.append("                    " + ", ".join(cells))
-            sb.append(
-                "                )" + ("," if r_idx < len(rows) - 1 else "")
-            )
-        sb.append("            ), listOf(")
-        tray = p["tray"]
-        for t_idx, t in enumerate(tray):
-            sb.append(
-                f'                Tank({t["color"]}, {t["ammo"]})'
-                + ("," if t_idx < len(tray) - 1 else "")
-            )
-        sb.append("            )),")
-
-    sb.append("        )")
+    sb.append("        " + " + ".join(f"getChunk{i}()" for i in range(chunks_count)))
     sb.append("    }")
     sb.append("")
     sb.append(
@@ -92,7 +107,7 @@ def main():
     with open(target, "w", encoding="utf-8") as f:
         f.write("\n".join(sb))
 
-    print(f"Baked {len(all_levels)} Cube Shooter levels into {target}")
+    print(f"Baked {len(all_levels)} Cube Shooter levels in chunked methods into {target}")
 
 
 if __name__ == "__main__":
