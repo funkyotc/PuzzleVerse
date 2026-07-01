@@ -60,39 +60,193 @@ class CubeShooterViewModel(
 
         val cubesRemaining = level.grid.sumOf { row -> row.count { it != null } }
 
+        val numCols = 3
+        val sourceCols = List(numCols) { mutableListOf<Tank>() }
+        level.tray.forEachIndexed { index, tank ->
+            sourceCols[index % numCols].add(tank)
+        }
+
         _state.value = CubeShooterState(
             level = level,
-            tray = level.tray,
+            sourceColumns = sourceCols,
+            storageTray = emptyList(),
             track = emptyList(),
             cubesRemaining = cubesRemaining,
             score = 0,
             isWon = false,
-            isGameOver = false
+            isGameOver = false,
+            projectiles = emptyList(),
+            fadingCubes = emptyList()
         )
     }
 
-    fun dispatch(tankIndex: Int) {
+    fun dispatchFromSource(colIndex: Int) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
         if (currentState.track.size >= 5) return
-        if (tankIndex !in currentState.tray.indices) return
+        if (colIndex !in currentState.sourceColumns.indices) return
 
-        val tankToDispatch = currentState.tray[tankIndex]
+        val column = currentState.sourceColumns[colIndex]
+        if (column.isEmpty()) return
+
+        val tankToDispatch = column.last()
         if (tankToDispatch.ammo <= 0) return
 
-        val updatedTray = currentState.tray.toMutableList()
-        updatedTray.removeAt(tankIndex)
+        val updatedSourceColumns = currentState.sourceColumns.map { it.toMutableList() }
+        updatedSourceColumns[colIndex].removeAt(column.lastIndex)
+
+        val bottomMiddleIndex = getBottomMiddleTrackIndex(currentState.level.cols, currentState.level.rows)
+
+        // Immediate fire check on the start cell upon dispatch
+        val (finalTank, updatedGrid, fireResult) = checkImmediateFireOnDispatch(
+            tank = tankToDispatch,
+            bottomMiddleIndex = bottomMiddleIndex,
+            cols = currentState.level.cols,
+            rows = currentState.level.rows,
+            grid = currentState.level.grid,
+            projectiles = currentState.projectiles,
+            fadingCubes = currentState.fadingCubes,
+            score = currentState.score,
+            cubesRemaining = currentState.cubesRemaining
+        )
 
         val updatedTrack = currentState.track.toMutableList()
-        updatedTrack.add(TrackTank(tank = tankToDispatch, position = 0f))
+        updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+
+        val isWon = fireResult.cubesRemaining == 0
+        val sourceIsEmpty = updatedSourceColumns.all { col -> col.isEmpty() }
+        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo }
+        val isGameOver = currentState.storageTray.size > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && fireResult.cubesRemaining > 0)
 
         _state.update {
             it?.copy(
-                tray = updatedTray,
-                track = updatedTrack
+                level = currentState.level.copy(grid = updatedGrid),
+                sourceColumns = updatedSourceColumns,
+                track = updatedTrack,
+                cubesRemaining = fireResult.cubesRemaining,
+                score = fireResult.score,
+                projectiles = fireResult.projectiles,
+                fadingCubes = fireResult.fadingCubes,
+                isWon = isWon,
+                isGameOver = isGameOver
             )
         }
     }
+
+    fun dispatchFromStorage(index: Int) {
+        val currentState = _state.value ?: return
+        if (currentState.isWon || currentState.isGameOver) return
+        if (currentState.track.size >= 5) return
+        if (index !in currentState.storageTray.indices) return
+
+        val tankToDispatch = currentState.storageTray[index]
+        if (tankToDispatch.ammo <= 0) return
+
+        val updatedStorage = currentState.storageTray.toMutableList()
+        updatedStorage.removeAt(index)
+
+        val bottomMiddleIndex = getBottomMiddleTrackIndex(currentState.level.cols, currentState.level.rows)
+
+        // Immediate fire check on the start cell upon dispatch
+        val (finalTank, updatedGrid, fireResult) = checkImmediateFireOnDispatch(
+            tank = tankToDispatch,
+            bottomMiddleIndex = bottomMiddleIndex,
+            cols = currentState.level.cols,
+            rows = currentState.level.rows,
+            grid = currentState.level.grid,
+            projectiles = currentState.projectiles,
+            fadingCubes = currentState.fadingCubes,
+            score = currentState.score,
+            cubesRemaining = currentState.cubesRemaining
+        )
+
+        val updatedTrack = currentState.track.toMutableList()
+        updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+
+        val isWon = fireResult.cubesRemaining == 0
+        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
+        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo }
+        val isGameOver = updatedStorage.size > 5 || (sourceIsEmpty && updatedStorage.isEmpty() && totalAmmoOnTrack == 0 && fireResult.cubesRemaining > 0)
+
+        _state.update {
+            it?.copy(
+                level = currentState.level.copy(grid = updatedGrid),
+                storageTray = updatedStorage,
+                track = updatedTrack,
+                cubesRemaining = fireResult.cubesRemaining,
+                score = fireResult.score,
+                projectiles = fireResult.projectiles,
+                fadingCubes = fireResult.fadingCubes,
+                isWon = isWon,
+                isGameOver = isGameOver
+            )
+        }
+    }
+
+    private fun checkImmediateFireOnDispatch(
+        tank: Tank,
+        bottomMiddleIndex: Int,
+        cols: Int,
+        rows: Int,
+        grid: List<List<Int?>>,
+        projectiles: List<Projectile>,
+        fadingCubes: List<FadingCube>,
+        score: Int,
+        cubesRemaining: Int
+    ): Triple<Tank, List<List<Int?>>, FireDispatchResult> {
+        val currentGrid = grid.map { it.toMutableList() }.toMutableList()
+        val updatedProjectiles = projectiles.toMutableList()
+        val updatedFadingCubes = fadingCubes.toMutableList()
+        var updatedScore = score
+        var updatedCubesRemaining = cubesRemaining
+        var updatedTank = tank
+
+        val targetCoords = getFacingCell(bottomMiddleIndex, cols, rows)
+        if (targetCoords != null) {
+            val (tr, tc) = findFirstCube(currentGrid, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows)
+            if (tr != null && tc != null) {
+                val cubeColor = currentGrid[tr][tc]
+                if (cubeColor == updatedTank.color && updatedTank.ammo > 0) {
+                    currentGrid[tr][tc] = null
+                    updatedCubesRemaining = currentGrid.sumOf { r -> r.count { it != null } }
+                    updatedTank = updatedTank.copy(ammo = updatedTank.ammo - 1)
+                    updatedScore += 10
+
+                    updatedFadingCubes.add(FadingCube(tr, tc, cubeColor, 0f))
+                    val tankCoord = getTrackCellCoordinates(bottomMiddleIndex, cols, rows)
+                    updatedProjectiles.add(
+                        Projectile(
+                            id = java.util.UUID.randomUUID().toString(),
+                            startCol = tankCoord.second.toFloat(),
+                            startRow = tankCoord.first.toFloat(),
+                            endCol = tc + 1f,
+                            endRow = tr + 1f,
+                            color = cubeColor,
+                            progress = 0f
+                        )
+                    )
+                }
+            }
+        }
+
+        return Triple(
+            updatedTank,
+            currentGrid,
+            FireDispatchResult(
+                projectiles = updatedProjectiles,
+                fadingCubes = updatedFadingCubes,
+                score = updatedScore,
+                cubesRemaining = updatedCubesRemaining
+            )
+        )
+    }
+
+    private data class FireDispatchResult(
+        val projectiles: List<Projectile>,
+        val fadingCubes: List<FadingCube>,
+        val score: Int,
+        val cubesRemaining: Int
+    )
 
     fun tick(dtMs: Long) {
         val currentState = _state.value ?: return
@@ -112,11 +266,23 @@ class CubeShooterViewModel(
         val updatedTrack = mutableListOf<TrackTank>()
         val returnedTanks = mutableListOf<Tank>()
 
+        // Update existing fading cubes & projectiles progress
+        val updatedProjectiles = currentState.projectiles.map {
+            it.copy(progress = it.progress + dtMs.toFloat() / 200f)
+        }.filter { it.progress < 1f }.toMutableList()
+
+        val updatedFadingCubes = currentState.fadingCubes.map {
+            it.copy(progress = it.progress + dtMs.toFloat() / 250f)
+        }.filter { it.progress < 1f }.toMutableList()
+
+        val bottomMiddleIndex = getBottomMiddleTrackIndex(cols, rows)
+
         for (trackTank in currentState.track) {
             val oldPos = trackTank.position
             val newPos = oldPos + movement
 
-            if (newPos >= loopLen) {
+            // Complete loop if they have gone a full loop length starting from bottom-middle index
+            if (newPos >= bottomMiddleIndex + loopLen) {
                 if (trackTank.tank.ammo > 0) {
                     returnedTanks.add(trackTank.tank)
                 }
@@ -139,6 +305,23 @@ class CubeShooterViewModel(
                                 val updatedTank = tankToKeep.tank.copy(ammo = tankToKeep.tank.ammo - 1)
                                 tankToKeep = tankToKeep.copy(tank = updatedTank)
                                 score += 10
+
+                                // Add fading cube
+                                updatedFadingCubes.add(FadingCube(tr, tc, cubeColor, 0f))
+
+                                // Calculate firing position of tank
+                                val tankCoord = getTrackCellCoordinates(cellIdx, cols, rows)
+                                updatedProjectiles.add(
+                                    Projectile(
+                                        id = java.util.UUID.randomUUID().toString(),
+                                        startCol = tankCoord.second.toFloat(),
+                                        startRow = tankCoord.first.toFloat(),
+                                        endCol = tc + 1f,
+                                        endRow = tr + 1f,
+                                        color = cubeColor,
+                                        progress = 0f
+                                    )
+                                )
                             }
                         }
                     }
@@ -147,14 +330,16 @@ class CubeShooterViewModel(
             }
         }
 
-        val updatedTray = currentState.tray.toMutableList()
+        val updatedStorageTray = currentState.storageTray.toMutableList()
         for (t in returnedTanks) {
-            updatedTray.add(t)
+            updatedStorageTray.add(t)
         }
 
         val isWon = cubesRemaining == 0
-        // Lose when tray overflows (> 5) OR if the tray is empty AND track is empty AND there are cubes left
-        val isGameOver = updatedTray.size > 5 || (updatedTray.isEmpty() && updatedTrack.isEmpty() && cubesRemaining > 0)
+        // Lose when storage tray overflows (> 5) OR if the columns, tray, and track are all out of ammo and cubes remain
+        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
+        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo }
+        val isGameOver = updatedStorageTray.size > 5 || (sourceIsEmpty && updatedStorageTray.isEmpty() && totalAmmoOnTrack == 0 && cubesRemaining > 0)
 
         if (isWon && !currentState.isWon && mode == "daily") {
             val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
@@ -173,13 +358,61 @@ class CubeShooterViewModel(
         _state.update {
             it?.copy(
                 level = level.copy(grid = currentGrid),
-                tray = updatedTray,
+                sourceColumns = currentState.sourceColumns,
+                storageTray = updatedStorageTray,
                 track = updatedTrack,
                 cubesRemaining = cubesRemaining,
                 score = score,
                 isWon = isWon,
-                isGameOver = isGameOver
+                isGameOver = isGameOver,
+                projectiles = updatedProjectiles,
+                fadingCubes = updatedFadingCubes
             )
+        }
+    }
+
+    private fun getBottomMiddleTrackIndex(cols: Int, rows: Int): Int {
+        val middleCol = (cols + 1) / 2
+        return getTrackIndex(rows + 1, middleCol, cols, rows)
+    }
+
+    private fun getTrackIndex(r: Int, c: Int, cols: Int, rows: Int): Int {
+        return when {
+            r == 0 && c in 1..cols -> {
+                c - 1
+            }
+            r in 1..rows && c == cols + 1 -> {
+                cols + (r - 1)
+            }
+            r == rows + 1 && c in 1..cols -> {
+                (cols + rows) + (cols - c)
+            }
+            r in 1..rows && c == 0 -> {
+                (2 * cols + rows) + (rows - r)
+            }
+            else -> -1
+        }
+    }
+
+    private fun getTrackCellCoordinates(index: Int, cols: Int, rows: Int): Pair<Int, Int> {
+        val loopLen = 2 * (cols + rows)
+        val idx = (index % loopLen + loopLen) % loopLen
+        return when {
+            idx < cols -> {
+                Pair(0, idx + 1)
+            }
+            idx < cols + rows -> {
+                val r = idx - cols + 1
+                Pair(r, cols + 1)
+            }
+            idx < 2 * cols + rows -> {
+                val c = cols - (idx - (cols + rows))
+                Pair(rows + 1, c)
+            }
+            else -> {
+                val r = rows - (idx - (2 * cols + rows))
+                Pair(r, 0)
+            }
         }
     }
 

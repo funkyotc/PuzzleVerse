@@ -20,12 +20,32 @@ data class Level(
     val tray: List<Tank>
 )
 
+data class Projectile(
+    val id: String,
+    val startCol: Float,
+    val startRow: Float,
+    val endCol: Float,
+    val endRow: Float,
+    val color: Int,
+    val progress: Float
+)
+
+data class FadingCube(
+    val row: Int,
+    val col: Int,
+    val color: Int,
+    val progress: Float
+)
+
 data class CubeShooterState(
     val level: Level,
-    val tray: List<Tank>,
+    val sourceColumns: List<List<Tank>>,
+    val storageTray: List<Tank>,
     val track: List<TrackTank>,
     val cubesRemaining: Int,
     val score: Int = 0,
     val isWon: Boolean = false,
-    val isGameOver: Boolean = false
+    val isGameOver: Boolean = false,
+    val projectiles: List<Projectile> = emptyList(),
+    val fadingCubes: List<FadingCube> = emptyList()
 )

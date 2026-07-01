@@ -23,6 +23,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import com.funkyotc.puzzleverse.cubeshooter.data.Tank
 import com.funkyotc.puzzleverse.cubeshooter.data.TrackTank
 import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModel
@@ -216,48 +220,26 @@ fun CubeShooterScreen(
                     maxHeight / totalRows
                 )
 
-                Column(
-                    modifier = Modifier.wrapContentSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    for (r in 0 until totalRows) {
-                        Row(modifier = Modifier.wrapContentSize()) {
-                            for (c in 0 until totalCols) {
-                                val isTrack = isTrackCell(r, c, cols, rows)
-                                val trackIndex = if (isTrack) getTrackIndex(r, c, cols, rows) else -1
-                                val isCube = r in 1..rows && c in 1..cols
+                Box(modifier = Modifier.wrapContentSize()) {
+                    // 1. Static Grid: Track empty backgrounds and active cubes
+                    Column(
+                        modifier = Modifier.wrapContentSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        for (r in 0 until totalRows) {
+                            Row(modifier = Modifier.wrapContentSize()) {
+                                for (c in 0 until totalCols) {
+                                    val isTrack = isTrackCell(r, c, cols, rows)
+                                    val isCube = r in 1..rows && c in 1..cols
 
-                                Box(
-                                    modifier = Modifier
-                                        .size(cellSize)
-                                        .padding(1.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isTrack) {
-                                        // Find if there is a tank on this track cell
-                                        val tanksAtCell = state.track.filter {
-                                            it.position.toInt() % (2 * (cols + rows)) == trackIndex
-                                        }
-
-                                        if (tanksAtCell.isNotEmpty()) {
-                                            // Render tank
-                                            val tank = tanksAtCell.first()
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape)
-                                                    .background(getComposeColor(tank.tank.color)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = tank.tank.ammo.toString(),
-                                                    color = Color.White,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = (cellSize.value * 0.45f).sp
-                                                )
-                                            }
-                                        } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(cellSize)
+                                            .padding(1.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isTrack) {
                                             // Render track background with directions
                                             val directionArrow = getTrackArrow(r, c, cols, rows)
                                             Box(
@@ -274,19 +256,99 @@ fun CubeShooterScreen(
                                                     fontWeight = FontWeight.Bold
                                                 )
                                             }
-                                        }
-                                    } else if (isCube) {
-                                        val cubeColorId = state.level.grid[r - 1][c - 1]
-                                        if (cubeColorId != null) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(getComposeColor(cubeColorId))
-                                            )
+                                        } else if (isCube) {
+                                            val cubeColorId = state.level.grid[r - 1][c - 1]
+                                            if (cubeColorId != null) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(getComposeColor(cubeColorId))
+                                                )
+                                            } else {
+                                                // Check for Fading/Exploding Cubes
+                                                val fadingCube = state.fadingCubes.find { it.row == r - 1 && it.col == c - 1 }
+                                                if (fadingCube != null) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .scale(1f - fadingCube.progress)
+                                                            .alpha(1f - fadingCube.progress)
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(getComposeColor(fadingCube.color))
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // 2. Projectiles Canvas (Lasers / Bullets)
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        state.projectiles.forEach { p ->
+                            val currCol = p.startCol + (p.endCol - p.startCol) * p.progress
+                            val currRow = p.startRow + (p.endRow - p.startRow) * p.progress
+
+                            val x = (currCol + 0.5f) * cellSize.toPx()
+                            val y = (currRow + 0.5f) * cellSize.toPx()
+
+                            drawCircle(
+                                color = getComposeColor(p.color),
+                                radius = cellSize.toPx() * 0.15f,
+                                center = Offset(x, y)
+                            )
+
+                            val startX = (p.startCol + 0.5f) * cellSize.toPx()
+                            val startY = (p.startRow + 0.5f) * cellSize.toPx()
+                            drawLine(
+                                color = getComposeColor(p.color).copy(alpha = 0.6f * (1f - p.progress)),
+                                start = Offset(startX, startY),
+                                end = Offset(x, y),
+                                strokeWidth = 3.dp.toPx()
+                            )
+                        }
+                    }
+
+                    // 3. Smoothly Animated Tanks Overlay
+                    val loopLen = 2 * (cols + rows)
+                    state.track.forEach { trackTank ->
+                        val pos = trackTank.position
+                        val idx1 = pos.toInt() % loopLen
+                        val idx2 = (idx1 + 1) % loopLen
+                        val fraction = pos - pos.toInt()
+
+                        val coord1 = getTrackCellCoordinates(idx1, cols, rows)
+                        val coord2 = getTrackCellCoordinates(idx2, cols, rows)
+
+                        val r = coord1.first + (coord2.first - coord1.first) * fraction
+                        val c = coord1.second + (coord2.second - coord1.second) * fraction
+
+                        val xOffset = c * cellSize.value
+                        val yOffset = r * cellSize.value
+
+                        Box(
+                            modifier = Modifier
+                                .size(cellSize)
+                                .offset(x = xOffset.dp, y = yOffset.dp)
+                                .padding(1.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(getComposeColor(trackTank.tank.color)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = trackTank.tank.ammo.toString(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = (cellSize.value * 0.45f).sp
+                                )
                             }
                         }
                     }
@@ -295,69 +357,164 @@ fun CubeShooterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Bottom Tray Section
-            Card(
+            // Bottom Section (Storage Tray on Left, Source Columns on Right)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .height(130.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
+                // Left Card: Storage Tray (Max 5)
+                Card(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Text(
-                        text = "Tanks Tray (Max 5)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (state.tray.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text(
-                            text = "No tanks in tray",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            text = "Storage (Max 5)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
                         )
-                    } else {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            state.tray.forEachIndexed { index, tank ->
-                                val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
-                                Box(
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            getComposeColor(tank.color).copy(
-                                                alpha = if (isDispatchEnabled) 1f else 0.4f
+
+                        if (state.storageTray.isEmpty()) {
+                            Box(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Empty",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                state.storageTray.forEachIndexed { index, tank ->
+                                    val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                getComposeColor(tank.color).copy(
+                                                    alpha = if (isDispatchEnabled) 1f else 0.4f
+                                                )
                                             )
-                                        )
-                                        .clickable(enabled = isDispatchEnabled) {
-                                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                            viewModel.dispatch(index)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            .clickable(enabled = isDispatchEnabled) {
+                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                viewModel.dispatchFromStorage(index)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Text(
-                                            text = "A: ${tank.ammo}",
+                                            text = "A:${tank.ammo}",
                                             color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
-                                        )
-                                        Text(
-                                            text = "TAP",
-                                            color = Color.White.copy(alpha = 0.8f),
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 9.sp
                                         )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Right Card: Incoming Columns (Top tank accessible)
+                Card(
+                    modifier = Modifier
+                        .weight(1.2f)
+                        .fillMaxHeight(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Source Columns",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Row(
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            state.sourceColumns.forEachIndexed { colIndex, colTanks ->
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxHeight()
+                                ) {
+                                    if (colTanks.isEmpty()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .background(Color.Transparent),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), fontSize = 10.sp)
+                                        }
+                                    } else {
+                                        // Show up to 3 tanks vertically from bottom to top
+                                        val displayList = colTanks.takeLast(3)
+                                        val totalCount = colTanks.size
+                                        
+                                        if (totalCount > 3) {
+                                            Text(
+                                                text = "+${totalCount - 3}",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                                fontSize = 8.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        
+                                        for (i in displayList.indices.reversed()) {
+                                            val tank = displayList[i]
+                                            val isTop = (i == displayList.lastIndex)
+                                            val isDispatchEnabled = isTop && state.track.size < 5
+                                            
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(
+                                                        getComposeColor(tank.color).copy(
+                                                            alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
+                                                        )
+                                                    )
+                                                    .clickable(enabled = isDispatchEnabled) {
+                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                        viewModel.dispatchFromSource(colIndex)
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = tank.ammo.toString(),
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 9.sp
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -411,5 +568,27 @@ private fun getComposeColor(colorId: Int?): Color {
         2 -> Color(0xFFFBC02D) // Yellow
         3 -> Color(0xFF43A047) // Green
         else -> Color.Transparent
+    }
+}
+
+private fun getTrackCellCoordinates(index: Int, cols: Int, rows: Int): Pair<Int, Int> {
+    val loopLen = 2 * (cols + rows)
+    val idx = (index % loopLen + loopLen) % loopLen
+    return when {
+        idx < cols -> {
+            Pair(0, idx + 1)
+        }
+        idx < cols + rows -> {
+            val r = idx - cols + 1
+            Pair(r, cols + 1)
+        }
+        idx < 2 * cols + rows -> {
+            val c = cols - (idx - (cols + rows))
+            Pair(rows + 1, c)
+        }
+        else -> {
+            val r = rows - (idx - (2 * cols + rows))
+            Pair(r, 0)
+        }
     }
 }
