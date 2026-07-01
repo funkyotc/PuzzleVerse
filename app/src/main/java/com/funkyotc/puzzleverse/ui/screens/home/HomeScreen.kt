@@ -64,9 +64,9 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
             TopAppBar(
                 title = { Text("PuzzleVerse") },
                 actions = {
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("settings") 
+                        navController.navigate("settings")
                     }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }
@@ -80,7 +80,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
             contentPadding = PaddingValues(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) { 
+        ) {
             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "Daily Challenges",
@@ -108,7 +108,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     }
                 }
             }
-            
+
             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "All Puzzles",

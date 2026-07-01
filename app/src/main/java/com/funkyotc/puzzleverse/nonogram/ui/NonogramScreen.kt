@@ -66,7 +66,8 @@ fun NonogramScreen(
             confirmButton = {
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false }) { Text("OK") }
+                    showHowToDialog = false
+                }) { Text("OK") }
             }
         )
     }
@@ -118,7 +119,8 @@ fun NonogramScreen(
                 } else {
                     Button(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame() }) { Text("Play Again") }
+                        viewModel.startNewGame()
+                    }) { Text("Play Again") }
                 }
             }
         )
@@ -139,7 +141,8 @@ fun NonogramScreen(
             dismissButton = {
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false }) { Text("Cancel") }
+                    showNewGameDialog = false
+                }) { Text("Cancel") }
             }
         )
     }
@@ -183,7 +186,7 @@ fun NonogramScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            
+
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
@@ -248,7 +251,7 @@ fun NonogramScreen(
                                                 val current = state.playerGrid[row][col]
                                                 val targetModeState = if (isFillMode) CellState.FILLED else CellState.CROSSED
                                                 val target = if (current == targetModeState) CellState.EMPTY else targetModeState
-                                                
+
                                                 dragActionState = target
                                                 cellsModifiedDuringDrag.clear()
                                                 cellsModifiedDuringDrag.add(Pair(row, col))
@@ -310,7 +313,7 @@ fun NonogramScreen(
                                                 .fillMaxHeight()
                                                 .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                                                 .background(
-                                                    if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface 
+                                                    if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface
                                                     else MaterialTheme.colorScheme.surface
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -326,38 +329,38 @@ fun NonogramScreen(
                     }
                 }
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Interaction Mode Toggle (for mobile)
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(
-                    onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        isFillMode = true
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text("Fill")
-                }
-                Button(
-                    onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        isFillMode = false
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (!isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = if (!isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text("Cross (X)")
-                }
-            }
-            
-            Text("Tip: Click a cell again to make it empty.", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Interaction Mode Toggle (for mobile)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Button(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    isFillMode = true
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text("Fill")
+            }
+            Button(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    isFillMode = false
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (!isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (!isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text("Cross (X)")
+            }
+        }
+
+        Text("Tip: Click a cell again to make it empty.", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }

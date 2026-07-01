@@ -39,11 +39,11 @@ class NonogramViewModel(
 
         val rows = finalSolution.size
         val cols = if (rows > 0) finalSolution[0].size else 0
-        
+
         val player = List(rows) { List(cols) { CellState.EMPTY } }
-        
+
         val rowClues = finalSolution.map { calculateClues(it) }
-        
+
         val colClues = mutableListOf<List<Int>>()
         for (c in 0 until cols) {
             val colList = finalSolution.map { it[c] }
@@ -59,7 +59,7 @@ class NonogramViewModel(
             colClues = colClues
         )
     }
-    
+
     private fun calculateClues(line: List<Boolean>): List<Int> {
         val clues = mutableListOf<Int>()
         var count = 0
@@ -78,23 +78,20 @@ class NonogramViewModel(
     fun toggleCell(r: Int, c: Int, isFillAction: Boolean) {
         val st = _state.value
         if (st.isWon || st.isGameOver) return
-        
+
         val currentCell = st.playerGrid[r][c]
-        
+
         val newCellState = if (isFillAction) {
             if (currentCell == CellState.FILLED) CellState.EMPTY else CellState.FILLED
         } else {
             if (currentCell == CellState.CROSSED) CellState.EMPTY else CellState.CROSSED
         }
-        
+
         val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
         newPlayerGrid[r][c] = newCellState
-        
-        // Instant feedback mode: (optional, simple logic: if filled wrong, show mistake)
-        // Here we just let player fill whatever and check win condition.
-        
+
         val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
-        
+
         _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
     }
 
@@ -102,14 +99,14 @@ class NonogramViewModel(
         val st = _state.value
         if (st.isWon || st.isGameOver) return
         if (st.playerGrid[r][c] == newState) return
-        
+
         val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
         newPlayerGrid[r][c] = newState
-        
+
         val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
         _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
     }
-    
+
     private fun checkWin(player: List<List<CellState>>, solution: List<List<Boolean>>, rows: Int, cols: Int): Boolean {
         for (r in 0 until rows) {
             for (c in 0 until cols) {

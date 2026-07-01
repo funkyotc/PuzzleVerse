@@ -38,7 +38,23 @@ fun GameScreen(navController: NavController, gameId: String?, mode: String?) {
             modifier = Modifier.fillMaxSize().padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Game Screen: $gameId ($mode)")
+            when (gameId) {
+                "sudoku" -> {
+                    // This will be handled by SudokuScreen
+                    Text(text = "Sudoku Game")
+                }
+                "nonogram" -> {
+                    // This will be handled by NonogramScreen
+                    Text(text = "Nonogram Game")
+                }
+                "minesweeper" -> {
+                    // This will be handled by MinesweeperScreen
+                    Text(text = "Minesweeper Game")
+                }
+                else -> {
+                    Text(text = "Game Screen: $gameId ($mode)")
+                }
+            }
         }
     }
 }
