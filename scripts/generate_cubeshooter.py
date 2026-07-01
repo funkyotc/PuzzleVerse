@@ -6,11 +6,11 @@ import random
 PALETTE = [0, 1, 2, 3]
 
 DIFFICULTY_CONFIG = {
-    "Easy":   {"cols": 6,  "rows": 6,  "shapes": 6,  "n_colors": 4, "min_per_color": 2},
-    "Medium": {"cols": 8,  "rows": 8,  "shapes": 10, "n_colors": 4, "min_per_color": 3},
-    "Hard":   {"cols": 10, "rows": 10, "shapes": 16, "n_colors": 4, "min_per_color": 4},
-    "Expert": {"cols": 15, "rows": 25, "shapes": 35, "n_colors": 4, "min_per_color": 6},
-    "Master": {"cols": 20, "rows": 40, "shapes": 60, "n_colors": 4, "min_per_color": 8},
+    "Easy":   {"cols": 6,  "rows": 6,  "shapes": 10, "n_colors": 2, "min_per_color": 10},
+    "Medium": {"cols": 8,  "rows": 8,  "shapes": 16, "n_colors": 3, "min_per_color": 10},
+    "Hard":   {"cols": 10, "rows": 10, "shapes": 22, "n_colors": 4, "min_per_color": 10},
+    "Expert": {"cols": 15, "rows": 25, "shapes": 35, "n_colors": 4, "min_per_color": 10},
+    "Master": {"cols": 20, "rows": 40, "shapes": 60, "n_colors": 4, "min_per_color": 10},
 }
 
 SHAPES = [
@@ -58,7 +58,7 @@ def normalize(shape):
     return [(x - minx, y - miny) for (x, y) in shape]
 
 
-# --- SOLVER ENGINE & REVERSE PEELING FOR SOLVABILITY ---
+# --- SOLVER ENGINE FOR SOLVABILITY VERIFICATION ---
 
 def get_facing_cell(cell_idx, cols, rows):
     if cell_idx < cols:
@@ -94,69 +94,104 @@ def find_first_cube(grid, start_row, start_col, direction, cols, rows):
     return (None, None)
 
 
-def generate_solvable_tray(grid, cols, rows):
-    """
-    Peels cubes from the outside in (reverse-clearing) to generate
-    a list of tanks guaranteed to be solvable and correctly ordered.
-    """
+def get_bottom_middle_track_index(cols, rows):
+    middle_col = (cols + 1) // 2
+    return (cols + rows) + (cols - middle_col)
+
+
+def run_loop(grid, cols, rows, tank_color, tank_ammo):
     grid_copy = [row[:] for row in grid]
-    shot_sequence = []
-    
-    cubes_remaining = 0
-    for r in range(rows):
-        for c in range(cols):
-            if grid_copy[r][c] is not None:
-                cubes_remaining += 1
-                
+    ammo = tank_ammo
+    start_idx = get_bottom_middle_track_index(cols, rows)
     loop_len = 2 * (cols + rows)
-    attempts = 0
-    max_attempts = cubes_remaining * 15
     
-    while cubes_remaining > 0 and attempts < max_attempts:
-        attempts += 1
-        visible_cubes = []
-        for step in range(loop_len):
-            facing = get_facing_cell(step, cols, rows)
-            if facing is not None:
-                r, c, direction = facing
-                tr, tc = find_first_cube(grid_copy, r, c, direction, cols, rows)
-                if tr is not None and tc is not None:
-                    visible_cubes.append((tr, tc))
+    for step in range(loop_len + 1):
+        cell_idx = (start_idx + step) % loop_len
+        facing = get_facing_cell(cell_idx, cols, rows)
+        if facing is not None:
+            r, c, direction = facing
+            tr, tc = find_first_cube(grid_copy, r, c, direction, cols, rows)
+            if tr is not None and tc is not None:
+                if grid_copy[tr][tc] == tank_color and ammo > 0:
+                    grid_copy[tr][tc] = None
+                    ammo -= 1
                     
-        if not visible_cubes:
-            return None
+    return grid_copy, ammo
+
+
+def can_solve(cols, rows, grid, source_cols, storage, memo):
+    if all(cell is None for row in grid for cell in row):
+        return True
+        
+    state_key = (
+        tuple(tuple(r) for r in grid),
+        tuple(tuple(c) for c in source_cols),
+        tuple(storage)
+    )
+    if state_key in memo:
+        return memo[state_key]
+
+    valid_moves = []
+
+    # 1. Dispatch from source columns
+    for i in range(3):
+        if len(source_cols[i]) > 0:
+            tank = source_cols[i][-1]
+            tank_color, tank_ammo = tank
+            new_grid, remaining_ammo = run_loop(grid, cols, rows, tank_color, tank_ammo)
             
-        target_r, target_c = random.choice(visible_cubes)
-        color = grid_copy[target_r][target_c]
-        grid_copy[target_r][target_c] = None
-        shot_sequence.append(color)
-        cubes_remaining -= 1
+            new_source_cols = list(list(c) for c in source_cols)
+            new_source_cols[i].pop()
+            new_source_cols = tuple(tuple(c) for c in new_source_cols)
+            
+            new_storage = list(storage)
+            if remaining_ammo > 0:
+                new_storage.append((tank_color, remaining_ammo))
+                
+            if len(new_storage) <= 5:
+                cleared = remaining_ammo < tank_ammo
+                valid_moves.append((cleared, "source", i, new_grid, new_source_cols, tuple(new_storage)))
+
+    # 2. Dispatch from storage tray
+    for i in range(len(storage)):
+        tank_color, tank_ammo = storage[i]
+        new_grid, remaining_ammo = run_loop(grid, cols, rows, tank_color, tank_ammo)
         
-    if cubes_remaining > 0:
-        return None
-        
-    # Reverse the peel-off sequence to get the clearing sequence
-    clearing_shots = list(reversed(shot_sequence))
-    
-    # Group consecutive same-color shots into tanks of size 5, 10, 15, 20
-    tray_tanks = []
-    current_color = None
-    current_ammo = 0
-    
-    for color in clearing_shots:
-        if current_color is None:
-            current_color = color
-            current_ammo = 1
-        elif color == current_color and current_ammo < 20:
-            current_ammo += 1
-        else:
-            tray_tanks.append((current_color, current_ammo))
-            current_color = color
-            current_ammo = 1
-    if current_color is not None:
-        tray_tanks.append((current_color, current_ammo))
-        
-    return tray_tanks
+        new_storage = list(storage)
+        new_storage.pop(i)
+        if remaining_ammo > 0:
+            new_storage.append((tank_color, remaining_ammo))
+            
+        if len(new_storage) <= 5:
+            cleared = remaining_ammo < tank_ammo
+            valid_moves.append((cleared, "storage", i, new_grid, source_cols, tuple(new_storage)))
+
+    # Sort moves to prioritize those that clear blocks!
+    valid_moves.sort(key=lambda x: x[0], reverse=True)
+
+    for cleared, move_type, idx, new_grid, new_source, new_store in valid_moves:
+        if can_solve(cols, rows, new_grid, new_source, new_store, memo):
+            memo[state_key] = True
+            return True
+
+    memo[state_key] = False
+    return False
+
+
+def split_ammo_multiples_of_5(total_ammo, rng):
+    """
+    Splits total_ammo (which is a multiple of 5, >= 10) into varied parts >= 10
+    that are also multiples of 5.
+    """
+    parts = []
+    remaining = total_ammo
+    while remaining > 25:
+        chunk = rng.choice([10, 15, 20])
+        parts.append(chunk)
+        remaining -= chunk
+    if remaining > 0:
+        parts.append(remaining)
+    return parts
 
 
 # --- LEVEL GENERATION ---
@@ -201,18 +236,22 @@ def gen_level(diff, idx, seed_val):
                 grid[y][x] = None
                 cube_cells.append((y, x))
 
-    if len(cube_cells) < n_colors * min_per_color:
+    min_required = n_colors * 10
+    if len(cube_cells) < min_required:
         return None
+
+    while len(cube_cells) % 5 != 0:
+        cube_cells.pop()
 
     rng.shuffle(cube_cells)
-    target_per_color = len(cube_cells) // n_colors
-    remainder = len(cube_cells) - target_per_color * n_colors
-    color_counts = [target_per_color] * n_colors
-    for i in range(remainder):
-        color_counts[i] += 1
 
-    if any(c < min_per_color for c in color_counts):
-        return None
+    # Distribute in multiples of 5, minimum 10
+    color_counts = [10] * n_colors
+    remaining = len(cube_cells) - min_required
+    while remaining > 0:
+        c_idx = rng.randint(0, n_colors - 1)
+        color_counts[c_idx] += 5
+        remaining -= 5
 
     color_for_cell = {}
     idx_c = 0
@@ -225,23 +264,42 @@ def gen_level(diff, idx, seed_val):
     for (y, x), c in color_for_cell.items():
         grid[y][x] = c
 
-    # Generate a guaranteed solvable tray using our reverse peeling logic
-    tray_tanks = generate_solvable_tray(grid, cols, rows)
-    if tray_tanks is None:
-        return None
+    # Create multiple tanks per color in multiples of 5, minimum 10
+    tray_tanks = []
+    for c in range(n_colors):
+        parts = split_ammo_multiples_of_5(color_counts[c], rng)
+        for ammo in parts:
+            tray_tanks.append((c, ammo))
 
-    # Format tray list of {"color": c, "ammo": a}
-    json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
+    # Shuffle and distribute across source columns, verifying solvability
+    solvability_attempts = 45
+    for _ in range(solvability_attempts):
+        rng.shuffle(tray_tanks)
+        
+        # Format for JSON: list of {"color": c, "ammo": a}
+        json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
+        
+        # Reconstruct state for verification
+        source_cols = [[] for _ in range(3)]
+        for i, t in enumerate(tray_tanks):
+            source_cols[i % 3].append(t)
+            
+        source_cols_tuple = tuple(tuple(col) for col in source_cols)
+        
+        # Verify using our backtrack solver
+        memo = {}
+        if can_solve(cols, rows, grid, source_cols_tuple, (), memo):
+            return {
+                "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
+                "difficulty": diff,
+                "cols": cols,
+                "rows": rows,
+                "grid": grid,
+                "tray": json_tray,
+                "_color_counts": color_counts,
+            }
 
-    return {
-        "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
-        "difficulty": diff,
-        "cols": cols,
-        "rows": rows,
-        "grid": grid,
-        "tray": json_tray,
-        "_color_counts": color_counts,
-    }
+    return None
 
 
 def main():
@@ -260,7 +318,7 @@ def main():
     for diff, target_count in counts_per_difficulty.items():
         i = 0
         attempts = 0
-        while i < target_count and attempts < target_count * 100:
+        while i < target_count and attempts < target_count * 150:
             attempts += 1
             seed_val = (hash(("cubeshooter", diff, attempts)) & 0xFFFFFFFF)
             lvl = gen_level(diff, idx=i + 1, seed_val=seed_val)

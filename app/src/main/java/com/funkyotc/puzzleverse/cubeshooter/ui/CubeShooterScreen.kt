@@ -228,6 +228,7 @@ fun CubeShooterScreen(
                     // 0. Unified continuous background route Canvas
                     val pathTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     val pathIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    val themeBgColor = MaterialTheme.colorScheme.background
                     Canvas(modifier = Modifier.matchParentSize()) {
                         val trackPathWidth = (cols + 1) * cellSize.toPx()
                         val trackPathHeight = (rows + 1) * cellSize.toPx()
@@ -250,6 +251,15 @@ fun CubeShooterScreen(
                             size = Size(trackPathWidth, trackPathHeight),
                             cornerRadius = CornerRadius(cellSize.toPx() * 0.4f, cellSize.toPx() * 0.4f),
                             style = Stroke(width = 2.5f.dp.toPx())
+                        )
+
+                        // Draw visual gap at the start/end point (bottom middle of the track)
+                        val gapWidth = cellSize.toPx() * 1.2f
+                        val gapHeight = cellSize.toPx() * 0.8f
+                        drawRect(
+                            color = themeBgColor,
+                            topLeft = Offset(left + trackPathWidth / 2f - gapWidth / 2f, top + trackPathHeight - gapHeight / 2f),
+                            size = Size(gapWidth, gapHeight)
                         )
                     }
 

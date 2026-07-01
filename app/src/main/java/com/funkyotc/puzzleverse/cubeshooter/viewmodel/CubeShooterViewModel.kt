@@ -111,7 +111,9 @@ class CubeShooterViewModel(
         )
 
         val updatedTrack = currentState.track.toMutableList()
-        updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+        if (finalTank.ammo > 0) {
+            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+        }
 
         val isWon = fireResult.cubesRemaining == 0
         val sourceIsEmpty = updatedSourceColumns.all { col -> col.isEmpty() }
@@ -161,7 +163,9 @@ class CubeShooterViewModel(
         )
 
         val updatedTrack = currentState.track.toMutableList()
-        updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+        if (finalTank.ammo > 0) {
+            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+        }
 
         val isWon = fireResult.cubesRemaining == 0
         val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
@@ -332,7 +336,9 @@ class CubeShooterViewModel(
                         }
                     }
                 }
-                updatedTrack.add(tankToKeep)
+                if (tankToKeep.tank.ammo > 0) {
+                    updatedTrack.add(tankToKeep)
+                }
             }
         }
 
