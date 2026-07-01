@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.cubeshooter.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -373,52 +374,34 @@ fun CubeShooterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Bottom Section (Storage Tray on Left, Source Columns on Right)
-            Row(
+            // Bottom Section (Stacked Vertically: Storage Tray on top, Source Columns below)
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(130.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    .wrapContentHeight(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Left Card: Storage Tray (Max 5)
+                // 1. Storage Tray (Top)
                 Card(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
                             .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Storage (Max 5)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        if (state.storageTray.isEmpty()) {
-                            Box(
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Empty",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                state.storageTray.forEachIndexed { index, tank ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            for (i in 0 until 5) {
+                                if (i < state.storageTray.size) {
+                                    val tank = state.storageTray[i]
                                     val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
                                     Box(
                                         modifier = Modifier
@@ -431,7 +414,7 @@ fun CubeShooterScreen(
                                             )
                                             .clickable(enabled = isDispatchEnabled) {
                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                viewModel.dispatchFromStorage(index)
+                                                viewModel.dispatchFromStorage(i)
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -442,36 +425,41 @@ fun CubeShooterScreen(
                                             fontSize = 9.sp
                                         )
                                     }
+                                } else {
+                                    // Empty slot
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                                            .border(
+                                                width = 1.dp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                                shape = RoundedCornerShape(6.dp)
+                                            )
+                                    )
                                 }
                             }
                         }
                     }
                 }
 
-                // Right Card: Incoming Columns (Top tank accessible)
+                // 2. Source Columns (Bottom)
                 Card(
                     modifier = Modifier
-                        .weight(1.2f)
-                        .fillMaxHeight(),
+                        .fillMaxWidth()
+                        .height(96.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.SpaceBetween
+                        contentAlignment = Alignment.BottomCenter
                     ) {
-                        Text(
-                            text = "Source Columns",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold
-                        )
-
                         Row(
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.Bottom
                         ) {
                             state.sourceColumns.forEachIndexed { colIndex, colTanks ->
