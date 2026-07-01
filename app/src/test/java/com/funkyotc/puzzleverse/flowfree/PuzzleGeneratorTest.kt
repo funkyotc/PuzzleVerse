@@ -14,6 +14,7 @@ class PuzzleGeneratorTest {
         intArrayOf(0, -1), intArrayOf(0, 1)
     )
 
+    @org.junit.Ignore("Offline generator test")
     @Test
     fun generatePuzzlesOffline() {
         val outputDir = File("src/main/java/com/funkyotc/puzzleverse/flowfree/data")

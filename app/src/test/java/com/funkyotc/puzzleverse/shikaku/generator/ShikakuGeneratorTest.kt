@@ -33,6 +33,7 @@ class ShikakuGeneratorTest {
         validateBoard(board)
     }
 
+    @org.junit.Ignore("Offline generator test")
     @Test
     fun testPrintCompactPuzzles() {
         val puzzleConfigs = listOf(

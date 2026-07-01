@@ -39,6 +39,7 @@ class NonogramSolvabilityTest {
         assertTrue(true)
     }
 
+    @org.junit.Ignore("Offline generator test")
     @Test
     fun testGeneratePregeneratedNonograms() {
         val random = java.util.Random(42L) // Fixed seed for reproducibility
