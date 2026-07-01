@@ -10,7 +10,9 @@ class NonogramSolver {
             if (rows == 0 || cols == 0) return true
 
             // Create a copy of the solution grid
-            val grid = solution.map { it.toMutableList() }
+            val grid: List<MutableList<Boolean?>> = solution.map { row ->
+                row.map { it as Boolean? }.toMutableList()
+            }
 
             // Apply constraint propagation
             val changed = solveLineByLine(grid, rows, cols)
@@ -43,7 +45,7 @@ class NonogramSolver {
 
             // Try to solve columns
             for (c in 0 until cols) {
-                val col = (0 until rows).map { grid[it][c] }
+                val col = (0 until rows).map { grid[it][c] }.toMutableList()
                 val clues = colClues[c]
                 if (applyLineConstraints(col, clues, rows)) {
                     changed = true
@@ -57,7 +59,7 @@ class NonogramSolver {
             return changed
         }
 
-        private fun applyLineConstraints(line: List<Boolean?>, clues: List<Int>, length: Int): Boolean {
+        private fun applyLineConstraints(line: MutableList<Boolean?>, clues: List<Int>, length: Int): Boolean {
             if (clues.isEmpty()) return false
             if (clues.all { it == 0 }) return false
 

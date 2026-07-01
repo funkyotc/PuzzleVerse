@@ -194,6 +194,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("shikaku/puzzles")
                     }
                 }
+                "cubeshooter" -> {
+                    MenuCard(text = "Random Puzzle") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/cubeshooter/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("cubeshooter/puzzles")
+                    }
+                }
                 else -> {
                     MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
