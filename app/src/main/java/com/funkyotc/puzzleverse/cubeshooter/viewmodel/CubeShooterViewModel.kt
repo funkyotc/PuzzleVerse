@@ -266,14 +266,23 @@ class CubeShooterViewModel(
         val updatedTrack = mutableListOf<TrackTank>()
         val returnedTanks = mutableListOf<Tank>()
 
-        // Update existing fading cubes & projectiles progress
-        val updatedProjectiles = currentState.projectiles.map {
-            it.copy(progress = it.progress + dtMs.toFloat() / 200f)
-        }.filter { it.progress < 1f }.toMutableList()
-
+        // Update existing fading cubes progress
         val updatedFadingCubes = currentState.fadingCubes.map {
             it.copy(progress = it.progress + dtMs.toFloat() / 250f)
         }.filter { it.progress < 1f }.toMutableList()
+
+        // Update projectiles progress and trigger hit on arrival
+        val updatedProjectiles = mutableListOf<Projectile>()
+        for (p in currentState.projectiles) {
+            val nextProgress = p.progress + dtMs.toFloat() / 200f
+            if (nextProgress >= 1f) {
+                val tr = (p.endRow - 1f).toInt()
+                val tc = (p.endCol - 1f).toInt()
+                updatedFadingCubes.add(FadingCube(tr, tc, p.color, 0f))
+            } else {
+                updatedProjectiles.add(p.copy(progress = nextProgress))
+            }
+        }
 
         val bottomMiddleIndex = getBottomMiddleTrackIndex(cols, rows)
 
@@ -305,9 +314,6 @@ class CubeShooterViewModel(
                                 val updatedTank = tankToKeep.tank.copy(ammo = tankToKeep.tank.ammo - 1)
                                 tankToKeep = tankToKeep.copy(tank = updatedTank)
                                 score += 10
-
-                                // Add fading cube
-                                updatedFadingCubes.add(FadingCube(tr, tc, cubeColor, 0f))
 
                                 // Calculate firing position of tank
                                 val tankCoord = getTrackCellCoordinates(cellIdx, cols, rows)

@@ -27,6 +27,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
 import com.funkyotc.puzzleverse.cubeshooter.data.Tank
 import com.funkyotc.puzzleverse.cubeshooter.data.TrackTank
 import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModel
@@ -221,7 +224,35 @@ fun CubeShooterScreen(
                 )
 
                 Box(modifier = Modifier.wrapContentSize()) {
-                    // 1. Static Grid: Track empty backgrounds and active cubes
+                    // 0. Unified continuous background route Canvas
+                    val pathTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    val pathIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        val trackPathWidth = (cols + 1) * cellSize.toPx()
+                        val trackPathHeight = (rows + 1) * cellSize.toPx()
+                        val left = 0.5f * cellSize.toPx()
+                        val top = 0.5f * cellSize.toPx()
+
+                        // Draw thick background lane line
+                        drawRoundRect(
+                            color = pathTrackColor,
+                            topLeft = Offset(left, top),
+                            size = Size(trackPathWidth, trackPathHeight),
+                            cornerRadius = CornerRadius(cellSize.toPx() * 0.4f, cellSize.toPx() * 0.4f),
+                            style = Stroke(width = cellSize.toPx() * 0.55f)
+                        )
+
+                        // Draw thin glowing center guideline
+                        drawRoundRect(
+                            color = pathIndicatorColor,
+                            topLeft = Offset(left, top),
+                            size = Size(trackPathWidth, trackPathHeight),
+                            cornerRadius = CornerRadius(cellSize.toPx() * 0.4f, cellSize.toPx() * 0.4f),
+                            style = Stroke(width = 2.5f.dp.toPx())
+                        )
+                    }
+
+                    // 1. Static Grid: Active cubes
                     Column(
                         modifier = Modifier.wrapContentSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -240,22 +271,7 @@ fun CubeShooterScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (isTrack) {
-                                            // Render track background with directions
-                                            val directionArrow = getTrackArrow(r, c, cols, rows)
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(RoundedCornerShape(4.dp))
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = directionArrow,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                                    fontSize = (cellSize.value * 0.4f).sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
+                                            // Empty content so it acts as a transparent layout spacing placeholder
                                         } else if (isCube) {
                                             val cubeColorId = state.level.grid[r - 1][c - 1]
                                             if (cubeColorId != null) {
