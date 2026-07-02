@@ -190,37 +190,6 @@ fun CubeShooterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Stats Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Difficulty: ${state.level.difficulty}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Cubes Left: ${state.cubesRemaining}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Score: ${state.score}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Track: ${state.track.size}/5",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Main Board and Track
             BoxWithConstraints(
                 modifier = Modifier
@@ -367,8 +336,9 @@ fun CubeShooterScreen(
                         val r = coord1.first + (coord2.first - coord1.first) * fraction
                         val c = coord1.second + (coord2.second - coord1.second) * fraction
 
-                        val xOffset = c * cellSize.value
-                        val yOffset = r * cellSize.value
+                        val tankSize = 28.dp
+                        val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
+                        val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
 
                         val sideR = coord1.first
                         val sideC = coord1.second
@@ -383,7 +353,7 @@ fun CubeShooterScreen(
                         TankView(
                             colorId = trackTank.tank.color,
                             ammo = trackTank.tank.ammo,
-                            size = cellSize,
+                            size = tankSize,
                             angle = angle,
                             modifier = Modifier
                                 .offset(x = xOffset.dp, y = yOffset.dp)
@@ -393,9 +363,9 @@ fun CubeShooterScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Bottom Section (Stacked Vertically: Storage Tray on top, Source Columns below)
+            // Bottom Section (Stacked Vertically)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -403,7 +373,7 @@ fun CubeShooterScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 1. Storage Tray (Top)
+                // 1. Storage Tray (Top with larger tanks)
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -413,11 +383,11 @@ fun CubeShooterScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
+                            .padding(10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (i in 0 until 5) {
@@ -427,17 +397,17 @@ fun CubeShooterScreen(
                                      val borderModifier = if (isDispatchEnabled) {
                                          Modifier.border(
                                              width = 2.dp,
-                                             color = MaterialTheme.colorScheme.primary,
-                                             shape = RoundedCornerShape(6.dp)
+                                             color = Color.Green,
+                                             shape = RoundedCornerShape(8.dp)
                                          )
                                      } else {
                                          Modifier
                                      }
-                                     val alpha = if (isDispatchEnabled) 1f else 0.4f
+                                     val alpha = 1f
                                      TankView(
                                          colorId = tank.color,
                                          ammo = tank.ammo,
-                                         size = 40.dp,
+                                         size = 56.dp, // Bigger tanks
                                          alpha = alpha,
                                          angle = 0f,
                                          modifier = borderModifier
@@ -446,101 +416,173 @@ fun CubeShooterScreen(
                                                 viewModel.dispatchFromStorage(i)
                                              }
                                      )
-                                } else {
-                                    // Empty slot
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
-                                            .border(
-                                                width = 1.dp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                                shape = RoundedCornerShape(6.dp)
-                                            )
-                                    )
-                                }
+                                 } else {
+                                     // Empty slot
+                                     Box(
+                                         modifier = Modifier
+                                             .size(56.dp) // Bigger slot
+                                             .clip(RoundedCornerShape(8.dp))
+                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                                             .border(
+                                                 width = 1.dp,
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                                 shape = RoundedCornerShape(8.dp)
+                                             )
+                                     )
+                                 }
                             }
                         }
                     }
                 }
 
-                // 2. Source Columns (Bottom)
-                Card(
+                // 2. Stats and Source Columns Layout (Side-by-side)
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(96.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .height(130.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(8.dp),
-                        contentAlignment = Alignment.TopCenter
+                    // Left Stats Column
+                    Column(
+                        modifier = Modifier.width(90.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.Top
+                        Text(
+                            text = "Diff:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = state.level.difficulty,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Left: ${state.cubesRemaining}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    // Center: Source Columns Card (Taller and wider)
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(horizontal = 8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            state.sourceColumns.forEachIndexed { colIndex, colTanks ->
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Top),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxHeight()
-                                ) {
-                                    if (colTanks.isEmpty()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .background(Color.Transparent),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), fontSize = 10.sp)
-                                        }
-                                    } else {
-                                        val indexedTanks = colTanks.mapIndexed { idx, t -> Pair(idx, t) }
-                                        val displayList = indexedTanks.takeLast(3).reversed()
-                                        
-                                        Box(
-                                            modifier = Modifier
-                                                .width(28.dp)
-                                                .height(80.dp)
-                                        ) {
-                                            for (i in displayList.indices) {
-                                                val (originalIndex, tank) = displayList[i]
-                                                val isTop = (i == 0)
-                                                val isDispatchEnabled = isTop && state.track.size < 5
-                                                val alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
-                                                
-                                                key(originalIndex) {
-                                                    val targetY = (i * 24).dp
-                                                    val animatedY by animateDpAsState(
-                                                        targetValue = targetY,
-                                                        animationSpec = spring(stiffness = Spring.StiffnessLow),
-                                                        label = "tank_y"
-                                                    )
-                                                    
-                                                    TankView(
-                                                        colorId = tank.color,
-                                                        ammo = tank.ammo,
-                                                        size = 28.dp,
-                                                        alpha = alpha,
-                                                        angle = 0f,
-                                                        modifier = Modifier
-                                                            .offset(y = animatedY)
-                                                            .clickable(enabled = isDispatchEnabled) {
-                                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                                viewModel.dispatchFromSource(colIndex)
-                                                            }
-                                                    )
-                                                }
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                state.sourceColumns.forEachIndexed { colIndex, colTanks ->
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Top),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.fillMaxHeight()
+                                    ) {
+                                        if (colTanks.isEmpty()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .background(Color.Transparent),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), fontSize = 12.sp)
+                                            }
+                                        } else {
+                                            val indexedTanks = colTanks.mapIndexed { idx, t -> Pair(idx, t) }
+                                            val displayList = indexedTanks.takeLast(3).reversed()
+                                            
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(44.dp) // Bigger tanks
+                                                    .height(110.dp)
+                                            ) {
+                                                 for (i in displayList.indices) {
+                                                     val (originalIndex, tank) = displayList[i]
+                                                     val isTop = (i == 0)
+                                                     val isDispatchEnabled = isTop && state.track.size < 5
+                                                     val alpha = 1f
+                                                     val borderModifier = if (isDispatchEnabled) {
+                                                         Modifier.border(
+                                                             width = 2.dp,
+                                                             color = Color.Green,
+                                                             shape = RoundedCornerShape(8.dp)
+                                                         )
+                                                     } else {
+                                                         Modifier
+                                                     }
+                                                     
+                                                     key(originalIndex) {
+                                                         val targetY = (i * 32).dp // Bigger gap
+                                                         val animatedY by animateDpAsState(
+                                                             targetValue = targetY,
+                                                             animationSpec = spring(stiffness = Spring.StiffnessLow),
+                                                             label = "tank_y"
+                                                         )
+                                                         
+                                                         TankView(
+                                                             colorId = tank.color,
+                                                             ammo = tank.ammo,
+                                                             size = 44.dp, // Bigger tanks
+                                                             alpha = alpha,
+                                                             angle = 0f,
+                                                             modifier = Modifier
+                                                                 .offset(y = animatedY)
+                                                                 .then(borderModifier)
+                                                                 .clickable(enabled = isDispatchEnabled) {
+                                                                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                                     viewModel.dispatchFromSource(colIndex)
+                                                                 }
+                                                         )
+                                                     }
+                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                    }
+
+                    // Right Stats Column
+                    Column(
+                        modifier = Modifier.width(90.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            text = "Score:",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${state.score}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Track: ${state.track.size}/5",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
