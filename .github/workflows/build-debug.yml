@@ -50,8 +50,8 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: nightly
-          name: Nightly Build
+          tag_name: nightly-build-${{ github.run_number }}
+          name: Nightly Build #${{ github.run_number }}
           prerelease: true
           make_latest: true
           files: app/build/outputs/apk/debug/app-debug.apk
