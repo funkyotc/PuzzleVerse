@@ -11,10 +11,16 @@ class SoundManager(private val context: Context) {
 
     companion object {
         const val SOUND_ID_CLICK = 1
+        const val SOUND_ID_SUCCESS = 2
+        const val SOUND_ID_FAILURE = 3
+        const val SOUND_ID_VICTORY = 4
     }
 
     fun loadSounds() {
         sounds[SOUND_ID_CLICK] = soundPool?.load(context, R.raw.click, 1) ?: 0
+        sounds[SOUND_ID_SUCCESS] = soundPool?.load(context, R.raw.success, 1) ?: 0
+        sounds[SOUND_ID_FAILURE] = soundPool?.load(context, R.raw.failure, 1) ?: 0
+        sounds[SOUND_ID_VICTORY] = soundPool?.load(context, R.raw.victory, 1) ?: 0
     }
 
     fun playSound(soundId: Int, rate: Float = 1f) {

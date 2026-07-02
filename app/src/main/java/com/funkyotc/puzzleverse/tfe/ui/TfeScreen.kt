@@ -52,6 +52,13 @@ fun TfeScreen(
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
+        }
+    }
+
+    LaunchedEffect(state.isGameOver) {
+        if (state.isGameOver) {
+            soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
         }
     }
 

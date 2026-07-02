@@ -109,6 +109,7 @@ fun ShapesScreen(
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
             settingsRepository.addWin()
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
             } else if (mode == "daily") {

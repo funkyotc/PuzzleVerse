@@ -58,6 +58,7 @@ fun FlowFreeScreen(
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
         }
     }
 

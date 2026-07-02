@@ -53,8 +53,17 @@ fun BlockPuzzleScreen(
     var showNewGameDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.isGameOver) {
-        if (state.isGameOver && state.score >= 300) {
-            settingsRepository.addWin()
+        if (state.isGameOver) {
+            soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
+            if (state.score >= 300) {
+                settingsRepository.addWin()
+            }
+        }
+    }
+
+    LaunchedEffect(state.score) {
+        if (state.score > 0) {
+            soundManager.playSound(SoundManager.SOUND_ID_SUCCESS)
         }
     }
 

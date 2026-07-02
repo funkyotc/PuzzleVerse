@@ -52,9 +52,16 @@ fun NonogramScreen(
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
             }
+        }
+    }
+
+    LaunchedEffect(state.mistakes) {
+        if (state.mistakes > 0) {
+            soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
         }
     }
 

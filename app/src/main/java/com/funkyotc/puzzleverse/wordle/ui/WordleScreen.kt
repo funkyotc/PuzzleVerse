@@ -56,6 +56,14 @@ fun WordleScreen(
 ) {
     val gameState by viewModel.wordleState.collectAsState()
     val soundManager = LocalSoundManager.current
+
+    LaunchedEffect(gameState?.gameStatus) {
+        when (gameState?.gameStatus) {
+            GameStatus.WON -> soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
+            GameStatus.LOST -> soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
+            else -> {}
+        }
+    }
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
     var showStatsDialog by remember { mutableStateOf(false) }
