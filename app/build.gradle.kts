@@ -13,7 +13,7 @@ defaultConfig {
     applicationId = "com.funkyotc.puzzleverse"
     minSdk = 24
     targetSdk = 36
-    versionCode = project.findProperty('versionCode')?.toInteger() ?: 1
+    versionCode = (project.findProperty('versionCode')?.toString()?.toInt() ?: 1) + (System.getenv("GITHUB_RUN_NUMBER")?.toInt() ?: 0)
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
