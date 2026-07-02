@@ -2,16 +2,14 @@ import os
 import json
 import random
 
+import math
+
 PALETTE = [0, 1, 2, 3]
 
 DIFFICULTY_CONFIG = {
-    "Easy":        {"cols": 6,  "rows": 6,  "n_colors": 2},
-    "Medium":      {"cols": 8,  "rows": 8,  "n_colors": 3},
-    "Hard":        {"cols": 10, "rows": 10, "n_colors": 4},
-    "Expert":      {"cols": 15, "rows": 25, "n_colors": 4},
-    "Master":      {"cols": 20, "rows": 40, "n_colors": 4},
-    "Grandmaster": {"cols": 30, "rows": 50, "n_colors": 4},
-    "Legendary":   {"cols": 40, "rows": 60, "n_colors": 4},
+    "Easy":   {"cols": 20, "rows": 40, "n_colors": 4},
+    "Medium": {"cols": 30, "rows": 50, "n_colors": 4},
+    "Hard":   {"cols": 40, "rows": 60, "n_colors": 4},
 }
 
 
@@ -237,15 +235,55 @@ def gen_level(diff, idx, seed_val):
         color_counts[c_idx] += 5
         remaining_cubes -= 5
         
-    # Assign colors to selected cube positions
-    shuffled_cubes = list(cube_positions)
-    rng.shuffle(shuffled_cubes)
+    # Pick a random pattern from 10 options
+    patterns = [
+        "horizontal_layers",
+        "vertical_columns",
+        "concentric_rectangles",
+        "forward_diagonals",
+        "backward_diagonals",
+        "diamond_star",
+        "circular_waves",
+        "checkerboard",
+        "horizontal_sine",
+        "corner_radiance"
+    ]
+    pattern_type = rng.choice(patterns)
+    
+    r_mid = rows / 2.0
+    c_mid = cols / 2.0
+    
+    def get_val(r, c):
+        if pattern_type == "horizontal_layers":
+            return r
+        elif pattern_type == "vertical_columns":
+            return c
+        elif pattern_type == "concentric_rectangles":
+            return max(abs(r - r_mid), abs(c - c_mid))
+        elif pattern_type == "forward_diagonals":
+            return r + c
+        elif pattern_type == "backward_diagonals":
+            return r - c
+        elif pattern_type == "diamond_star":
+            return abs(r - r_mid) + abs(c - c_mid)
+        elif pattern_type == "circular_waves":
+            return (r - r_mid)**2 + (c - c_mid)**2
+        elif pattern_type == "checkerboard":
+            return ((int(r // 4) + int(c // 4)) % 2) + rng.uniform(0, 0.1)
+        elif pattern_type == "horizontal_sine":
+            return r + math.sin(c * 0.5) * 3.0
+        elif pattern_type == "corner_radiance":
+            return r**2 + c**2
+        return 0
+
+    # Sort the selected cube positions by their pattern values
+    sorted_cubes = sorted(cube_positions, key=lambda pos: get_val(pos[0], pos[1]))
     
     color_assignment = {}
     current_index = 0
     for c in range(n_colors):
         for _ in range(color_counts[c]):
-            color_assignment[shuffled_cubes[current_index]] = c
+            color_assignment[sorted_cubes[current_index]] = c
             current_index += 1
             
     # Fill grid
@@ -328,10 +366,6 @@ def main():
         "Easy": 20,
         "Medium": 20,
         "Hard": 20,
-        "Expert": 20,
-        "Master": 20,
-        "Grandmaster": 20,
-        "Legendary": 20,
     }
 
     for diff, target_count in counts_per_difficulty.items():

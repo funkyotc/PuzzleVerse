@@ -17,10 +17,10 @@ class SoundManager(private val context: Context) {
         sounds[SOUND_ID_CLICK] = soundPool?.load(context, R.raw.click, 1) ?: 0
     }
 
-    fun playSound(soundId: Int) {
+    fun playSound(soundId: Int, rate: Float = 1f) {
         val sharedPreferences = context.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE)
         if (!sharedPreferences.getBoolean("sound_effects_enabled", true)) return
-        sounds[soundId]?.let { soundPool?.play(it, 1f, 1f, 1, 0, 1f) }
+        sounds[soundId]?.let { soundPool?.play(it, 1f, 1f, 1, 0, rate) }
     }
 
     fun release() {

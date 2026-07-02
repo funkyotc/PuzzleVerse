@@ -277,7 +277,12 @@ class CubeShooterViewModel(
         // Update projectiles progress and trigger hit on arrival
         val updatedProjectiles = mutableListOf<Projectile>()
         for (p in currentState.projectiles) {
-            val nextProgress = p.progress + dtMs.toFloat() / 200f
+            val dx = p.endCol - p.startCol
+            val dy = p.endRow - p.startRow
+            val distance = kotlin.math.hypot(dx, dy)
+            val speed = 0.04f // cells per millisecond
+            val progressIncrement = if (distance > 0f) (dtMs * speed) / distance else 1f
+            val nextProgress = p.progress + progressIncrement
             if (nextProgress >= 1f) {
                 val tr = (p.endRow - 1f).toInt()
                 val tc = (p.endCol - 1f).toInt()

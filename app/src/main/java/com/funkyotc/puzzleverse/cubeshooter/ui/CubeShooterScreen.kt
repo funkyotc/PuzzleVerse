@@ -40,6 +40,10 @@ import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.android.awaitFrame
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.key
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +67,14 @@ fun CubeShooterScreen(
         if (state.isWon) {
             settingsRepository.addWin()
         }
+    }
+
+    var lastProjectileCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(state.projectiles.size) {
+        if (state.projectiles.size > lastProjectileCount) {
+            soundManager.playSound(SoundManager.SOUND_ID_CLICK, 0.72f)
+        }
+        lastProjectileCount = state.projectiles.size
     }
 
     // Keep ticking the ViewModel
@@ -487,27 +499,43 @@ fun CubeShooterScreen(
                                             Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), fontSize = 10.sp)
                                         }
                                     } else {
-                                        // Show up to 3 tanks vertically stacked top-down
-                                        val displayList = colTanks.takeLast(3).reversed()
+                                        val indexedTanks = colTanks.mapIndexed { idx, t -> Pair(idx, t) }
+                                        val displayList = indexedTanks.takeLast(3).reversed()
                                         
-                                        for (i in displayList.indices) {
-                                            val tank = displayList[i]
-                                            val isTop = (i == 0)
-                                            val isDispatchEnabled = isTop && state.track.size < 5
-                                            val alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
-                                            
-                                            TankView(
-                                                colorId = tank.color,
-                                                ammo = tank.ammo,
-                                                size = 28.dp,
-                                                alpha = alpha,
-                                                angle = 0f,
-                                                modifier = Modifier
-                                                    .clickable(enabled = isDispatchEnabled) {
-                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        viewModel.dispatchFromSource(colIndex)
-                                                    }
-                                            )
+                                        Box(
+                                            modifier = Modifier
+                                                .width(28.dp)
+                                                .height(80.dp)
+                                        ) {
+                                            for (i in displayList.indices) {
+                                                val (originalIndex, tank) = displayList[i]
+                                                val isTop = (i == 0)
+                                                val isDispatchEnabled = isTop && state.track.size < 5
+                                                val alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
+                                                
+                                                key(originalIndex) {
+                                                    val targetY = (i * 24).dp
+                                                    val animatedY by animateDpAsState(
+                                                        targetValue = targetY,
+                                                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                                                        label = "tank_y"
+                                                    )
+                                                    
+                                                    TankView(
+                                                        colorId = tank.color,
+                                                        ammo = tank.ammo,
+                                                        size = 28.dp,
+                                                        alpha = alpha,
+                                                        angle = 0f,
+                                                        modifier = Modifier
+                                                            .offset(y = animatedY)
+                                                            .clickable(enabled = isDispatchEnabled) {
+                                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                                viewModel.dispatchFromSource(colIndex)
+                                                            }
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
