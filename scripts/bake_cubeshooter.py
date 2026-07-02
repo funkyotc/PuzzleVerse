@@ -54,8 +54,8 @@ def main():
     sb.append("object CubeShooterPregenerated {")
     sb.append("")
 
-    # Chunk size of 5 levels to safely avoid JVM MethodTooLargeException
-    chunk_size = 5
+    # Chunk size of 1 level to safely avoid JVM MethodTooLargeException
+    chunk_size = 1
     chunks_count = (len(all_levels) + chunk_size - 1) // chunk_size
 
     for chunk_idx in range(chunks_count):

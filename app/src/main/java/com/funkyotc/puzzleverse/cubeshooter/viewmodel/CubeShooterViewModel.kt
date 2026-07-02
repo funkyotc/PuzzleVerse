@@ -216,7 +216,6 @@ class CubeShooterViewModel(
                     updatedTank = updatedTank.copy(ammo = updatedTank.ammo - 1)
                     updatedScore += 10
 
-                    updatedFadingCubes.add(FadingCube(tr, tc, cubeColor, 0f))
                     val tankCoord = getTrackCellCoordinates(bottomMiddleIndex, cols, rows)
                     updatedProjectiles.add(
                         Projectile(

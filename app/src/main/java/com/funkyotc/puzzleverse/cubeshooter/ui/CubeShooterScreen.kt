@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
@@ -31,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import com.funkyotc.puzzleverse.cubeshooter.data.Tank
 import com.funkyotc.puzzleverse.cubeshooter.data.TrackTank
 import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModel
@@ -324,7 +326,7 @@ fun CubeShooterScreen(
 
                             drawCircle(
                                 color = getComposeColor(p.color),
-                                radius = cellSize.toPx() * 0.15f,
+                                radius = cellSize.toPx() * 0.28f,
                                 center = Offset(x, y)
                             )
 
@@ -356,28 +358,25 @@ fun CubeShooterScreen(
                         val xOffset = c * cellSize.value
                         val yOffset = r * cellSize.value
 
-                        Box(
-                            modifier = Modifier
-                                .size(cellSize)
-                                .offset(x = xOffset.dp, y = yOffset.dp)
-                                .padding(1.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .background(getComposeColor(trackTank.tank.color)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = trackTank.tank.ammo.toString(),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = (cellSize.value * 0.45f).sp
-                                )
-                            }
+                        val sideR = coord1.first
+                        val sideC = coord1.second
+                        val angle = when {
+                            sideR == 0 -> 180f     // Top edge: points DOWN
+                            sideC == cols + 1 -> 270f // Right edge: points LEFT
+                            sideR == rows + 1 -> 0f   // Bottom edge: points UP
+                            sideC == 0 -> 90f      // Left edge: points RIGHT
+                            else -> 0f
                         }
+
+                        TankView(
+                            colorId = trackTank.tank.color,
+                            ammo = trackTank.tank.ammo,
+                            size = cellSize,
+                            angle = angle,
+                            modifier = Modifier
+                                .offset(x = xOffset.dp, y = yOffset.dp)
+                                .padding(1.dp)
+                        )
                     }
                 }
             }
@@ -422,29 +421,19 @@ fun CubeShooterScreen(
                                      } else {
                                          Modifier
                                      }
-                                     Box(
-                                         modifier = Modifier
-                                             .size(40.dp)
-                                             .then(borderModifier)
-                                             .clip(RoundedCornerShape(6.dp))
-                                             .background(
-                                                 getComposeColor(tank.color).copy(
-                                                     alpha = if (isDispatchEnabled) 1f else 0.4f
-                                                 )
-                                             )
+                                     val alpha = if (isDispatchEnabled) 1f else 0.4f
+                                     TankView(
+                                         colorId = tank.color,
+                                         ammo = tank.ammo,
+                                         size = 40.dp,
+                                         alpha = alpha,
+                                         angle = 0f,
+                                         modifier = borderModifier
                                              .clickable(enabled = isDispatchEnabled) {
                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                 viewModel.dispatchFromStorage(i)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "A:${tank.ammo}",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.sp
-                                        )
-                                    }
+                                             }
+                                     )
                                 } else {
                                     // Empty slot
                                     Box(
@@ -475,16 +464,16 @@ fun CubeShooterScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp),
-                        contentAlignment = Alignment.BottomCenter
+                        contentAlignment = Alignment.TopCenter
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
                             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-                            verticalAlignment = Alignment.Bottom
+                            verticalAlignment = Alignment.Top
                         ) {
                             state.sourceColumns.forEachIndexed { colIndex, colTanks ->
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Top),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     modifier = Modifier.fillMaxHeight()
                                 ) {
@@ -498,46 +487,27 @@ fun CubeShooterScreen(
                                             Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f), fontSize = 10.sp)
                                         }
                                     } else {
-                                        // Show up to 3 tanks vertically from bottom to top
-                                        val displayList = colTanks.takeLast(3)
-                                        val totalCount = colTanks.size
+                                        // Show up to 3 tanks vertically stacked top-down
+                                        val displayList = colTanks.takeLast(3).reversed()
                                         
-                                        if (totalCount > 3) {
-                                            Text(
-                                                text = "+${totalCount - 3}",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                                fontSize = 8.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        
-                                        for (i in displayList.indices.reversed()) {
+                                        for (i in displayList.indices) {
                                             val tank = displayList[i]
-                                            val isTop = (i == displayList.lastIndex)
+                                            val isTop = (i == 0)
                                             val isDispatchEnabled = isTop && state.track.size < 5
+                                            val alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
                                             
-                                            Box(
+                                            TankView(
+                                                colorId = tank.color,
+                                                ammo = tank.ammo,
+                                                size = 28.dp,
+                                                alpha = alpha,
+                                                angle = 0f,
                                                 modifier = Modifier
-                                                    .size(28.dp)
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(
-                                                        getComposeColor(tank.color).copy(
-                                                            alpha = if (isDispatchEnabled) 1f else if (isTop) 0.5f else 0.2f
-                                                        )
-                                                    )
                                                     .clickable(enabled = isDispatchEnabled) {
                                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                         viewModel.dispatchFromSource(colIndex)
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = tank.ammo.toString(),
-                                                    color = Color.White,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 9.sp
-                                                )
-                                            }
+                                                    }
+                                            )
                                         }
                                     }
                                 }
@@ -592,6 +562,91 @@ private fun getComposeColor(colorId: Int?): Color {
         2 -> Color(0xFFFBC02D) // Yellow
         3 -> Color(0xFF43A047) // Green
         else -> Color.Transparent
+    }
+}
+
+@Composable
+fun TankView(
+    colorId: Int,
+    ammo: Int,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    angle: Float = 0f
+) {
+    val baseColor = getComposeColor(colorId).copy(alpha = alpha)
+    val textColor = if (colorId == 2) Color(0xFF1A1A1A) else Color.White
+
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.toPx()
+            val h = size.toPx()
+            
+            rotate(angle, pivot = Offset(w / 2f, h / 2f)) {
+                // Main tank body
+                drawRoundRect(
+                    color = baseColor,
+                    topLeft = Offset(w * 0.15f, h * 0.25f),
+                    size = Size(w * 0.7f, h * 0.55f),
+                    cornerRadius = CornerRadius(w * 0.1f, w * 0.1f)
+                )
+                
+                // Left Tread
+                drawRoundRect(
+                    color = Color.DarkGray.copy(alpha = alpha),
+                    topLeft = Offset(w * 0.05f, h * 0.22f),
+                    size = Size(w * 0.12f, h * 0.61f),
+                    cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
+                )
+                
+                // Right Tread
+                drawRoundRect(
+                    color = Color.DarkGray.copy(alpha = alpha),
+                    topLeft = Offset(w * 0.83f, h * 0.22f),
+                    size = Size(w * 0.12f, h * 0.61f),
+                    cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
+                )
+                
+                // Gun Turret Barrel
+                drawRect(
+                    color = baseColor,
+                    topLeft = Offset(w * 0.44f, h * 0.05f),
+                    size = Size(w * 0.12f, h * 0.25f)
+                )
+                
+                // Gun nozzle cap
+                drawRect(
+                    color = Color.DarkGray.copy(alpha = alpha),
+                    topLeft = Offset(w * 0.41f, h * 0.02f),
+                    size = Size(w * 0.18f, h * 0.05f)
+                )
+                
+                // Turret Dome
+                drawCircle(
+                    color = baseColor,
+                    radius = w * 0.22f,
+                    center = Offset(w / 2f, h / 2f)
+                )
+                
+                // Turret inner dome rim
+                drawCircle(
+                    color = Color.DarkGray.copy(alpha = alpha * 0.3f),
+                    radius = w * 0.18f,
+                    center = Offset(w / 2f, h / 2f),
+                    style = Stroke(width = w * 0.04f)
+                )
+            }
+        }
+        
+        Text(
+            text = ammo.toString(),
+            color = textColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = (size.value * 0.4f).coerceAtLeast(8f).sp
+        )
     }
 }
 

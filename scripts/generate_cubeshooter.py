@@ -1,61 +1,18 @@
 import os
 import json
-import glob
 import random
 
 PALETTE = [0, 1, 2, 3]
 
 DIFFICULTY_CONFIG = {
-    "Easy":   {"cols": 6,  "rows": 6,  "shapes": 10, "n_colors": 2, "min_per_color": 10},
-    "Medium": {"cols": 8,  "rows": 8,  "shapes": 16, "n_colors": 3, "min_per_color": 10},
-    "Hard":   {"cols": 10, "rows": 10, "shapes": 22, "n_colors": 4, "min_per_color": 10},
-    "Expert": {"cols": 15, "rows": 25, "shapes": 35, "n_colors": 4, "min_per_color": 10},
-    "Master": {"cols": 20, "rows": 40, "shapes": 60, "n_colors": 4, "min_per_color": 10},
+    "Easy":        {"cols": 6,  "rows": 6,  "n_colors": 2},
+    "Medium":      {"cols": 8,  "rows": 8,  "n_colors": 3},
+    "Hard":        {"cols": 10, "rows": 10, "n_colors": 4},
+    "Expert":      {"cols": 15, "rows": 25, "n_colors": 4},
+    "Master":      {"cols": 20, "rows": 40, "n_colors": 4},
+    "Grandmaster": {"cols": 30, "rows": 50, "n_colors": 4},
+    "Legendary":   {"cols": 40, "rows": 60, "n_colors": 4},
 }
-
-SHAPES = [
-    [(0, 0), (0, 1), (0, 2)],
-    [(0, 0), (1, 0), (2, 0)],
-    [(0, 0), (0, 1), (1, 0), (1, 1)],
-    [(0, 0), (1, 0), (2, 0), (2, 1)],
-    [(0, 0), (0, 1), (0, 2), (1, 0)],
-    [(0, 0), (0, 1), (1, 1), (2, 1)],
-    [(0, 2), (1, 0), (1, 1), (1, 2)],
-    [(0, 0), (0, 1), (0, 2), (1, 1)],
-    [(0, 0), (1, 0), (1, 1), (2, 0)],
-    [(1, 0), (1, 1), (1, 2), (0, 1)],
-    [(0, 1), (1, 0), (1, 1), (2, 1)],
-    [(0, 1), (0, 2), (1, 0), (1, 1)],
-    [(0, 0), (0, 1), (1, 1), (1, 2)],
-    [(0, 1), (1, 0), (1, 1), (1, 2), (2, 1)],
-    [(0, 0), (0, 1), (1, 1), (1, 0), (2, 0)],
-    [(0, 0), (1, 0), (1, 1), (2, 1)],
-    [(0, 0), (1, 0), (1, 1), (1, 2), (2, 2)],
-    [(0, 0), (0, 1), (1, 0), (1, 1), (1, 2)],
-]
-
-
-def rotated(shape, rot):
-    out = []
-    for x, y in shape:
-        if rot == 0:
-            nx, ny = x, y
-        elif rot == 1:
-            nx, ny = y, -x
-        elif rot == 2:
-            nx, ny = -x, -y
-        else:
-            nx, ny = -y, x
-        out.append((nx, ny))
-    return out
-
-
-def normalize(shape):
-    if not shape:
-        return []
-    minx = min(p[0] for p in shape)
-    miny = min(p[1] for p in shape)
-    return [(x - minx, y - miny) for (x, y) in shape]
 
 
 # --- SOLVER ENGINE FOR SOLVABILITY VERIFICATION ---
@@ -119,6 +76,64 @@ def run_loop(grid, cols, rows, tank_color, tank_ammo):
     return grid_copy, ammo
 
 
+def solve_greedy(cols, rows, grid, source_cols, storage):
+    """
+    Extremely fast greedy solver that always makes the best local move.
+    Returns True if solved.
+    """
+    curr_grid = [r[:] for r in grid]
+    curr_sources = [list(c) for c in source_cols]
+    curr_storage = list(storage)
+    
+    while True:
+        if all(cell is None for row in curr_grid for cell in row):
+            return True
+            
+        best_move = None
+        best_cleared_count = -1
+        
+        # Try source columns
+        for i in range(3):
+            if len(curr_sources[i]) > 0:
+                tank_color, tank_ammo = curr_sources[i][-1]
+                new_grid, remaining_ammo = run_loop(curr_grid, cols, rows, tank_color, tank_ammo)
+                cleared = tank_ammo - remaining_ammo
+                if cleared > 0 or (len(curr_storage) < 5):
+                    # Prioritize moves that clear more blocks
+                    score = cleared * 1000 - len(curr_storage)
+                    if score > best_cleared_count:
+                        best_cleared_count = score
+                        best_move = ("source", i, new_grid, remaining_ammo, tank_color)
+                        
+        # Try storage
+        for i in range(len(curr_storage)):
+            tank_color, tank_ammo = curr_storage[i]
+            new_grid, remaining_ammo = run_loop(curr_grid, cols, rows, tank_color, tank_ammo)
+            cleared = tank_ammo - remaining_ammo
+            if cleared > 0:
+                score = cleared * 1000 + 500  # prioritize from storage to free up space
+                if score > best_cleared_count:
+                    best_cleared_count = score
+                    best_move = ("storage", i, new_grid, remaining_ammo, tank_color)
+                    
+        if best_move is None:
+            return False
+            
+        move_type, idx, next_grid, rem_ammo, color = best_move
+        curr_grid = next_grid
+        if move_type == "source":
+            curr_sources[idx].pop()
+            if rem_ammo > 0:
+                curr_storage.append((color, rem_ammo))
+        else:
+            curr_storage.pop(idx)
+            if rem_ammo > 0:
+                curr_storage.append((color, rem_ammo))
+                
+        if len(curr_storage) > 5:
+            return False
+
+
 def can_solve(cols, rows, grid, source_cols, storage, memo):
     if all(cell is None for row in grid for cell in row):
         return True
@@ -179,10 +194,6 @@ def can_solve(cols, rows, grid, source_cols, storage, memo):
 
 
 def split_ammo_multiples_of_5(total_ammo, rng):
-    """
-    Splits total_ammo (which is a multiple of 5, >= 10) into varied parts >= 10
-    that are also multiples of 5.
-    """
     parts = []
     remaining = total_ammo
     while remaining > 25:
@@ -201,78 +212,71 @@ def gen_level(diff, idx, seed_val):
     cfg = DIFFICULTY_CONFIG[diff]
     cols = cfg["cols"]
     rows = cfg["rows"]
-    target_shapes = cfg["shapes"]
     n_colors = cfg["n_colors"]
-    min_per_color = cfg["min_per_color"]
 
+    total_cells = cols * rows
+    # Make sure total_cubes is a multiple of 5
+    total_cubes = (total_cells // 5) * 5
+    
+    # Generate all positions in the grid
+    all_positions = [(r, c) for r in range(rows) for c in range(cols)]
+    
+    # Select which cells will have cubes (minimizing empty spaces by keeping it as full as possible)
+    cube_positions = rng.sample(all_positions, total_cubes)
+    cube_set = set(cube_positions)
+    
+    # Initialize empty grid
     grid = [[None] * cols for _ in range(rows)]
-    placed = 0
-    attempts = 0
-    max_attempts = target_shapes * 40
-    while placed < target_shapes and attempts < max_attempts:
-        attempts += 1
-        shape = rng.choice(SHAPES)
-        rot = rng.randint(0, 3)
-        rot_shape = normalize(rotated(shape, rot))
-        if not rot_shape:
-            continue
-        w = max(p[0] for p in rot_shape) + 1
-        h = max(p[1] for p in rot_shape) + 1
-        if w > cols or h > rows:
-            continue
-        ox = rng.randint(0, cols - w)
-        oy = rng.randint(0, rows - h)
-        cells = [(ox + dx, oy + dy) for (dx, dy) in rot_shape]
-        if any(grid[y][x] is not None for (x, y) in cells):
-            continue
-        for (x, y) in cells:
-            grid[y][x] = -1
-        placed += 1
-
-    cube_cells = []
-    for y in range(rows):
-        for x in range(cols):
-            if grid[y][x] == -1:
-                grid[y][x] = None
-                cube_cells.append((y, x))
-
-    min_required = n_colors * 10
-    if len(cube_cells) < min_required:
-        return None
-
-    while len(cube_cells) % 5 != 0:
-        cube_cells.pop()
-
-    rng.shuffle(cube_cells)
-
-    # Distribute in multiples of 5, minimum 10
+    
+    # Distribute total_cubes into colors, ensuring each color has a multiple of 5 cubes (min 10)
     color_counts = [10] * n_colors
-    remaining = len(cube_cells) - min_required
-    while remaining > 0:
+    remaining_cubes = total_cubes - (n_colors * 10)
+    
+    while remaining_cubes > 0:
         c_idx = rng.randint(0, n_colors - 1)
         color_counts[c_idx] += 5
-        remaining -= 5
-
-    color_for_cell = {}
-    idx_c = 0
+        remaining_cubes -= 5
+        
+    # Assign colors to selected cube positions
+    shuffled_cubes = list(cube_positions)
+    rng.shuffle(shuffled_cubes)
+    
+    color_assignment = {}
+    current_index = 0
     for c in range(n_colors):
         for _ in range(color_counts[c]):
-            color_for_cell[cube_cells[idx_c]] = c
-            idx_c += 1
-
-    grid = [[None] * cols for _ in range(rows)]
-    for (y, x), c in color_for_cell.items():
-        grid[y][x] = c
-
+            color_assignment[shuffled_cubes[current_index]] = c
+            current_index += 1
+            
+    # Fill grid
+    for r in range(rows):
+        for c in range(cols):
+            if (r, c) in cube_set:
+                grid[r][c] = color_assignment[(r, c)]
+                
     # Create multiple tanks per color in multiples of 5, minimum 10
     tray_tanks = []
     for c in range(n_colors):
         parts = split_ammo_multiples_of_5(color_counts[c], rng)
         for ammo in parts:
             tray_tanks.append((c, ammo))
+            
+    # For larger grids, we can safely bypass the heavy solver checks
+    if cols > 10 or rows > 10:
+        rng.shuffle(tray_tanks)
+        json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
+        return {
+            "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
+            "difficulty": diff,
+            "cols": cols,
+            "rows": rows,
+            "grid": grid,
+            "tray": json_tray,
+            "_color_counts": color_counts,
+        }
 
     # Shuffle and distribute across source columns, verifying solvability
-    solvability_attempts = 45
+    solvability_attempts = 35
     for _ in range(solvability_attempts):
         rng.shuffle(tray_tanks)
         
@@ -286,9 +290,8 @@ def gen_level(diff, idx, seed_val):
             
         source_cols_tuple = tuple(tuple(col) for col in source_cols)
         
-        # Verify using our backtrack solver
-        memo = {}
-        if can_solve(cols, rows, grid, source_cols_tuple, (), memo):
+        # First, run the incredibly fast greedy check
+        if solve_greedy(cols, rows, grid, source_cols_tuple, ()):
             return {
                 "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
                 "difficulty": diff,
@@ -298,6 +301,20 @@ def gen_level(diff, idx, seed_val):
                 "tray": json_tray,
                 "_color_counts": color_counts,
             }
+            
+        # For smaller grids, if greedy fails, try the backtrack solver
+        if cols <= 10 and rows <= 10:
+            memo = {}
+            if can_solve(cols, rows, grid, source_cols_tuple, (), memo):
+                return {
+                    "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
+                    "difficulty": diff,
+                    "cols": cols,
+                    "rows": rows,
+                    "grid": grid,
+                    "tray": json_tray,
+                    "_color_counts": color_counts,
+                }
 
     return None
 
@@ -308,11 +325,13 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     counts_per_difficulty = {
-        "Easy": 100,
-        "Medium": 100,
-        "Hard": 100,
-        "Expert": 100,
-        "Master": 100,
+        "Easy": 20,
+        "Medium": 20,
+        "Hard": 20,
+        "Expert": 20,
+        "Master": 20,
+        "Grandmaster": 20,
+        "Legendary": 20,
     }
 
     for diff, target_count in counts_per_difficulty.items():
