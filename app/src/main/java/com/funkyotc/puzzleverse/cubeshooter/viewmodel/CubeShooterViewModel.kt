@@ -49,12 +49,21 @@ class CubeShooterViewModel(
             }
         } ?: CubeShooterPregenerated.ALL_LEVELS.first()
 
+        val difficultyScale = 0.8f
+        val newCols = maxOf((selectedLevel.cols * difficultyScale).toInt(), 8)
+        val newRows = maxOf((selectedLevel.rows * difficultyScale).toInt(), 12)
+        val scaledGrid = if (difficultyScale < 1f) {
+            cropGrid(selectedLevel.grid, newRows, newCols)
+        } else {
+            selectedLevel.grid
+        }
+
         val level = Level(
             id = selectedLevel.id,
             difficulty = selectedLevel.difficulty,
-            cols = selectedLevel.cols,
-            rows = selectedLevel.rows,
-            grid = selectedLevel.grid,
+            cols = newCols,
+            rows = newRows,
+            grid = scaledGrid,
             tray = selectedLevel.tray
         )
 
@@ -111,8 +120,9 @@ class CubeShooterViewModel(
         )
 
         val updatedTrack = currentState.track.toMutableList()
+        val dispatchId = java.util.UUID.randomUUID().toString()
         if (finalTank.ammo > 0) {
-            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat(), id = dispatchId))
         }
 
         val isWon = fireResult.cubesRemaining == 0
@@ -130,7 +140,9 @@ class CubeShooterViewModel(
                 projectiles = fireResult.projectiles,
                 fadingCubes = fireResult.fadingCubes,
                 isWon = isWon,
-                isGameOver = isGameOver
+                isGameOver = isGameOver,
+                lastDispatchedId = dispatchId,
+                dispatchTimestamp = System.currentTimeMillis()
             )
         }
     }
@@ -163,8 +175,9 @@ class CubeShooterViewModel(
         )
 
         val updatedTrack = currentState.track.toMutableList()
+        val dispatchId = java.util.UUID.randomUUID().toString()
         if (finalTank.ammo > 0) {
-            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat(), id = dispatchId))
         }
 
         val isWon = fireResult.cubesRemaining == 0
@@ -182,7 +195,9 @@ class CubeShooterViewModel(
                 projectiles = fireResult.projectiles,
                 fadingCubes = fireResult.fadingCubes,
                 isWon = isWon,
-                isGameOver = isGameOver
+                isGameOver = isGameOver,
+                lastDispatchedId = dispatchId,
+                dispatchTimestamp = System.currentTimeMillis()
             )
         }
     }
@@ -383,6 +398,19 @@ class CubeShooterViewModel(
                 projectiles = updatedProjectiles,
                 fadingCubes = updatedFadingCubes
             )
+        }
+    }
+
+    private fun cropGrid(grid: List<List<Int?>>, newRows: Int, newCols: Int): List<List<Int?>> {
+        if (grid.isEmpty() || grid[0].isEmpty()) return grid
+        val oldRows = grid.size
+        val oldCols = grid[0].size
+        val rowStart = maxOf((oldRows - newRows) / 2, 0)
+        val colStart = maxOf((oldCols - newCols) / 2, 0)
+        val rowEnd = minOf(rowStart + newRows, oldRows)
+        val colEnd = minOf(colStart + newCols, oldCols)
+        return grid.subList(rowStart, rowEnd).map { row ->
+            row.subList(colStart, colEnd)
         }
     }
 

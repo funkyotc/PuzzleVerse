@@ -39,7 +39,6 @@ gradlew.bat lintDebug
 | finalRelease | yes | yes | — |
 
 ## Critical Gotchas
-- **JDK Path**: `gradle.properties` hardcodes `org.gradle.java.home=C:/Program Files/Android/Android Studio/jbr`. Will fail on non-Windows or custom JDK setups.
 - **Pre-generated Data**: Daily/Standard puzzles use pre-generated Kotlin objects, NOT runtime generation. Modifying puzzle logic requires updating both sources.
 - **finalRelease**: Only build type with minification + resource shrinking enabled.
 
