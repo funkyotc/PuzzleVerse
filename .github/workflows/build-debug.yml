@@ -37,8 +37,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Set Version Code Env
+        run: echo "VERSION_CODE=${{ github.run_number }}" >> $GITHUB_ENV
+
       - name: Build Debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug -PversionCode=${{ env.VERSION_CODE }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
