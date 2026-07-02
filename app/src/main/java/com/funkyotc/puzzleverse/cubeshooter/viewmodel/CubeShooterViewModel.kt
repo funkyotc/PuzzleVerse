@@ -262,7 +262,7 @@ class CubeShooterViewModel(
         val speedPerMs = loopLen.toFloat() / 4000f
         val movement = speedPerMs * dtMs
 
-        val currentGrid = level.grid.map { it.toMutableList() }.toMutableList()
+        var currentGrid: MutableList<MutableList<Int?>>? = null
         var cubesRemaining = currentState.cubesRemaining
         var score = currentState.score
 
@@ -313,12 +313,14 @@ class CubeShooterViewModel(
                     val cellIdx = newCell % loopLen
                     val targetCoords = getFacingCell(cellIdx, cols, rows)
                     if (targetCoords != null) {
-                        val (tr, tc) = findFirstCube(currentGrid, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows)
+                        val gridToRead = currentGrid ?: level.grid
+                        val (tr, tc) = findFirstCube(gridToRead, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows)
                         if (tr != null && tc != null) {
-                            val cubeColor = currentGrid[tr][tc]
+                            val cubeColor = gridToRead[tr][tc]
                             if (cubeColor == tankToKeep.tank.color && tankToKeep.tank.ammo > 0) {
-                                currentGrid[tr][tc] = null
-                                cubesRemaining = currentGrid.sumOf { r -> r.count { it != null } }
+                                val mutGrid = currentGrid ?: level.grid.map { it.toMutableList() }.toMutableList().also { currentGrid = it }
+                                mutGrid[tr][tc] = null
+                                cubesRemaining = mutGrid.sumOf { r -> r.count { it != null } }
                                 val updatedTank = tankToKeep.tank.copy(ammo = tankToKeep.tank.ammo - 1)
                                 tankToKeep = tankToKeep.copy(tank = updatedTank)
                                 score += 10
@@ -373,7 +375,7 @@ class CubeShooterViewModel(
 
         _state.update {
             it?.copy(
-                level = level.copy(grid = currentGrid),
+                level = level.copy(grid = currentGrid ?: level.grid),
                 sourceColumns = currentState.sourceColumns,
                 storageTray = updatedStorageTray,
                 track = updatedTrack,

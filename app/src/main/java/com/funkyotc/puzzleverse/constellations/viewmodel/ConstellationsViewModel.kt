@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -42,29 +43,31 @@ class ConstellationsViewModel(
     }
 
     fun loadNewPuzzle() {
-        if (mode == "puzzle" && puzzleId != null) {
-            val pregen = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
-             if (pregen != null) {
-                 _puzzle.value = pregen.toConstellationsPuzzle()
-                 _isGameWon.value = false
-                 _moves.value = 0
-                 _elapsedSeconds.value = 0
-                 startTimer()
-                 return
-             }
-        }
-    
-        val seed = if (mode == "daily") {
-            LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
-        } else {
-            Random.nextLong()
-        }
+        viewModelScope.launch(Dispatchers.Default) {
+            if (mode == "puzzle" && puzzleId != null) {
+                val pregen = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
+                 if (pregen != null) {
+                     _puzzle.value = pregen.toConstellationsPuzzle()
+                     _isGameWon.value = false
+                     _moves.value = 0
+                     _elapsedSeconds.value = 0
+                     startTimer()
+                     return@launch
+                 }
+            }
         
-        _puzzle.value = generator.generate(size = 6, seed = seed)
-        _isGameWon.value = false
-        _moves.value = 0
-        _elapsedSeconds.value = 0
-        startTimer()
+            val seed = if (mode == "daily") {
+                LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+            } else {
+                Random.nextLong()
+            }
+            
+            _puzzle.value = generator.generate(size = 6, seed = seed)
+            _isGameWon.value = false
+            _moves.value = 0
+            _elapsedSeconds.value = 0
+            startTimer()
+        }
     }
 
     private fun startTimer() {

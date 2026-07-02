@@ -5,15 +5,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.bonza.data.BonzaConnection
 import com.funkyotc.puzzleverse.bonza.data.BonzaPuzzle
 import com.funkyotc.puzzleverse.bonza.data.ConnectionDirection
 import com.funkyotc.puzzleverse.bonza.data.WordFragment
 import com.funkyotc.puzzleverse.bonza.generator.BonzaPuzzleGenerator
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 class BonzaViewModel(
@@ -28,7 +31,7 @@ class BonzaViewModel(
     private val _isGameWon = MutableStateFlow(false)
     val isGameWon: StateFlow<Boolean> = _isGameWon
 
-    private val _puzzle = MutableStateFlow(generatePuzzle())
+    private val _puzzle = MutableStateFlow(BonzaPuzzle("", emptyList(), emptyList(), emptyList(), emptyList()))
     val puzzle: StateFlow<BonzaPuzzle> = _puzzle
 
     private val _draggedGroupId = MutableStateFlow<Int?>(null)
@@ -40,7 +43,9 @@ class BonzaViewModel(
     private val letterBoxSize = 1.0f
 
     init {
-        // Initialize Bonza game state here
+        viewModelScope.launch(Dispatchers.Default) {
+            _puzzle.value = generatePuzzle()
+        }
     }
 
     private fun generatePuzzle(): BonzaPuzzle {
@@ -293,7 +298,9 @@ class BonzaViewModel(
     fun newGame() {
         if (mode == "daily") return // usually new game is disabled manually, but as fallback
         _isGameWon.value = false
-        _puzzle.value = generatePuzzle()
+        viewModelScope.launch(Dispatchers.Default) {
+            _puzzle.value = generatePuzzle()
+        }
     }
 
     private fun initializePuzzle(puzzle: BonzaPuzzle): BonzaPuzzle {

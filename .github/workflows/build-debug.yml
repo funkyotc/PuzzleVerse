@@ -53,4 +53,5 @@ jobs:
           tag_name: nightly
           name: Nightly Build
           prerelease: true
+          make_latest: true
           files: app/build/outputs/apk/debug/app-debug.apk

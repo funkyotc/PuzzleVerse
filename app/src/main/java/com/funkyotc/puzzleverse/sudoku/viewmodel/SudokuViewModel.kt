@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.sudoku.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuBoard
 import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
@@ -9,8 +10,10 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.sudoku.generator.SudokuGenerator
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 class SudokuViewModel(
@@ -42,9 +45,13 @@ class SudokuViewModel(
     private var boardHistory = mutableListOf<SudokuBoard>()
 
     init {
-        _board = MutableStateFlow(generateInitialBoard())
+        _board = MutableStateFlow(SudokuBoard(emptyList()))
         board = _board
-        boardHistory.add(_board.value)
+        viewModelScope.launch(Dispatchers.Default) {
+            val initialBoard = generateInitialBoard()
+            _board.value = initialBoard
+            boardHistory.add(initialBoard)
+        }
     }
 
     private fun generateInitialBoard(): SudokuBoard {
@@ -163,13 +170,15 @@ class SudokuViewModel(
     }
 
     fun newGame() {
-        val newBoard = generateNewBoard()
-        _board.value = newBoard
-        boardHistory.clear()
-        boardHistory.add(newBoard)
-        repository.saveBoard(newBoard, boardKey)
-        _isGameWon.value = false
-        _selectedCell.value = null
+        viewModelScope.launch(Dispatchers.Default) {
+            val newBoard = generateNewBoard()
+            _board.value = newBoard
+            boardHistory.clear()
+            boardHistory.add(newBoard)
+            repository.saveBoard(newBoard, boardKey)
+            _isGameWon.value = false
+            _selectedCell.value = null
+        }
     }
 
     fun hint() {
@@ -178,31 +187,33 @@ class SudokuViewModel(
         val emptyCells = currentBoard.cells.filter { it.number == 0 }
         if (emptyCells.isEmpty()) return
 
-        val solutionGrid = generator.getSolutionGrid(currentBoard) ?: return
-        
-        // Pick a random empty cell
-        val targetCell = emptyCells.random()
-        val correctNumber = solutionGrid[targetCell.row][targetCell.col]
+        viewModelScope.launch(Dispatchers.Default) {
+            val solutionGrid = generator.getSolutionGrid(currentBoard) ?: return@launch
+            
+            // Pick a random empty cell
+            val targetCell = emptyCells.random()
+            val correctNumber = solutionGrid[targetCell.row][targetCell.col]
 
-        val newCells = currentBoard.cells.map {
-            if (it.row == targetCell.row && it.col == targetCell.col) {
-                // We set isHint = true to lock it permanently
-                it.copy(number = correctNumber, pencilMarks = emptySet(), isHint = true, isError = false)
-            } else {
-                if (it.row == targetCell.row || it.col == targetCell.col || (it.row / 3 == targetCell.row / 3 && it.col / 3 == targetCell.col / 3)) {
-                    val newPencilMarks = it.pencilMarks.toMutableSet()
-                    newPencilMarks.remove(correctNumber)
-                    it.copy(pencilMarks = newPencilMarks)
+            val newCells = currentBoard.cells.map {
+                if (it.row == targetCell.row && it.col == targetCell.col) {
+                    // We set isHint = true to lock it permanently
+                    it.copy(number = correctNumber, pencilMarks = emptySet(), isHint = true, isError = false)
                 } else {
-                    it
+                    if (it.row == targetCell.row || it.col == targetCell.col || (it.row / 3 == targetCell.row / 3 && it.col / 3 == targetCell.col / 3)) {
+                        val newPencilMarks = it.pencilMarks.toMutableSet()
+                        newPencilMarks.remove(correctNumber)
+                        it.copy(pencilMarks = newPencilMarks)
+                    } else {
+                        it
+                    }
                 }
             }
+            val newBoard = validateBoard(SudokuBoard(newCells))
+            _board.value = newBoard
+            boardHistory.add(newBoard)
+            repository.saveBoard(newBoard, boardKey)
+            checkWinCondition(newBoard)
         }
-        val newBoard = validateBoard(SudokuBoard(newCells))
-        _board.value = newBoard
-        boardHistory.add(newBoard)
-        repository.saveBoard(newBoard, boardKey)
-        checkWinCondition(newBoard)
     }
 
     private fun validateBoard(board: SudokuBoard): SudokuBoard {

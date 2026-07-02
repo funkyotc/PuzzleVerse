@@ -2,13 +2,16 @@ package com.funkyotc.puzzleverse.nonogram.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.nonogram.data.CellState
 import com.funkyotc.puzzleverse.nonogram.data.NonogramState
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class NonogramViewModel(
     private val streakRepository: StreakRepository? = null,
@@ -19,7 +22,9 @@ class NonogramViewModel(
     val state: StateFlow<NonogramState> = _state.asStateFlow()
 
     init {
-        startNewGame()
+        viewModelScope.launch(Dispatchers.Default) {
+            startNewGame()
+        }
     }
 
     fun startNewGame() {
