@@ -207,14 +207,11 @@ class CubeShooterViewModel(
 
         val targetCoords = getFacingCell(bottomMiddleIndex, cols, rows)
         if (targetCoords != null) {
-            val (tr, tc) = findFirstCube(currentGrid, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows)
+            val (tr, tc) = findFirstCube(currentGrid, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows, projectiles)
             if (tr != null && tc != null) {
                 val cubeColor = currentGrid[tr][tc]
                 if (cubeColor == updatedTank.color && updatedTank.ammo > 0) {
-                    currentGrid[tr][tc] = null
-                    updatedCubesRemaining = currentGrid.sumOf { r -> r.count { it != null } }
                     updatedTank = updatedTank.copy(ammo = updatedTank.ammo - 1)
-                    updatedScore += 10
 
                     val tankCoord = getTrackCellCoordinates(bottomMiddleIndex, cols, rows)
                     updatedProjectiles.add(
@@ -286,6 +283,10 @@ class CubeShooterViewModel(
             if (nextProgress >= 1f) {
                 val tr = (p.endRow - 1f).toInt()
                 val tc = (p.endCol - 1f).toInt()
+                val mutGrid = currentGrid ?: level.grid.map { it.toMutableList() }.toMutableList().also { currentGrid = it }
+                mutGrid[tr][tc] = null
+                cubesRemaining = mutGrid.sumOf { r -> r.count { it != null } }
+                score += 10
                 updatedFadingCubes.add(FadingCube(tr, tc, p.color, 0f))
             } else {
                 updatedProjectiles.add(p.copy(progress = nextProgress))
@@ -314,16 +315,12 @@ class CubeShooterViewModel(
                     val targetCoords = getFacingCell(cellIdx, cols, rows)
                     if (targetCoords != null) {
                         val gridToRead = currentGrid ?: level.grid
-                        val (tr, tc) = findFirstCube(gridToRead, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows)
+                        val (tr, tc) = findFirstCube(gridToRead, targetCoords.first, targetCoords.second, targetCoords.third, cols, rows, updatedProjectiles)
                         if (tr != null && tc != null) {
                             val cubeColor = gridToRead[tr][tc]
                             if (cubeColor == tankToKeep.tank.color && tankToKeep.tank.ammo > 0) {
-                                val mutGrid = currentGrid ?: level.grid.map { it.toMutableList() }.toMutableList().also { currentGrid = it }
-                                mutGrid[tr][tc] = null
-                                cubesRemaining = mutGrid.sumOf { r -> r.count { it != null } }
                                 val updatedTank = tankToKeep.tank.copy(ammo = tankToKeep.tank.ammo - 1)
                                 tankToKeep = tankToKeep.copy(tank = updatedTank)
-                                score += 10
 
                                 // Calculate firing position of tank
                                 val tankCoord = getTrackCellCoordinates(cellIdx, cols, rows)
@@ -460,27 +457,32 @@ class CubeShooterViewModel(
         startCol: Int,
         direction: String,
         cols: Int,
-        rows: Int
+        rows: Int,
+        projectiles: List<Projectile>
     ): Pair<Int?, Int?> {
+        val targeted = projectiles.map {
+            Pair((it.endRow - 1f).toInt(), (it.endCol - 1f).toInt())
+        }.toSet()
+
         when (direction) {
             "DOWN" -> {
                 for (r in 0 until rows) {
-                    if (grid[r][startCol] != null) return Pair(r, startCol)
+                    if (grid[r][startCol] != null && !targeted.contains(Pair(r, startCol))) return Pair(r, startCol)
                 }
             }
             "LEFT" -> {
                 for (c in cols - 1 downTo 0) {
-                    if (grid[startRow][c] != null) return Pair(startRow, c)
+                    if (grid[startRow][c] != null && !targeted.contains(Pair(startRow, c))) return Pair(startRow, c)
                 }
             }
             "UP" -> {
                 for (r in rows - 1 downTo 0) {
-                    if (grid[r][startCol] != null) return Pair(r, startCol)
+                    if (grid[r][startCol] != null && !targeted.contains(Pair(r, startCol))) return Pair(r, startCol)
                 }
             }
             "RIGHT" -> {
                 for (c in 0 until cols) {
-                    if (grid[startRow][c] != null) return Pair(startRow, c)
+                    if (grid[startRow][c] != null && !targeted.contains(Pair(startRow, c))) return Pair(startRow, c)
                 }
             }
         }

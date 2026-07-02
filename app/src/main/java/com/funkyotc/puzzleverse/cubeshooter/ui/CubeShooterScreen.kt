@@ -336,7 +336,7 @@ fun CubeShooterScreen(
                         val r = coord1.first + (coord2.first - coord1.first) * fraction
                         val c = coord1.second + (coord2.second - coord1.second) * fraction
 
-                        val tankSize = 28.dp
+                        val tankSize = 56.dp
                         val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
                         val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
 
@@ -439,7 +439,7 @@ fun CubeShooterScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(130.dp),
+                        .height(160.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -497,7 +497,7 @@ fun CubeShooterScreen(
                                         if (colTanks.isEmpty()) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(28.dp)
+                                                    .size(36.dp)
                                                     .background(Color.Transparent),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -509,8 +509,8 @@ fun CubeShooterScreen(
                                             
                                             Box(
                                                 modifier = Modifier
-                                                    .width(44.dp) // Bigger tanks
-                                                    .height(110.dp)
+                                                    .width(56.dp) // Match storage tank size
+                                                    .height(140.dp)
                                             ) {
                                                  for (i in displayList.indices) {
                                                      val (originalIndex, tank) = displayList[i]
@@ -528,7 +528,7 @@ fun CubeShooterScreen(
                                                      }
                                                      
                                                      key(originalIndex) {
-                                                         val targetY = (i * 32).dp // Bigger gap
+                                                         val targetY = (i * 40).dp // Overlap spacing
                                                          val animatedY by animateDpAsState(
                                                              targetValue = targetY,
                                                              animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -538,7 +538,7 @@ fun CubeShooterScreen(
                                                          TankView(
                                                              colorId = tank.color,
                                                              ammo = tank.ammo,
-                                                             size = 44.dp, // Bigger tanks
+                                                             size = 56.dp, // Match storage tank size
                                                              alpha = alpha,
                                                              angle = 0f,
                                                              modifier = Modifier
