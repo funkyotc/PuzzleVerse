@@ -44,6 +44,9 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.runtime.key
+import androidx.compose.ui.platform.LocalContext
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,11 +64,17 @@ fun CubeShooterScreen(
     val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Cube Shooter") }
+
     val state = stateOpt ?: return
 
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
@@ -123,15 +132,77 @@ fun CubeShooterScreen(
             title = { Text("Victory!") },
             text = { Text("You cleared all cubes! Final Score: ${state.score}") },
             confirmButton = {
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     if (mode == "puzzle") {
-                        navController.popBackStack()
+                        Button(
+                            onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                navController.popBackStack()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Back to Browser")
+                        }
+
+                        val nextId = puzzleId?.let { id ->
+                            val allPuzzles = CubeShooterPregenerated.ALL_LEVELS
+                            val currentIndex = allPuzzles.indexOfFirst { it.id == id }
+                            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
+                                allPuzzles[currentIndex + 1].id
+                            } else {
+                                null
+                            }
+                        }
+
+                        if (nextId != null) {
+                            Button(
+                                onClick = {
+                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    navController.popBackStack()
+                                    navController.navigate("game/cubeshooter/puzzle/$nextId")
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Next Puzzle")
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                val randomId = CubeShooterPregenerated.ALL_LEVELS.random().id
+                                navController.popBackStack()
+                                navController.navigate("game/cubeshooter/puzzle/$randomId")
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Random Puzzle")
+                        }
                     } else {
-                        viewModel.startNewGame()
+                        Button(
+                            onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                viewModel.startNewGame()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Play Again")
+                        }
+
+                        Button(
+                            onClick = {
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                viewModel.startNewGame()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Random Puzzle")
+                        }
                     }
-                }) {
-                    Text(if (mode == "puzzle") "Back to Browser" else "Play Again")
                 }
             }
         )
