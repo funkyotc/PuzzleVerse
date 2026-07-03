@@ -83,8 +83,8 @@ class CubeShooterViewModel(
     fun dispatchFromSource(colIndex: Int) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
-        if (currentState.track.size >= 5) return
-        if (currentState.transitioningTank != null) return
+        if (currentState.track.size + currentState.transitions.size >= 5) return
+        if (currentState.transitions.any { it.fromCol == colIndex }) return
         if (colIndex !in currentState.sourceColumns.indices) return
 
         val column = currentState.sourceColumns[colIndex]
@@ -96,10 +96,16 @@ class CubeShooterViewModel(
         val updatedSourceColumns = currentState.sourceColumns.map { it.toMutableList() }
         updatedSourceColumns[colIndex].removeAt(column.lastIndex)
 
+        val transition = TankTransition(
+            id = java.util.UUID.randomUUID().toString(),
+            tank = tankToDispatch,
+            fromCol = colIndex
+        )
+
         _state.update {
             it?.copy(
                 sourceColumns = updatedSourceColumns,
-                transitioningTank = tankToDispatch
+                transitions = it.transitions + transition
             )
         }
     }
@@ -107,8 +113,7 @@ class CubeShooterViewModel(
     fun dispatchFromStorage(index: Int) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
-        if (currentState.track.size >= 5) return
-        if (currentState.transitioningTank != null) return
+        if (currentState.track.size + currentState.transitions.size >= 5) return
         if (index !in currentState.storageTray.indices) return
 
         val tankToDispatch = currentState.storageTray[index]
@@ -117,50 +122,78 @@ class CubeShooterViewModel(
         val updatedStorage = currentState.storageTray.toMutableList()
         updatedStorage.removeAt(index)
 
+        val transition = TankTransition(
+            id = java.util.UUID.randomUUID().toString(),
+            tank = tankToDispatch,
+            fromTraySlot = index
+        )
+
         _state.update {
             it?.copy(
                 storageTray = updatedStorage,
-                transitioningTank = tankToDispatch
+                transitions = it.transitions + transition
             )
         }
     }
 
-    fun completeTransition() {
-        val currentState = _state.value ?: return
-        val tank = currentState.transitioningTank ?: return
-        if (currentState.isWon || currentState.isGameOver) return
+    fun completeTransition(id: String) {
+        _state.update { currentState ->
+            if (currentState == null) return@update null
+            val transition = currentState.transitions.find { it.id == id } ?: return@update currentState
+            if (currentState.isWon || currentState.isGameOver) return@update currentState
 
-        val bottomMiddleIndex = getBottomMiddleTrackIndex(currentState.level.cols, currentState.level.rows)
+            val bottomMiddleIndex = getBottomMiddleTrackIndex(currentState.level.cols, currentState.level.rows)
 
-        val (finalTank, updatedGrid, fireResult) = checkImmediateFireOnDispatch(
-            tank = tank, bottomMiddleIndex = bottomMiddleIndex,
-            cols = currentState.level.cols, rows = currentState.level.rows,
-            grid = currentState.level.grid,
-            projectiles = currentState.projectiles,
-            fadingCubes = currentState.fadingCubes,
-            score = currentState.score,
-            cubesRemaining = currentState.cubesRemaining
-        )
+            val (finalTank, updatedGrid, fireResult) = checkImmediateFireOnDispatch(
+                tank = transition.tank, bottomMiddleIndex = bottomMiddleIndex,
+                cols = currentState.level.cols, rows = currentState.level.rows,
+                grid = currentState.level.grid,
+                projectiles = currentState.projectiles,
+                fadingCubes = currentState.fadingCubes,
+                score = currentState.score,
+                cubesRemaining = currentState.cubesRemaining
+            )
 
-        val updatedTrack = currentState.track.toMutableList()
-        if (finalTank.ammo > 0) {
-            updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
-        }
+            val updatedTrack = currentState.track.toMutableList()
+            if (finalTank.ammo > 0) {
+                updatedTrack.add(TrackTank(tank = finalTank, position = bottomMiddleIndex.toFloat()))
+            }
 
-        val isWon = fireResult.cubesRemaining == 0
-        val isGameOver = currentState.storageTray.size > 5
+            val updatedTransitions = currentState.transitions.filter { it.id != id }
 
-        _state.update {
-            it?.copy(
+            val isWon = fireResult.cubesRemaining == 0
+            val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
+            val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo } + updatedTransitions.sumOf { it.tank.ammo }
+            val isGameOver = currentState.storageTray.size > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && fireResult.cubesRemaining > 0)
+
+            currentState.copy(
                 level = currentState.level.copy(grid = updatedGrid),
                 track = updatedTrack,
+                transitions = updatedTransitions,
                 cubesRemaining = fireResult.cubesRemaining,
                 score = fireResult.score,
                 projectiles = fireResult.projectiles,
                 fadingCubes = fireResult.fadingCubes,
                 isWon = isWon,
-                isGameOver = isGameOver,
-                transitioningTank = null
+                isGameOver = isGameOver
+            )
+        }
+    }
+
+    fun completeReturn(id: String) {
+        _state.update { currentState ->
+            if (currentState == null) return@update null
+            val ret = currentState.returns.find { it.id == id } ?: return@update currentState
+            val updatedStorage = currentState.storageTray.toMutableList()
+            updatedStorage.add(ret.tank)
+            val updatedReturns = currentState.returns.filter { it.id != id }
+            val sourceIsEmpty = currentState.sourceColumns.all { it.isEmpty() }
+            val totalAmmoOnTrack = currentState.track.sumOf { it.tank.ammo } + currentState.transitions.sumOf { it.tank.ammo }
+            val isGameOver = updatedStorage.size > 5 || (sourceIsEmpty && updatedStorage.isEmpty() && totalAmmoOnTrack == 0 && currentState.cubesRemaining > 0)
+            currentState.copy(
+                storageTray = updatedStorage,
+                returns = updatedReturns,
+                isGameOver = isGameOver
             )
         }
     }
@@ -242,7 +275,6 @@ class CubeShooterViewModel(
         var score = currentState.score
 
         val updatedTrack = mutableListOf<TrackTank>()
-        val returnedTanks = mutableListOf<Tank>()
 
         // Update existing fading cubes progress
         val updatedFadingCubes = currentState.fadingCubes.map {
@@ -273,14 +305,17 @@ class CubeShooterViewModel(
 
         val bottomMiddleIndex = getBottomMiddleTrackIndex(cols, rows)
 
+        val newReturns = mutableListOf<TankReturn>()
         for (trackTank in currentState.track) {
             val oldPos = trackTank.position
             val newPos = oldPos + movement
 
-            // Complete loop if they have gone a full loop length starting from bottom-middle index
             if (newPos >= bottomMiddleIndex + loopLen) {
                 if (trackTank.tank.ammo > 0) {
-                    returnedTanks.add(trackTank.tank)
+                    newReturns.add(TankReturn(
+                        id = java.util.UUID.randomUUID().toString(),
+                        tank = trackTank.tank
+                    ))
                 }
             } else {
                 val oldCell = oldPos.toInt()
@@ -300,7 +335,6 @@ class CubeShooterViewModel(
                                 val updatedTank = tankToKeep.tank.copy(ammo = tankToKeep.tank.ammo - 1)
                                 tankToKeep = tankToKeep.copy(tank = updatedTank)
 
-                                // Calculate firing position of tank
                                 val tankCoord = getTrackCellCoordinates(cellIdx, cols, rows)
                                 updatedProjectiles.add(
                                     Projectile(
@@ -323,13 +357,11 @@ class CubeShooterViewModel(
             }
         }
 
-        val updatedStorageTray = currentState.storageTray.toMutableList()
-        for (t in returnedTanks) {
-            updatedStorageTray.add(t)
-        }
-
+        val allReturns = currentState.returns + newReturns
         val isWon = cubesRemaining == 0
-        val isGameOver = updatedStorageTray.size > 5
+        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
+        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo } + currentState.transitions.sumOf { it.tank.ammo }
+        val isGameOver = (currentState.storageTray.size + allReturns.size) > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && cubesRemaining > 0)
 
         if (isWon && !currentState.isWon && mode == "daily") {
             val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
@@ -349,14 +381,15 @@ class CubeShooterViewModel(
             it?.copy(
                 level = level.copy(grid = currentGrid ?: level.grid),
                 sourceColumns = currentState.sourceColumns,
-                storageTray = updatedStorageTray,
+                storageTray = currentState.storageTray,
                 track = updatedTrack,
                 cubesRemaining = cubesRemaining,
                 score = score,
                 isWon = isWon,
                 isGameOver = isGameOver,
                 projectiles = updatedProjectiles,
-                fadingCubes = updatedFadingCubes
+                fadingCubes = updatedFadingCubes,
+                returns = allReturns
             )
         }
     }

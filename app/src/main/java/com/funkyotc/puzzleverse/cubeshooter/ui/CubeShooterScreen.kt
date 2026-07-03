@@ -45,6 +45,11 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
@@ -104,14 +109,10 @@ fun CubeShooterScreen(
         }
     }
 
-    val transitionAnim = remember { Animatable(0f) }
-    LaunchedEffect(state.transitioningTank) {
-        if (state.transitioningTank != null) {
-            transitionAnim.snapTo(0f)
-            transitionAnim.animateTo(1f, animationSpec = tween(durationMillis = 300))
-            viewModel.completeTransition()
-        }
-    }
+    val overlayRoot = remember { mutableStateOf(Offset.Zero) }
+    val sourceColRootPositions = remember { mutableStateMapOf<Int, Offset>() }
+    val traySlotRootPositions = remember { mutableStateMapOf<Int, Offset>() }
+    var trackEntryRootPos by remember { mutableStateOf(Offset.Zero) }
 
     if (showHowToDialog) {
         AlertDialog(
@@ -264,13 +265,17 @@ fun CubeShooterScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(16.dp)
+                .onGloballyPositioned { overlayRoot.value = it.positionInRoot() }
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Main Board and Track
             BoxWithConstraints(
@@ -443,24 +448,16 @@ fun CubeShooterScreen(
                         )
                     }
 
-                    // 4. Transitioning Tank (slides from below onto the track)
-                    state.transitioningTank?.let { tank ->
-                        val animProgress = transitionAnim.value
-                        val middleCol = (cols + 1) / 2
-                        val r = (rows + 1f) + (1f - animProgress)
-                        val c = middleCol.toFloat()
-                        val xOff = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                        val yOff = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                        TankView(
-                            colorId = tank.color,
-                            ammo = tank.ammo,
-                            size = tankSize,
-                            angle = 0f,
-                            modifier = Modifier
-                                .offset(x = xOff.dp, y = yOff.dp)
-                                .padding(1.dp)
-                        )
-                    }
+                    // 4. Track entry position marker
+                    val middleColEntry = (cols + 1) / 2
+                    val entryXOff = middleColEntry * cellSize.value + cellSize.value / 2f
+                    val entryYOff = (rows + 1) * cellSize.value + cellSize.value / 2f
+                    Box(
+                        modifier = Modifier
+                            .offset(x = entryXOff.dp, y = entryYOff.dp)
+                            .size(1.dp)
+                            .onGloballyPositioned { trackEntryRootPos = it.positionInRoot() }
+                    )
                 }
             }
 
@@ -492,45 +489,49 @@ fun CubeShooterScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (i in 0 until 5) {
-                                 if (i < state.storageTray.size) {
-                                     val tank = state.storageTray[i]
-                                     val isDispatchEnabled = state.track.size < 5 && state.transitioningTank == null && tank.ammo > 0
-                                     val borderModifier = if (isDispatchEnabled) {
-                                         Modifier.border(
-                                             width = 2.dp,
-                                             color = Color.Green,
-                                             shape = RoundedCornerShape(8.dp)
-                                         )
-                                     } else {
-                                         Modifier
-                                     }
-                                     val alpha = 1f
-                                     TankView(
-                                         colorId = tank.color,
-                                         ammo = tank.ammo,
-                                         size = 56.dp, // Bigger tanks
-                                         alpha = alpha,
-                                         angle = 0f,
-                                         modifier = borderModifier
-                                             .clickable(enabled = isDispatchEnabled) {
-                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                viewModel.dispatchFromStorage(i)
-                                             }
-                                     )
-                                 } else {
-                                     // Empty slot
-                                     Box(
-                                         modifier = Modifier
-                                             .size(56.dp) // Bigger slot
-                                             .clip(RoundedCornerShape(8.dp))
-                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
-                                             .border(
-                                                 width = 1.dp,
-                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                                 shape = RoundedCornerShape(8.dp)
-                                             )
-                                     )
-                                 }
+                                  if (i < state.storageTray.size) {
+                                      val tank = state.storageTray[i]
+                                      val isDispatchEnabled = state.track.size + state.transitions.size < 5 && tank.ammo > 0
+                                      val borderModifier = if (isDispatchEnabled) {
+                                          Modifier.border(
+                                              width = 2.dp,
+                                              color = Color.Green,
+                                              shape = RoundedCornerShape(8.dp)
+                                          )
+                                      } else {
+                                          Modifier
+                                      }
+                                      val alpha = 1f
+                                      TankView(
+                                          colorId = tank.color,
+                                          ammo = tank.ammo,
+                                          size = 56.dp, // Bigger tanks
+                                          alpha = alpha,
+                                          angle = 0f,
+                                          modifier = Modifier
+                                              .onGloballyPositioned { traySlotRootPositions[i] = it.positionInRoot() }
+                                              .then(borderModifier)
+                                              .clickable(enabled = isDispatchEnabled) {
+                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                 viewModel.dispatchFromStorage(i)
+                                              }
+                                      )
+                                  } else {
+                                      // Empty slot
+                                      Box(
+                                          modifier = Modifier
+                                              .size(56.dp) // Bigger slot
+                                              .onGloballyPositioned { traySlotRootPositions[i] = it.positionInRoot() }
+                                              .clip(RoundedCornerShape(8.dp))
+                                              .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                                              .border(
+                                                  width = 1.dp,
+                                                  color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                                  shape = RoundedCornerShape(8.dp)
+                                               )
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -613,26 +614,32 @@ fun CubeShooterScreen(
                                                     .width(56.dp) // Match storage tank size
                                                     .height(140.dp)
                                             ) {
-                                                 for (i in displayList.indices) {
-                                                     val (originalIndex, tank) = displayList[i]
-                                                     val isTop = (i == 0)
-                                                     val isDispatchEnabled = isTop && state.track.size < 5 && state.transitioningTank == null
-                                                     val alpha = 1f
-                                                     val borderModifier = if (isDispatchEnabled) {
-                                                         Modifier.border(
-                                                             width = 2.dp,
-                                                             color = Color.Green,
-                                                             shape = RoundedCornerShape(8.dp)
-                                                         )
-                                                     } else {
-                                                         Modifier
-                                                     }
-                                                     
-                                                     key(originalIndex) {
-                                                         val targetY = (i * 40).dp // Overlap spacing
-                                                         val animatedY by animateDpAsState(
-                                                             targetValue = targetY,
-                                                             animationSpec = spring(stiffness = Spring.StiffnessLow),
+                                                  for (i in displayList.indices) {
+                                                      val (originalIndex, tank) = displayList[i]
+                                                      val isTop = (i == 0)
+                                                      val lockedCols = state.transitions.mapNotNull { it.fromCol }.toSet()
+                                                      val isDispatchEnabled = isTop && state.track.size + state.transitions.size < 5 && colIndex !in lockedCols
+                                                      val alpha = 1f
+                                                      val borderModifier = if (isDispatchEnabled) {
+                                                          Modifier.border(
+                                                              width = 2.dp,
+                                                              color = Color.Green,
+                                                              shape = RoundedCornerShape(8.dp)
+                                                          )
+                                                      } else {
+                                                          Modifier
+                                                      }
+                                                      val posModifier = if (isTop) {
+                                                          Modifier.onGloballyPositioned { sourceColRootPositions[colIndex] = it.positionInRoot() }
+                                                      } else {
+                                                          Modifier
+                                                      }
+                                                      
+                                                      key(originalIndex) {
+                                                          val targetY = (i * 40).dp // Overlap spacing
+                                                          val animatedY by animateDpAsState(
+                                                              targetValue = targetY,
+                                                              animationSpec = spring(stiffness = Spring.StiffnessLow),
                                                              label = "tank_y"
                                                          )
                                                          
@@ -642,10 +649,11 @@ fun CubeShooterScreen(
                                                              size = 56.dp, // Match storage tank size
                                                              alpha = alpha,
                                                              angle = 0f,
-                                                             modifier = Modifier
-                                                                 .offset(y = animatedY)
-                                                                 .then(borderModifier)
-                                                                 .clickable(enabled = isDispatchEnabled) {
+                                                              modifier = Modifier
+                                                                  .offset(y = animatedY)
+                                                                  .then(posModifier)
+                                                                  .then(borderModifier)
+                                                                  .clickable(enabled = isDispatchEnabled) {
                                                                      soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                                      viewModel.dispatchFromSource(colIndex)
                                                                  }
@@ -683,6 +691,64 @@ fun CubeShooterScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.secondary,
                             fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
+        // Overlay: transitioning tanks (source → track)
+        val rootPos = overlayRoot.value
+        if (rootPos != Offset.Zero) {
+            state.transitions.forEach { t ->
+                key(t.id) {
+                    val anim = remember { Animatable(0f) }
+                    LaunchedEffect(Unit) {
+                        anim.snapTo(0f)
+                        anim.animateTo(1f, animationSpec = tween(durationMillis = 300))
+                        viewModel.completeTransition(t.id)
+                    }
+                    val progress = anim.value
+                    val originRoot = when {
+                        t.fromCol != null -> sourceColRootPositions[t.fromCol]
+                        t.fromTraySlot != null -> traySlotRootPositions[t.fromTraySlot]
+                        else -> null
+                    }
+                    val targetRoot = trackEntryRootPos
+                    if (originRoot != null && targetRoot != Offset.Zero) {
+                        val x = originRoot.x + (targetRoot.x - originRoot.x) * progress
+                        val y = originRoot.y + (targetRoot.y - originRoot.y) * progress
+                        TankView(
+                            colorId = t.tank.color, ammo = t.tank.ammo,
+                            size = 56.dp, angle = 0f,
+                            modifier = Modifier
+                                .offset { IntOffset((x - rootPos.x).roundToInt(), (y - rootPos.y).roundToInt()) }
+                        )
+                    }
+                }
+            }
+
+            // Overlay: returning tanks (track → tray)
+            state.returns.forEach { r ->
+                key(r.id) {
+                    val anim = remember { Animatable(0f) }
+                    LaunchedEffect(Unit) {
+                        anim.snapTo(0f)
+                        anim.animateTo(1f, animationSpec = tween(durationMillis = 300))
+                        viewModel.completeReturn(r.id)
+                    }
+                    val progress = anim.value
+                    val targetIdx = state.storageTray.size
+                    val targetSlotRoot = traySlotRootPositions[targetIdx]
+                    if (targetSlotRoot != null) {
+                        val originRoot = trackEntryRootPos
+                        val x = originRoot.x + (targetSlotRoot.x - originRoot.x) * progress
+                        val y = originRoot.y + (targetSlotRoot.y - originRoot.y) * progress
+                        TankView(
+                            colorId = r.tank.color, ammo = r.tank.ammo,
+                            size = 56.dp, angle = 0f,
+                            modifier = Modifier
+                                .offset { IntOffset((x - rootPos.x).roundToInt(), (y - rootPos.y).roundToInt()) }
                         )
                     }
                 }

@@ -11,6 +11,10 @@ data class Tank(val color: Int, val ammo: Int)
 
 data class TrackTank(val tank: Tank, val position: Float)
 
+data class TankTransition(val id: String, val tank: Tank, val fromCol: Int? = null, val fromTraySlot: Int? = null)
+
+data class TankReturn(val id: String, val tank: Tank)
+
 data class Level(
     val id: String,
     val difficulty: String,
@@ -48,5 +52,6 @@ data class CubeShooterState(
     val isGameOver: Boolean = false,
     val projectiles: List<Projectile> = emptyList(),
     val fadingCubes: List<FadingCube> = emptyList(),
-    val transitioningTank: Tank? = null
+    val transitions: List<TankTransition> = emptyList(),
+    val returns: List<TankReturn> = emptyList()
 )
