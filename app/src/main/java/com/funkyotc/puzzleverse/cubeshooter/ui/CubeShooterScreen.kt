@@ -40,21 +40,11 @@ import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.android.awaitFrame
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
 
@@ -424,22 +414,12 @@ fun CubeShooterScreen(
                         val sideR = coord1.first
                         val sideC = coord1.second
                         val angle = when {
-                            sideR == 0 -> 90f      // Top edge: barrel points DOWN (inward)
-                            sideC == cols + 1 -> 180f // Right edge: barrel points LEFT (inward)
-                            sideR == rows + 1 -> 270f // Bottom edge: barrel points UP (inward)
-                            sideC == 0 -> 0f       // Left edge: barrel points RIGHT (inward)
+                            sideR == 0 -> 180f     // Top edge: points DOWN
+                            sideC == cols + 1 -> 270f // Right edge: points LEFT
+                            sideR == rows + 1 -> 0f   // Bottom edge: points UP
+                            sideC == 0 -> 90f      // Left edge: points RIGHT
                             else -> 0f
                         }
-
-                        val timeSinceDispatch = System.currentTimeMillis() - state.dispatchTimestamp
-                        val isNewTrackTank = trackTank.id == state.lastDispatchedId
-                        val entryScale = if (isNewTrackTank && timeSinceDispatch < 150) {
-                            val progress = (timeSinceDispatch / 150f).coerceIn(0f, 1f)
-                            0.5f + 0.5f * progress
-                        } else 1f
-                        val entryAlpha = if (isNewTrackTank && timeSinceDispatch < 150) {
-                            (timeSinceDispatch / 150f).coerceIn(0f, 1f)
-                        } else 1f
 
                         TankView(
                             colorId = trackTank.tank.color,
@@ -448,8 +428,6 @@ fun CubeShooterScreen(
                             angle = angle,
                             modifier = Modifier
                                 .offset(x = xOffset.dp, y = yOffset.dp)
-                                .scale(entryScale)
-                                .alpha(entryAlpha)
                                 .padding(1.dp)
                         )
                     }
@@ -479,15 +457,14 @@ fun CubeShooterScreen(
                             .padding(10.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                         Row(
-                             horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                             verticalAlignment = Alignment.CenterVertically
-                         ) {
-                             for (i in 0 until 5) {
-                                 key(i) {
-                                     val tank = state.storageTray.getOrNull(i)
-                                     val isVisible = tank != null
-                                     val isDispatchEnabled = isVisible && state.track.size < 5 && tank.ammo > 0
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            for (i in 0 until 5) {
+                                 if (i < state.storageTray.size) {
+                                     val tank = state.storageTray[i]
+                                     val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
                                      val borderModifier = if (isDispatchEnabled) {
                                          Modifier.border(
                                              width = 2.dp,
@@ -497,43 +474,35 @@ fun CubeShooterScreen(
                                      } else {
                                          Modifier
                                      }
-
-                                      val slideOffset = with(LocalDensity.current) { 56.dp.roundToPx() }
-                                      AnimatedVisibility(
-                                          visible = isVisible,
-                                          enter = fadeIn(tween(150)) + slideInHorizontally(initialOffsetX = { slideOffset }) + scaleIn(initialScale = 0.5f, animationSpec = tween(150)),
-                                          exit = fadeOut(tween(150)) + slideOutHorizontally(targetOffsetX = { -slideOffset }) + scaleOut(targetScale = 0.5f, animationSpec = tween(150))
-                                      ) {
-                                         if (isVisible) {
-                                             val clickModifier = Modifier.clickable(enabled = isDispatchEnabled) {
+                                     val alpha = 1f
+                                     TankView(
+                                         colorId = tank.color,
+                                         ammo = tank.ammo,
+                                         size = 56.dp, // Bigger tanks
+                                         alpha = alpha,
+                                         angle = 0f,
+                                         modifier = borderModifier
+                                             .clickable(enabled = isDispatchEnabled) {
                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                 viewModel.dispatchFromStorage(i)
                                              }
-                                             TankView(
-                                                 colorId = tank.color,
-                                                 ammo = tank.ammo,
-                                                 size = 56.dp, // Bigger tanks
-                                                 alpha = 1f,
-                                                 angle = 0f,
-                                                 modifier = borderModifier.then(clickModifier)
+                                     )
+                                 } else {
+                                     // Empty slot
+                                     Box(
+                                         modifier = Modifier
+                                             .size(56.dp) // Bigger slot
+                                             .clip(RoundedCornerShape(8.dp))
+                                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+                                             .border(
+                                                 width = 1.dp,
+                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
+                                                 shape = RoundedCornerShape(8.dp)
                                              )
-                                         } else {
-                                             Box(
-                                                 modifier = Modifier
-                                                     .size(56.dp) // Bigger slot
-                                                     .clip(RoundedCornerShape(8.dp))
-                                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
-                                                     .border(
-                                                         width = 1.dp,
-                                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f),
-                                                         shape = RoundedCornerShape(8.dp)
-                                                     )
-                                             )
-                                         }
-                                     }
+                                     )
                                  }
-                             }
-                         }
+                            }
+                        }
                     }
                 }
 
@@ -758,57 +727,57 @@ fun TankView(
             val h = size.toPx()
             
             rotate(angle, pivot = Offset(w / 2f, h / 2f)) {
-                // Front Tread (horizontal, pointing forward/up)
-                drawRoundRect(
-                    color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.16f, h * 0.08f),
-                    size = Size(w * 0.68f, h * 0.14f),
-                    cornerRadius = CornerRadius(w * 0.05f, w * 0.05f)
-                )
-                
-                // Back Tread (horizontal, pointing backward/down)
-                drawRoundRect(
-                    color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.16f, h * 0.78f),
-                    size = Size(w * 0.68f, h * 0.14f),
-                    cornerRadius = CornerRadius(w * 0.05f, w * 0.05f)
-                )
-                
                 // Main tank body
                 drawRoundRect(
                     color = baseColor,
-                    topLeft = Offset(w * 0.16f, h * 0.22f),
-                    size = Size(w * 0.68f, h * 0.56f),
-                    cornerRadius = CornerRadius(w * 0.08f, w * 0.08f)
+                    topLeft = Offset(w * 0.15f, h * 0.25f),
+                    size = Size(w * 0.7f, h * 0.55f),
+                    cornerRadius = CornerRadius(w * 0.1f, w * 0.1f)
                 )
                 
-                // Gun Turret Barrel (horizontal, pointing right)
+                // Left Tread
+                drawRoundRect(
+                    color = Color.DarkGray.copy(alpha = alpha),
+                    topLeft = Offset(w * 0.05f, h * 0.22f),
+                    size = Size(w * 0.12f, h * 0.61f),
+                    cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
+                )
+                
+                // Right Tread
+                drawRoundRect(
+                    color = Color.DarkGray.copy(alpha = alpha),
+                    topLeft = Offset(w * 0.83f, h * 0.22f),
+                    size = Size(w * 0.12f, h * 0.61f),
+                    cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
+                )
+                
+                // Gun Turret Barrel
                 drawRect(
                     color = baseColor,
-                    topLeft = Offset(w * 0.66f, h * 0.40f),
-                    size = Size(w * 0.24f, h * 0.12f)
+                    topLeft = Offset(w * 0.44f, h * 0.05f),
+                    size = Size(w * 0.12f, h * 0.25f)
                 )
                 
                 // Gun nozzle cap
                 drawRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.86f, h * 0.37f),
-                    size = Size(w * 0.06f, h * 0.18f)
+                    topLeft = Offset(w * 0.41f, h * 0.02f),
+                    size = Size(w * 0.18f, h * 0.05f)
                 )
                 
                 // Turret Dome
                 drawCircle(
                     color = baseColor,
-                    radius = w * 0.18f,
+                    radius = w * 0.22f,
                     center = Offset(w / 2f, h / 2f)
                 )
                 
                 // Turret inner dome rim
                 drawCircle(
                     color = Color.DarkGray.copy(alpha = alpha * 0.3f),
-                    radius = w * 0.14f,
+                    radius = w * 0.18f,
                     center = Offset(w / 2f, h / 2f),
-                    style = Stroke(width = w * 0.03f)
+                    style = Stroke(width = w * 0.04f)
                 )
             }
         }

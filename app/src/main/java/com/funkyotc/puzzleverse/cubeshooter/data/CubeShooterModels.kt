@@ -9,7 +9,7 @@ val CUBE_SHOOTER_PALETTE: List<Int> = listOf(COLOR_CYAN, COLOR_MAGENTA, COLOR_YE
 
 data class Tank(val color: Int, val ammo: Int)
 
-data class TrackTank(val tank: Tank, val position: Float, val id: String = java.util.UUID.randomUUID().toString())
+data class TrackTank(val tank: Tank, val position: Float)
 
 data class Level(
     val id: String,
@@ -47,7 +47,5 @@ data class CubeShooterState(
     val isWon: Boolean = false,
     val isGameOver: Boolean = false,
     val projectiles: List<Projectile> = emptyList(),
-    val fadingCubes: List<FadingCube> = emptyList(),
-    val lastDispatchedId: String? = null,
-    val dispatchTimestamp: Long = 0L
+    val fadingCubes: List<FadingCube> = emptyList()
 )
