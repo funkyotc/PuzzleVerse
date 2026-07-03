@@ -223,7 +223,7 @@ fun CubeShooterScreen(
         AlertDialog(
             onDismissRequest = {},
             title = { Text("Game Over") },
-            text = { Text("No more tanks left or tray overflowed. Try again!") },
+            text = { Text("Storage tray overflowed. Try again!") },
             confirmButton = {
                 Button(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)

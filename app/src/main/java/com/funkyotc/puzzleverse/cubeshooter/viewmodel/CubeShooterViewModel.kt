@@ -148,9 +148,7 @@ class CubeShooterViewModel(
         }
 
         val isWon = fireResult.cubesRemaining == 0
-        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
-        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo }
-        val isGameOver = currentState.storageTray.size > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && fireResult.cubesRemaining > 0)
+        val isGameOver = currentState.storageTray.size > 5
 
         _state.update {
             it?.copy(
@@ -331,10 +329,7 @@ class CubeShooterViewModel(
         }
 
         val isWon = cubesRemaining == 0
-        // Lose when storage tray overflows (> 5) OR if the columns, tray, and track are all out of ammo and cubes remain
-        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
-        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo }
-        val isGameOver = updatedStorageTray.size > 5 || (sourceIsEmpty && updatedStorageTray.isEmpty() && totalAmmoOnTrack == 0 && cubesRemaining > 0)
+        val isGameOver = updatedStorageTray.size > 5
 
         if (isWon && !currentState.isWon && mode == "daily") {
             val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
