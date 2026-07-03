@@ -432,13 +432,13 @@ fun CubeShooterScreen(
                         val sideR = coord1.first
                         val sideC = coord1.second
                         val bumpX = when {
-                            sideC == 0 -> edgeBump
-                            sideC == cols + 1 -> -edgeBump
+                            sideC == 0 -> -edgeBump
+                            sideC == cols + 1 -> edgeBump
                             else -> 0f
                         }
                         val bumpY = when {
-                            sideR == 0 -> edgeBump
-                            sideR == rows + 1 -> -edgeBump
+                            sideR == 0 -> -edgeBump
+                            sideR == rows + 1 -> edgeBump
                             else -> 0f
                         }
                         val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpX
@@ -466,7 +466,7 @@ fun CubeShooterScreen(
                     // 4. Track entry position marker (matches TrackTank top-left positioning)
                     val middleColEntry = (cols + 1) / 2
                     val entryXOff = middleColEntry * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                    val entryYOff = (rows + 1) * cellSize.value + (cellSize.value - tankSize.value) / 2f - edgeBump
+                    val entryYOff = (rows + 1) * cellSize.value + (cellSize.value - tankSize.value) / 2f + edgeBump
                     Box(
                         modifier = Modifier
                             .offset(x = entryXOff.dp, y = entryYOff.dp)
