@@ -815,6 +815,13 @@ private fun getComposeColor(colorId: Int?): Color {
         2 -> Color(0xFFFBC02D) // Yellow
         3 -> Color(0xFF43A047) // Green
         4 -> Color(0xFFF57C00) // Orange
+        5 -> Color(0xFF8E24AA) // Purple
+        6 -> Color(0xFFE53935) // Red
+        7 -> Color(0xFF1E88E5) // Blue
+        8 -> Color(0xFF00897B) // Teal
+        9 -> Color(0xFFF06292) // Pink
+        10 -> Color(0xFF3949AB) // Indigo
+        11 -> Color(0xFFAFB42B) // Lime
         else -> Color.Transparent
     }
 }
@@ -829,7 +836,7 @@ fun TankView(
     angle: Float = 0f
 ) {
     val baseColor = getComposeColor(colorId).copy(alpha = alpha)
-    val textColor = if (colorId == 2 || colorId == 4) Color(0xFF1A1A1A) else Color.White
+    val textColor = if (colorId == 2 || colorId == 4 || colorId == 9 || colorId == 11) Color(0xFF1A1A1A) else Color.White
 
     Box(
         modifier = modifier.size(size),

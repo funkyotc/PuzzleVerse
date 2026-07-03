@@ -5,8 +5,19 @@ const val COLOR_MAGENTA = 1
 const val COLOR_YELLOW = 2
 const val COLOR_GREEN = 3
 const val COLOR_ORANGE = 4
+const val COLOR_PURPLE = 5
+const val COLOR_RED = 6
+const val COLOR_BLUE = 7
+const val COLOR_TEAL = 8
+const val COLOR_PINK = 9
+const val COLOR_INDIGO = 10
+const val COLOR_LIME = 11
 
-val CUBE_SHOOTER_PALETTE: List<Int> = listOf(COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_GREEN, COLOR_ORANGE)
+val CUBE_SHOOTER_PALETTE: List<Int> = listOf(
+    COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_GREEN, COLOR_ORANGE,
+    COLOR_PURPLE, COLOR_RED, COLOR_BLUE, COLOR_TEAL, COLOR_PINK,
+    COLOR_INDIGO, COLOR_LIME
+)
 
 data class Tank(val color: Int, val ammo: Int)
 

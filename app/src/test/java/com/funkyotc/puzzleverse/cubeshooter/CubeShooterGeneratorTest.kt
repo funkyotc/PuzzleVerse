@@ -30,7 +30,7 @@ class CubeShooterGeneratorTest {
             }
  
             // Check that for each color present, the sum of tank ammo matches the grid cube count
-            for (color in 0..4) {
+            for (color in 0..11) {
                 val gridCount = gridCubesCount.getOrDefault(color, 0)
                 val ammoCount = tankAmmoCount.getOrDefault(color, 0)
                 assertEquals(

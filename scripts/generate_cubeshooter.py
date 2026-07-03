@@ -4,12 +4,12 @@ import random
 
 import math
 
-PALETTE = [0, 1, 2, 3]
+PALETTE = list(range(12))
 
 DIFFICULTY_CONFIG = {
-    "Easy":   {"cols": 20, "rows": 40, "n_colors": 4, "min_ammo": 10, "pool": [10, 15, 20], "threshold": 25},
-    "Medium": {"cols": 30, "rows": 50, "n_colors": 4, "min_ammo": 5,  "pool": [5, 10, 15, 20], "threshold": 20},
-    "Hard":   {"cols": 40, "rows": 60, "n_colors": 5, "min_ammo": 5,  "pool": [5, 10, 15], "threshold": 15},
+    "Easy":   {"cols": 20, "rows": 40, "n_colors_min": 5,  "n_colors_max": 8,  "min_ammo": 5, "pool": [5, 10, 15, 20], "threshold": 20},
+    "Medium": {"cols": 30, "rows": 50, "n_colors_min": 8,  "n_colors_max": 10, "min_ammo": 5, "pool": [5, 10, 15], "threshold": 15},
+    "Hard":   {"cols": 40, "rows": 60, "n_colors_min": 10, "n_colors_max": 12, "min_ammo": 5, "pool": [5, 10, 15], "threshold": 15},
 }
 
 
@@ -216,7 +216,7 @@ def gen_level(diff, idx, seed_val):
     cfg = DIFFICULTY_CONFIG[diff]
     cols = cfg["cols"]
     rows = cfg["rows"]
-    n_colors = cfg["n_colors"]
+    n_colors = rng.randint(cfg["n_colors_min"], cfg["n_colors_max"])
 
     total_cells = cols * rows
     # Make sure total_cubes is a multiple of 5
@@ -241,20 +241,21 @@ def gen_level(diff, idx, seed_val):
         color_counts[c_idx] += 5
         remaining_cubes -= 5
         
-    # Pick a random pattern from 10 options
-    patterns = [
-        "horizontal_layers",
-        "vertical_columns",
-        "concentric_rectangles",
-        "forward_diagonals",
-        "backward_diagonals",
-        "diamond_star",
-        "circular_waves",
-        "checkerboard",
-        "horizontal_sine",
-        "corner_radiance"
-    ]
-    pattern_type = rng.choice(patterns)
+    # Difficulty-weighted pattern selection
+    easy_patterns = ["horizontal_layers", "vertical_columns", "checkerboard", "corner_radiance"]
+    medium_patterns = ["concentric_rectangles", "forward_diagonals", "backward_diagonals", "diamond_star", "circular_waves", "horizontal_sine"]
+    hard_patterns = ["spiral", "quadrant_rotation", "interference", "random_regions", "snake_columns", "stripes_alternating", "radial_sectors", "fractal_blocks"]
+
+    diff_weights = {
+        "Easy":   [0.70, 0.30, 0.00],
+        "Medium": [0.20, 0.50, 0.30],
+        "Hard":   [0.00, 0.20, 0.80],
+    }
+    w_easy, w_med, w_hard = diff_weights[diff]
+    pattern_type = rng.choices(
+        [rng.choice(easy_patterns), rng.choice(medium_patterns), rng.choice(hard_patterns)],
+        weights=[w_easy, w_med, w_hard]
+    )[0]
     
     r_mid = rows / 2.0
     c_mid = cols / 2.0
@@ -280,10 +281,51 @@ def gen_level(diff, idx, seed_val):
             return r + math.sin(c * 0.5) * 3.0
         elif pattern_type == "corner_radiance":
             return r**2 + c**2
+        elif pattern_type == "spiral":
+            dr = r - r_mid
+            dc = c - c_mid
+            return math.atan2(dr, dc) + 0.5 * math.hypot(dr, dc)
+        elif pattern_type == "quadrant_rotation":
+            q = (1 if r < r_mid else 3) + (1 if c < c_mid else 0)
+            return (r + c + q * 100) % 200
+        elif pattern_type == "interference":
+            return math.sin(r * 0.3 + c * 0.2) + math.sin(r * 0.2 - c * 0.3)
+        elif pattern_type == "random_regions":
+            seed = (int(r // 8) * 100003 + int(c // 8) * 50021) & 0xFFFF
+            return ((seed * 1103515245 + 12345) & 0x7FFFFFFF) % 1000
+        elif pattern_type == "snake_columns":
+            return (c if r % 2 == 0 else cols - 1 - c) + r * cols
+        elif pattern_type == "stripes_alternating":
+            return (r + c * 2) // 5
+        elif pattern_type == "radial_sectors":
+            dr = r - r_mid
+            dc = c - c_mid
+            return (int(math.atan2(dr, dc) * 4 / math.pi + 4) % 8) * 100 + int(math.hypot(dr, dc))
+        elif pattern_type == "fractal_blocks":
+            size = max(cols, rows)
+            val = 0
+            sr, sc = r, c
+            step = 1
+            while size > 4:
+                quadrant = (0 if sr < size / 2 else 2) + (0 if sc < size / 2 else 1)
+                val += quadrant * step
+                sr = int(sr % (size / 2))
+                sc = int(sc % (size / 2))
+                size = int(size / 2)
+                step *= 4
+            return val
         return 0
 
-    # Sort the selected cube positions by their pattern values
-    sorted_cubes = sorted(cube_positions, key=lambda pos: get_val(pos[0], pos[1]))
+    # Add difficulty-scaled color jitter at zone boundaries
+    jitter_amount = {"Easy": 0.0, "Medium": 0.15, "Hard": 0.35}[diff]
+    values = [get_val(r, c) for (r, c) in cube_positions]
+    vmin, vmax = min(values), max(values)
+    vrange = max(vmax - vmin, 1)
+
+    def sort_key(pos):
+        return (get_val(pos[0], pos[1]) - vmin) / vrange + rng.uniform(0, jitter_amount)
+
+    sorted_cubes = sorted(cube_positions, key=sort_key)
     
     color_assignment = {}
     current_index = 0
@@ -305,22 +347,34 @@ def gen_level(diff, idx, seed_val):
         for ammo in parts:
             tray_tanks.append((c, ammo))
 
-    # Shuffle and distribute across source columns, verifying solvability
-    solvability_attempts = {"Easy": 35, "Medium": 40, "Hard": 45}[diff]
+    # For large grids, shuffle once and accept (solver is impractical as a gatekeeper)
+    # For small grids, verify solvability with greedy+backtrack
+    if cols > 10 or rows > 10:
+        rng.shuffle(tray_tanks)
+        json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
+        return {
+            "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
+            "difficulty": diff,
+            "cols": cols,
+            "rows": rows,
+            "grid": grid,
+            "tray": json_tray,
+            "_color_counts": color_counts,
+        }
+
+    # Solvability check for small grids
+    solvability_attempts = 35
     for _ in range(solvability_attempts):
         rng.shuffle(tray_tanks)
         
-        # Format for JSON: list of {"color": c, "ammo": a}
         json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
         
-        # Reconstruct state for verification
         source_cols = [[] for _ in range(3)]
         for i, t in enumerate(tray_tanks):
             source_cols[i % 3].append(t)
             
         source_cols_tuple = tuple(tuple(col) for col in source_cols)
         
-        # Run the greedy solver (fast even for large grids)
         if solve_greedy(cols, rows, grid, source_cols_tuple, ()):
             return {
                 "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
@@ -332,7 +386,6 @@ def gen_level(diff, idx, seed_val):
                 "_color_counts": color_counts,
             }
             
-        # For smaller grids, if greedy fails, try the backtrack solver
         if cols <= 10 and rows <= 10:
             memo = {}
             if can_solve(cols, rows, grid, source_cols_tuple, (), memo):
