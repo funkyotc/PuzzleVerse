@@ -43,6 +43,8 @@ import kotlinx.coroutines.android.awaitFrame
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
@@ -99,6 +101,15 @@ fun CubeShooterScreen(
                     viewModel.tick(dtMs)
                 }
             }
+        }
+    }
+
+    val transitionAnim = remember { Animatable(0f) }
+    LaunchedEffect(state.transitioningTank) {
+        if (state.transitioningTank != null) {
+            transitionAnim.snapTo(0f)
+            transitionAnim.animateTo(1f, animationSpec = tween(durationMillis = 300))
+            viewModel.completeTransition()
         }
     }
 
@@ -395,6 +406,7 @@ fun CubeShooterScreen(
 
                     // 3. Smoothly Animated Tanks Overlay
                     val loopLen = 2 * (cols + rows)
+                    val tankSize = 56.dp
                     state.track.forEach { trackTank ->
                         val pos = trackTank.position
                         val idx1 = pos.toInt() % loopLen
@@ -407,7 +419,6 @@ fun CubeShooterScreen(
                         val r = coord1.first + (coord2.first - coord1.first) * fraction
                         val c = coord1.second + (coord2.second - coord1.second) * fraction
 
-                        val tankSize = 56.dp
                         val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
                         val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
 
@@ -428,6 +439,25 @@ fun CubeShooterScreen(
                             angle = angle,
                             modifier = Modifier
                                 .offset(x = xOffset.dp, y = yOffset.dp)
+                                .padding(1.dp)
+                        )
+                    }
+
+                    // 4. Transitioning Tank (slides from below onto the track)
+                    state.transitioningTank?.let { tank ->
+                        val animProgress = transitionAnim.value
+                        val middleCol = (cols + 1) / 2
+                        val r = (rows + 1f) + (1f - animProgress)
+                        val c = middleCol.toFloat()
+                        val xOff = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
+                        val yOff = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
+                        TankView(
+                            colorId = tank.color,
+                            ammo = tank.ammo,
+                            size = tankSize,
+                            angle = 0f,
+                            modifier = Modifier
+                                .offset(x = xOff.dp, y = yOff.dp)
                                 .padding(1.dp)
                         )
                     }
@@ -464,7 +494,7 @@ fun CubeShooterScreen(
                             for (i in 0 until 5) {
                                  if (i < state.storageTray.size) {
                                      val tank = state.storageTray[i]
-                                     val isDispatchEnabled = state.track.size < 5 && tank.ammo > 0
+                                     val isDispatchEnabled = state.track.size < 5 && state.transitioningTank == null && tank.ammo > 0
                                      val borderModifier = if (isDispatchEnabled) {
                                          Modifier.border(
                                              width = 2.dp,
@@ -586,7 +616,7 @@ fun CubeShooterScreen(
                                                  for (i in displayList.indices) {
                                                      val (originalIndex, tank) = displayList[i]
                                                      val isTop = (i == 0)
-                                                     val isDispatchEnabled = isTop && state.track.size < 5
+                                                     val isDispatchEnabled = isTop && state.track.size < 5 && state.transitioningTank == null
                                                      val alpha = 1f
                                                      val borderModifier = if (isDispatchEnabled) {
                                                          Modifier.border(
@@ -735,19 +765,19 @@ fun TankView(
                     cornerRadius = CornerRadius(w * 0.1f, w * 0.1f)
                 )
                 
-                // Left Tread
+                // Top Tread (horizontal, follows the path direction)
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.05f, h * 0.22f),
-                    size = Size(w * 0.12f, h * 0.61f),
+                    topLeft = Offset(w * 0.22f, h * 0.05f),
+                    size = Size(w * 0.61f, h * 0.12f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 
-                // Right Tread
+                // Bottom Tread (horizontal, follows the path direction)
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.83f, h * 0.22f),
-                    size = Size(w * 0.12f, h * 0.61f),
+                    topLeft = Offset(w * 0.22f, h * 0.83f),
+                    size = Size(w * 0.61f, h * 0.12f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 

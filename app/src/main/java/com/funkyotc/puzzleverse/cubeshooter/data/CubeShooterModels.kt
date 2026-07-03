@@ -47,5 +47,6 @@ data class CubeShooterState(
     val isWon: Boolean = false,
     val isGameOver: Boolean = false,
     val projectiles: List<Projectile> = emptyList(),
-    val fadingCubes: List<FadingCube> = emptyList()
+    val fadingCubes: List<FadingCube> = emptyList(),
+    val transitioningTank: Tank? = null
 )
