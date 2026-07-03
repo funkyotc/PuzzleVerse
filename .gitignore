@@ -26,3 +26,6 @@ scripts/output-old
 .conda
 .idea
 .vscode
+*.keystore
+build-sign-key
+keystore-password.txt

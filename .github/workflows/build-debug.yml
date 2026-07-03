@@ -37,11 +37,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Set Version Code Env
-        run: echo "VERSION_CODE=${{ github.run_number }}" >> $GITHUB_ENV
+      - name: Restore debug keystore
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE" ]; then
+            mkdir -p $HOME/.android
+            echo "$DEBUG_KEYSTORE" | base64 -d > $HOME/.android/debug.keystore
+            echo "Keystore restored"
+          else
+            echo "No DEBUG_KEYSTORE secret set — using default generated keystore"
+          fi
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug -PversionCode=${{ env.VERSION_CODE }}
+        run: ./gradlew clean assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
