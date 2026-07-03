@@ -30,7 +30,7 @@ class CubeShooterGeneratorTest {
             }
  
             // Check that for each color present, the sum of tank ammo matches the grid cube count
-            for (color in 0..3) {
+            for (color in 0..4) {
                 val gridCount = gridCubesCount.getOrDefault(color, 0)
                 val ammoCount = tankAmmoCount.getOrDefault(color, 0)
                 assertEquals(
@@ -72,6 +72,7 @@ class CubeShooterGeneratorTest {
         assertTrue(colIndex >= 0)
         
         val totalSourceTanksBefore = stateBefore.sourceColumns.sumOf { it.size }
+        val tankAmmoBefore = stateBefore.sourceColumns[colIndex].last().ammo
         
         // Dispatch
         viewModel.dispatchFromSource(colIndex)
@@ -79,15 +80,24 @@ class CubeShooterGeneratorTest {
         
         val totalSourceTanksAfter = stateAfter.sourceColumns.sumOf { it.size }
         assertEquals(totalSourceTanksBefore - 1, totalSourceTanksAfter)
-        
-        // One tank should be on the track
-        assertEquals(1, stateAfter.track.size)
-        
+
+        // Tank should be in transitions (not yet on track)
+        assertEquals(1, stateAfter.transitions.size)
+        assertEquals(colIndex, stateAfter.transitions.first().fromCol)
+        assertEquals(tankAmmoBefore, stateAfter.transitions.first().tank.ammo)
+
+        // Complete the transition to place it on track
+        viewModel.completeTransition(stateAfter.transitions.first().id)
+        val stateCompleted = viewModel.state.value!!
+        assertEquals(1, stateCompleted.track.size)
+
         // The track tank's position should be the bottom-middle index
-        val cols = stateAfter.level.cols
-        val rows = stateAfter.level.rows
+        val cols = stateCompleted.level.cols
+        val rows = stateCompleted.level.rows
         val middleCol = (cols + 1) / 2
         val expectedStartPos = cols + rows + (cols - middleCol)
-        assertEquals(expectedStartPos.toFloat(), stateAfter.track.first().position)
+        assertEquals(expectedStartPos.toFloat(), stateCompleted.track.first().position)
+        
+        // Update source tank count assertion above to capture tank ammo before dispatch
     }
 }

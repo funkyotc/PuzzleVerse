@@ -7,9 +7,9 @@ import math
 PALETTE = [0, 1, 2, 3]
 
 DIFFICULTY_CONFIG = {
-    "Easy":   {"cols": 20, "rows": 40, "n_colors": 4},
-    "Medium": {"cols": 30, "rows": 50, "n_colors": 4},
-    "Hard":   {"cols": 40, "rows": 60, "n_colors": 4},
+    "Easy":   {"cols": 20, "rows": 40, "n_colors": 4, "min_ammo": 10, "pool": [10, 15, 20], "threshold": 25},
+    "Medium": {"cols": 30, "rows": 50, "n_colors": 4, "min_ammo": 5,  "pool": [5, 10, 15, 20], "threshold": 20},
+    "Hard":   {"cols": 40, "rows": 60, "n_colors": 5, "min_ammo": 5,  "pool": [5, 10, 15], "threshold": 15},
 }
 
 
@@ -191,11 +191,17 @@ def can_solve(cols, rows, grid, source_cols, storage, memo):
     return False
 
 
-def split_ammo_multiples_of_5(total_ammo, rng):
+def split_ammo_multiples_of_5(total_ammo, rng, cfg):
     parts = []
     remaining = total_ammo
-    while remaining > 25:
-        chunk = rng.choice([10, 15, 20])
+    pool = cfg["pool"]
+    threshold = cfg["threshold"]
+    min_ammo = cfg["min_ammo"]
+    while remaining > threshold:
+        valid = [s for s in pool if s <= remaining - min_ammo]
+        if not valid:
+            valid = [min_ammo]
+        chunk = rng.choice(valid)
         parts.append(chunk)
         remaining -= chunk
     if remaining > 0:
@@ -295,26 +301,12 @@ def gen_level(diff, idx, seed_val):
     # Create multiple tanks per color in multiples of 5, minimum 10
     tray_tanks = []
     for c in range(n_colors):
-        parts = split_ammo_multiples_of_5(color_counts[c], rng)
+        parts = split_ammo_multiples_of_5(color_counts[c], rng, cfg)
         for ammo in parts:
             tray_tanks.append((c, ammo))
-            
-    # For larger grids, we can safely bypass the heavy solver checks
-    if cols > 10 or rows > 10:
-        rng.shuffle(tray_tanks)
-        json_tray = [{"color": t[0], "ammo": t[1]} for t in tray_tanks]
-        return {
-            "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
-            "difficulty": diff,
-            "cols": cols,
-            "rows": rows,
-            "grid": grid,
-            "tray": json_tray,
-            "_color_counts": color_counts,
-        }
 
     # Shuffle and distribute across source columns, verifying solvability
-    solvability_attempts = 35
+    solvability_attempts = {"Easy": 35, "Medium": 40, "Hard": 45}[diff]
     for _ in range(solvability_attempts):
         rng.shuffle(tray_tanks)
         
@@ -328,7 +320,7 @@ def gen_level(diff, idx, seed_val):
             
         source_cols_tuple = tuple(tuple(col) for col in source_cols)
         
-        # First, run the incredibly fast greedy check
+        # Run the greedy solver (fast even for large grids)
         if solve_greedy(cols, rows, grid, source_cols_tuple, ()):
             return {
                 "id": f"cubeshooter_{diff.lower()}_{idx:03d}",
