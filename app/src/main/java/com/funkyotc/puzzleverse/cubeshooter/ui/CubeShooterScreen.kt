@@ -270,12 +270,16 @@ fun CubeShooterScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
-                .onGloballyPositioned { overlayRoot.value = it.positionInRoot() }
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { overlayRoot.value = it.positionInRoot() }
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Main Board and Track
             BoxWithConstraints(
@@ -754,7 +758,8 @@ fun CubeShooterScreen(
                 }
             }
         }
-    }
+            }
+        }
 }
 
 private fun isTrackCell(r: Int, c: Int, cols: Int, rows: Int): Boolean {
