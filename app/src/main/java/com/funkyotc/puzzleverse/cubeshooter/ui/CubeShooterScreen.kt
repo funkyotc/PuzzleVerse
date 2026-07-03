@@ -416,6 +416,7 @@ fun CubeShooterScreen(
                     // 3. Smoothly Animated Tanks Overlay
                     val loopLen = 2 * (cols + rows)
                     val tankSize = 56.dp
+                    val edgeBump = 6f
                     state.track.forEach { trackTank ->
                         val pos = trackTank.position
                         val idx1 = pos.toInt() % loopLen
@@ -428,11 +429,21 @@ fun CubeShooterScreen(
                         val r = coord1.first + (coord2.first - coord1.first) * fraction
                         val c = coord1.second + (coord2.second - coord1.second) * fraction
 
-                        val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                        val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f
-
                         val sideR = coord1.first
                         val sideC = coord1.second
+                        val bumpX = when {
+                            sideC == 0 -> edgeBump
+                            sideC == cols + 1 -> -edgeBump
+                            else -> 0f
+                        }
+                        val bumpY = when {
+                            sideR == 0 -> edgeBump
+                            sideR == rows + 1 -> -edgeBump
+                            else -> 0f
+                        }
+                        val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpX
+                        val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpY
+
                         val angle = when {
                             sideR == 0 -> 180f     // Top edge: points DOWN
                             sideC == cols + 1 -> 270f // Right edge: points LEFT
@@ -455,7 +466,7 @@ fun CubeShooterScreen(
                     // 4. Track entry position marker (matches TrackTank top-left positioning)
                     val middleColEntry = (cols + 1) / 2
                     val entryXOff = middleColEntry * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                    val entryYOff = (rows + 1) * cellSize.value + (cellSize.value - tankSize.value) / 2f
+                    val entryYOff = (rows + 1) * cellSize.value + (cellSize.value - tankSize.value) / 2f - edgeBump
                     Box(
                         modifier = Modifier
                             .offset(x = entryXOff.dp, y = entryYOff.dp)
