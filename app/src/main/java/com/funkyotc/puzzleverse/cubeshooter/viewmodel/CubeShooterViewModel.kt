@@ -162,9 +162,7 @@ class CubeShooterViewModel(
             val updatedTransitions = currentState.transitions.filter { it.id != id }
 
             val isWon = fireResult.cubesRemaining == 0
-            val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
-            val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo } + updatedTransitions.sumOf { it.tank.ammo }
-            val isGameOver = currentState.storageTray.size > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && fireResult.cubesRemaining > 0)
+            val isGameOver = currentState.storageTray.size > 5
 
             currentState.copy(
                 level = currentState.level.copy(grid = updatedGrid),
@@ -187,9 +185,7 @@ class CubeShooterViewModel(
             val updatedStorage = currentState.storageTray.toMutableList()
             updatedStorage.add(ret.tank)
             val updatedReturns = currentState.returns.filter { it.id != id }
-            val sourceIsEmpty = currentState.sourceColumns.all { it.isEmpty() }
-            val totalAmmoOnTrack = currentState.track.sumOf { it.tank.ammo } + currentState.transitions.sumOf { it.tank.ammo }
-            val isGameOver = updatedStorage.size > 5 || (sourceIsEmpty && updatedStorage.isEmpty() && totalAmmoOnTrack == 0 && currentState.cubesRemaining > 0)
+            val isGameOver = updatedStorage.size > 5
             currentState.copy(
                 storageTray = updatedStorage,
                 returns = updatedReturns,
@@ -359,9 +355,7 @@ class CubeShooterViewModel(
 
         val allReturns = currentState.returns + newReturns
         val isWon = cubesRemaining == 0
-        val sourceIsEmpty = currentState.sourceColumns.all { col -> col.isEmpty() }
-        val totalAmmoOnTrack = updatedTrack.sumOf { it.tank.ammo } + currentState.transitions.sumOf { it.tank.ammo }
-        val isGameOver = (currentState.storageTray.size + allReturns.size) > 5 || (sourceIsEmpty && currentState.storageTray.isEmpty() && totalAmmoOnTrack == 0 && cubesRemaining > 0)
+        val isGameOver = (currentState.storageTray.size + allReturns.size) > 5
 
         if (isWon && !currentState.isWon && mode == "daily") {
             val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
