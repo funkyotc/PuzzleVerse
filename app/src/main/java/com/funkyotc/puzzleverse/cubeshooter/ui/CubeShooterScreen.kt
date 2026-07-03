@@ -768,16 +768,16 @@ fun TankView(
                 // Top Tread (horizontal, follows the path direction)
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.22f, h * 0.05f),
-                    size = Size(w * 0.61f, h * 0.12f),
+                    topLeft = Offset(w * 0.12f, h * 0.05f),
+                    size = Size(w * 0.76f, h * 0.12f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 
                 // Bottom Tread (horizontal, follows the path direction)
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.22f, h * 0.83f),
-                    size = Size(w * 0.61f, h * 0.12f),
+                    topLeft = Offset(w * 0.12f, h * 0.83f),
+                    size = Size(w * 0.76f, h * 0.12f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 
