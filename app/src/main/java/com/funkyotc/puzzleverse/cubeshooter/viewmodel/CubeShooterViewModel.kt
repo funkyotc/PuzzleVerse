@@ -225,8 +225,8 @@ class CubeShooterViewModel(
                             id = java.util.UUID.randomUUID().toString(),
                             startCol = tankCoord.second.toFloat(),
                             startRow = tankCoord.first.toFloat(),
-                            endCol = tc + 1f,
-                            endRow = tr + 1f,
+                            endCol = tc + 2f,
+                            endRow = tr + 2f,
                             color = cubeColor,
                             progress = 0f
                         )
@@ -261,7 +261,7 @@ class CubeShooterViewModel(
         val level = currentState.level
         val cols = level.cols
         val rows = level.rows
-        val loopLen = 2 * (cols + rows)
+        val loopLen = 2 * (cols + rows + 4)
         val speedPerMs = loopLen.toFloat() / 4000f
         val movement = speedPerMs * dtMs
 
@@ -286,8 +286,8 @@ class CubeShooterViewModel(
             val progressIncrement = if (distance > 0f) (dtMs * speed) / distance else 1f
             val nextProgress = p.progress + progressIncrement
             if (nextProgress >= 1f) {
-                val tr = (p.endRow - 1f).toInt()
-                val tc = (p.endCol - 1f).toInt()
+                val tr = (p.endRow - 2f).toInt()
+                val tc = (p.endCol - 2f).toInt()
                 val mutGrid = currentGrid ?: level.grid.map { it.toMutableList() }.toMutableList().also { currentGrid = it }
                 mutGrid[tr][tc] = null
                 cubesRemaining = mutGrid.sumOf { r -> r.count { it != null } }
@@ -336,8 +336,8 @@ class CubeShooterViewModel(
                                         id = java.util.UUID.randomUUID().toString(),
                                         startCol = tankCoord.second.toFloat(),
                                         startRow = tankCoord.first.toFloat(),
-                                        endCol = tc + 1f,
-                                        endRow = tr + 1f,
+                                        endCol = tc + 2f,
+                                        endRow = tr + 2f,
                                         color = cubeColor,
                                         progress = 0f
                                     )
@@ -388,66 +388,61 @@ class CubeShooterViewModel(
     }
 
     private fun getBottomMiddleTrackIndex(cols: Int, rows: Int): Int {
-        val middleCol = (cols + 1) / 2
-        return getTrackIndex(rows + 1, middleCol, cols, rows)
+        val middleCol = (cols + 3) / 2
+        return getTrackIndex(rows + 3, middleCol, cols, rows)
     }
 
     private fun getTrackIndex(r: Int, c: Int, cols: Int, rows: Int): Int {
+        val topCount = cols + 2
+        val rightCount = rows + 2
         return when {
-            r == 0 && c in 1..cols -> {
+            r == 0 && c in 1..cols + 2 -> {
                 c - 1
             }
-            r in 1..rows && c == cols + 1 -> {
-                cols + (r - 1)
+            r in 1..rows + 2 && c == cols + 3 -> {
+                topCount + (r - 1)
             }
-            r == rows + 1 && c in 1..cols -> {
-                (cols + rows) + (cols - c)
+            r == rows + 3 && c in 1..cols + 2 -> {
+                topCount + rightCount + (cols + 2 - c)
             }
-            r in 1..rows && c == 0 -> {
-                (2 * cols + rows) + (rows - r)
+            r in 1..rows + 2 && c == 0 -> {
+                topCount + rightCount + topCount + (rows + 2 - r)
             }
             else -> -1
         }
     }
 
     private fun getTrackCellCoordinates(index: Int, cols: Int, rows: Int): Pair<Int, Int> {
-        val loopLen = 2 * (cols + rows)
+        val topCount = cols + 2
+        val rightCount = rows + 2
+        val loopLen = 2 * (cols + rows + 4)
         val idx = (index % loopLen + loopLen) % loopLen
         return when {
-            idx < cols -> {
+            idx < topCount -> {
                 Pair(0, idx + 1)
             }
-            idx < cols + rows -> {
-                val r = idx - cols + 1
-                Pair(r, cols + 1)
+            idx < topCount + rightCount -> {
+                val r = idx - topCount + 1
+                Pair(r, cols + 3)
             }
-            idx < 2 * cols + rows -> {
-                val c = cols - (idx - (cols + rows))
-                Pair(rows + 1, c)
+            idx < topCount + rightCount + topCount -> {
+                val c = (cols + 2) - (idx - (topCount + rightCount))
+                Pair(rows + 3, c)
             }
             else -> {
-                val r = rows - (idx - (2 * cols + rows))
+                val r = (rows + 2) - (idx - (topCount + rightCount + topCount))
                 Pair(r, 0)
             }
         }
     }
 
     private fun getFacingCell(cellIdx: Int, cols: Int, rows: Int): Triple<Int, Int, String>? {
+        val (r, c) = getTrackCellCoordinates(cellIdx, cols, rows)
         return when {
-            cellIdx < cols -> {
-                Triple(0, cellIdx, "DOWN")
-            }
-            cellIdx < cols + rows -> {
-                Triple(cellIdx - cols, cols - 1, "LEFT")
-            }
-            cellIdx < 2 * cols + rows -> {
-                val c = (cols - 1) - (cellIdx - (cols + rows))
-                Triple(rows - 1, c, "UP")
-            }
-            cellIdx < 2 * cols + 2 * rows -> {
-                val r = (rows - 1) - (cellIdx - (2 * cols + rows))
-                Triple(r, 0, "RIGHT")
-            }
+            r == 0 && c in 2..cols + 1 -> Triple(0, c - 2, "DOWN")
+            c == cols + 3 && r in 2..rows + 1 -> Triple(r - 2, cols - 1, "LEFT")
+            r == rows + 3 && c in 2..cols + 1 -> Triple(rows - 1, c - 2, "UP")
+            c == 0 && r in 2..rows + 1 -> Triple(r - 2, 0, "RIGHT")
             else -> null
         }
     }
@@ -462,7 +457,7 @@ class CubeShooterViewModel(
         projectiles: List<Projectile>
     ): Pair<Int?, Int?> {
         val targeted = projectiles.map {
-            Pair((it.endRow - 1f).toInt(), (it.endCol - 1f).toInt())
+            Pair((it.endRow - 2f).toInt(), (it.endCol - 2f).toInt())
         }.toSet()
 
         when (direction) {

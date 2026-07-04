@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Shooter Color Palette Comparison</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 2rem; max-width: 800px; margin: auto; }
+h1 { margin-bottom: .5rem; }
+h2 { margin: 2rem 0 1rem; color: #aaa; font-size: 1rem; text-transform: uppercase; letter-spacing: .05em; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+th { text-align: left; padding: .5rem .75rem; background: #16213e; color: #888; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+td { padding: .5rem .75rem; border-bottom: 1px solid #2a2a4a; }
+.id-cell { color: #666; font-size: .8rem; width: 2rem; }
+.name-cell { width: 6rem; }
+.hex-cell { font-family: monospace; font-size: .8rem; color: #999; width: 7rem; }
+.swatch { display: inline-block; width: 36px; height: 36px; border-radius: 6px; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(255,255,255,.1); }
+</style>
+</head>
+<body>
+<h1>🎨 Cube Shooter — Color Palette</h1>
+<p style="color:#888">Before vs After — targeting distinguishability in reds and greens.</p>
+
+<h2>Before</h2>
+<table>
+<tr><th>ID</th><th>Name</th><th>Swatch</th><th>Hex</th></tr>
+<tr><td class="id-cell">0</td><td class="name-cell">Cyan</td><td><span class="swatch" style="background:#00ACC1"></span></td><td class="hex-cell">#00ACC1</td></tr>
+<tr><td class="id-cell">1</td><td class="name-cell">Magenta</td><td><span class="swatch" style="background:#D81B60"></span></td><td class="hex-cell">#D81B60</td></tr>
+<tr><td class="id-cell">2</td><td class="name-cell">Yellow</td><td><span class="swatch" style="background:#FBC02D"></span></td><td class="hex-cell">#FBC02D</td></tr>
+<tr><td class="id-cell">3</td><td class="name-cell">Green</td><td><span class="swatch" style="background:#43A047"></span></td><td class="hex-cell">#43A047</td></tr>
+<tr><td class="id-cell">4</td><td class="name-cell">Orange</td><td><span class="swatch" style="background:#F57C00"></span></td><td class="hex-cell">#F57C00</td></tr>
+<tr><td class="id-cell">5</td><td class="name-cell">Purple</td><td><span class="swatch" style="background:#8E24AA"></span></td><td class="hex-cell">#8E24AA</td></tr>
+<tr style="color:#ff6b6b"><td class="id-cell">6</td><td class="name-cell">Red</td><td><span class="swatch" style="background:#E53935"></span></td><td class="hex-cell">#E53935</td></tr>
+<tr><td class="id-cell">7</td><td class="name-cell">Blue</td><td><span class="swatch" style="background:#1E88E5"></span></td><td class="hex-cell">#1E88E5</td></tr>
+<tr style="color:#4ecdc4"><td class="id-cell">8</td><td class="name-cell">Teal</td><td><span class="swatch" style="background:#00897B"></span></td><td class="hex-cell">#00897B</td></tr>
+<tr style="color:#ff6b6b"><td class="id-cell">9</td><td class="name-cell">Pink</td><td><span class="swatch" style="background:#F06292"></span></td><td class="hex-cell">#F06292</td></tr>
+<tr><td class="id-cell">10</td><td class="name-cell">Indigo</td><td><span class="swatch" style="background:#3949AB"></span></td><td class="hex-cell">#3949AB</td></tr>
+<tr style="color:#4ecdc4"><td class="id-cell">11</td><td class="name-cell">Lime</td><td><span class="swatch" style="background:#AFB42B"></span></td><td class="hex-cell">#AFB42B</td></tr>
+</table>
+
+<h2>After</h2>
+<table>
+<tr><th>ID</th><th>Name</th><th>Swatch</th><th>Hex</th><th style="color:#666">Note</th></tr>
+<tr><td class="id-cell">0</td><td class="name-cell">Cyan</td><td><span class="swatch" style="background:#00BCD4"></span></td><td class="hex-cell">#00BCD4</td><td style="color:#555;font-size:.8rem">slightly brighter</td></tr>
+<tr style="color:#ff6b6b"><td class="id-cell">1</td><td class="name-cell">Magenta</td><td><span class="swatch" style="background:#E040FB"></span></td><td class="hex-cell">#E040FB</td><td style="color:#ff6b6b;font-size:.8rem"><strong>← changed</strong> — vivid magenta (was pink-red)</td></tr>
+<tr><td class="id-cell">2</td><td class="name-cell">Yellow</td><td><span class="swatch" style="background:#FFEB3B"></span></td><td class="hex-cell">#FFEB3B</td><td style="color:#555;font-size:.8rem">brighter</td></tr>
+<tr style="color:#4ecdc4"><td class="id-cell">3</td><td class="name-cell">Green</td><td><span class="swatch" style="background:#4CAF50"></span></td><td class="hex-cell">#4CAF50</td><td style="color:#4ecdc4;font-size:.8rem"><strong>← changed</strong> — slightly brighter</td></tr>
+<tr><td class="id-cell">4</td><td class="name-cell">Orange</td><td><span class="swatch" style="background:#FF9800"></span></td><td class="hex-cell">#FF9800</td><td style="color:#555;font-size:.8rem">brighter</td></tr>
+<tr><td class="id-cell">5</td><td class="name-cell">Purple</td><td><span class="swatch" style="background:#9C27B0"></span></td><td class="hex-cell">#9C27B0</td><td style="color:#555;font-size:.8rem">standard Material</td></tr>
+<tr style="color:#ff6b6b"><td class="id-cell">6</td><td class="name-cell">Red</td><td><span class="swatch" style="background:#E53935"></span></td><td class="hex-cell">#E53935</td><td style="color:#555;font-size:.8rem">unchanged</td></tr>
+<tr><td class="id-cell">7</td><td class="name-cell">Blue</td><td><span class="swatch" style="background:#2196F3"></span></td><td class="hex-cell">#2196F3</td><td style="color:#555;font-size:.8rem">standard Material</td></tr>
+<tr style="color:#4ecdc4"><td class="id-cell">8</td><td class="name-cell">Teal</td><td><span class="swatch" style="background:#00897B"></span></td><td class="hex-cell">#00897B</td><td style="color:#555;font-size:.8rem">unchanged (distinct)</td></tr>
+<tr style="color:#ff6b6b"><td class="id-cell">9</td><td class="name-cell">Pink</td><td><span class="swatch" style="background:#F48FB1"></span></td><td class="hex-cell">#F48FB1</td><td style="color:#ff6b6b;font-size:.8rem"><strong>← changed</strong> — lighter pink</td></tr>
+<tr><td class="id-cell">10</td><td class="name-cell">Indigo</td><td><span class="swatch" style="background:#3F51B5"></span></td><td class="hex-cell">#3F51B5</td><td style="color:#555;font-size:.8rem">standard Material</td></tr>
+<tr style="color:#4ecdc4"><td class="id-cell">11</td><td class="name-cell">Lime</td><td><span class="swatch" style="background:#C0CA33"></span></td><td class="hex-cell">#C0CA33</td><td style="color:#4ecdc4;font-size:.8rem"><strong>← changed</strong> — bright yellow-green</td></tr>
+</table>
+
+<div style="margin-top: 2rem; padding: 2rem; background: #16213e; border-radius: 12px;">
+<h3 style="margin-top: 0;">Red family comparison</h3>
+<div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+<div><div style="font-size:.7rem;color:#888;margin-bottom:.3rem">Before</div>
+<div style="display:flex;gap:8px">
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#D81B60;border:1px solid rgba(255,255,255,.1)" title="Magenta #D81B60"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#E53935;border:1px solid rgba(255,255,255,.1)" title="Red #E53935"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#F06292;border:1px solid rgba(255,255,255,.1)" title="Pink #F06292"></span>
+</div></div>
+<div><div style="font-size:.7rem;color:#888;margin-bottom:.3rem">After</div>
+<div style="display:flex;gap:8px">
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#E040FB;border:1px solid rgba(255,255,255,.1)" title="Magenta #E040FB"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#E53935;border:1px solid rgba(255,255,255,.1)" title="Red #E53935"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#F48FB1;border:1px solid rgba(255,255,255,.1)" title="Pink #F48FB1"></span>
+</div></div>
+</div>
+
+<h3 style="margin-top: 2rem;">Green family comparison</h3>
+<div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+<div><div style="font-size:.7rem;color:#888;margin-bottom:.3rem">Before</div>
+<div style="display:flex;gap:8px">
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#43A047;border:1px solid rgba(255,255,255,.1)" title="Green #43A047"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#00897B;border:1px solid rgba(255,255,255,.1)" title="Teal #00897B"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#AFB42B;border:1px solid rgba(255,255,255,.1)" title="Lime #AFB42B"></span>
+</div></div>
+<div><div style="font-size:.7rem;color:#888;margin-bottom:.3rem">After</div>
+<div style="display:flex;gap:8px">
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#4CAF50;border:1px solid rgba(255,255,255,.1)" title="Green #4CAF50"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#00897B;border:1px solid rgba(255,255,255,.1)" title="Teal #00897B"></span>
+<span style="display:inline-block;width:48px;height:48px;border-radius:8px;background:#C0CA33;border:1px solid rgba(255,255,255,.1)" title="Lime #C0CA33"></span>
+</div></div>
+</div>
+</div>
+</body>
+</html>

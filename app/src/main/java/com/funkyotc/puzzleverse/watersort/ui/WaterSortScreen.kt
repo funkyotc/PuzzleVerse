@@ -1,10 +1,18 @@
 package com.funkyotc.puzzleverse.watersort.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -17,8 +25,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +46,8 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.watersort.data.WaterSortPregenerated
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModel
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModelFactory
+import kotlin.math.PI
+import kotlin.math.sin
 
 private val WATER_COLORS = listOf(
     Color(0xFFE53935), // Red
@@ -47,8 +61,12 @@ private val WATER_COLORS = listOf(
     Color(0xFF6D4C41), // Brown
     Color(0xFF3949AB), // Indigo
     Color(0xFF00BCD4), // Teal
-    Color(0xFF9E9E9E), // Gray
+    Color(0xFF78909C), // Blue Gray
 )
+
+private val GLASS_COLOR = Color.White.copy(alpha = 0.15f)
+private val GLASS_BORDER = Color.White.copy(alpha = 0.4f)
+private val GLASS_HIGHLIGHT = Color.White.copy(alpha = 0.2f)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,8 +105,8 @@ fun WaterSortScreen(
             title = { Text("How To Play") },
             text = {
                 Text(
-                    "Tap a bottle to pick up its top color layer, then tap another bottle to pour.\n\n" +
-                    "You can only pour onto a matching color layer or into an empty bottle.\n" +
+                    "Tap a bottle to pick up its top color, then tap another bottle to pour.\n\n" +
+                    "You can only pour onto a matching color or into an empty bottle.\n" +
                     "A bottle can hold at most ${state.level.height} layers.\n\n" +
                     "Goal: Sort each color into its own bottle!"
                 )
@@ -251,7 +269,7 @@ fun WaterSortScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             val bottles = state.bottles
             val cols = when {
@@ -260,16 +278,19 @@ fun WaterSortScreen(
                 else -> 4
             }
             val rows = (bottles.size + cols - 1) / cols
+            val scrollState = rememberScrollState()
 
             Column(
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 for (row in 0 until rows) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -280,7 +301,9 @@ fun WaterSortScreen(
                                     bottle = bottles[index],
                                     height = state.level.height,
                                     isSelected = state.selectedIndex == index,
-                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 6.dp),
                                     onClick = {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                         viewModel.selectBottle(index)
@@ -305,90 +328,233 @@ private fun BottleView(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val borderColor = if (isSelected) Color(0xFF4CAF50) else Color.Gray.copy(alpha = 0.3f)
-    val borderWidth = if (isSelected) 3.dp else 1.dp
-    val bgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    val transition = rememberInfiniteTransition(label = "selection")
+    val pulseAlpha by transition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+    val pulseGlow by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow"
+    )
+    val scale by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    val borderGlowColor = Color(0xFF4CAF50).copy(alpha = pulseAlpha)
+    val bgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
 
     Box(
         modifier = modifier
-            .aspectRatio(0.5f)
+            .aspectRatio(0.65f)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
+            .graphicsLayer(
+                scaleX = if (isSelected) scale else 1f,
+                scaleY = if (isSelected) scale else 1f
+            )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-            val segmentHeight = canvasHeight / height
-            val bottleWidth = canvasWidth * 0.7f
-            val bottleLeft = (canvasWidth - bottleWidth) / 2f
-            val cornerRadius = bottleWidth * 0.15f
+        Canvas(modifier = Modifier.fillMaxSize().padding(3.dp)) {
+            val w = size.width
+            val h = size.height
+            val bodyHeight = h * 0.82f
+            val neckHeight = h - bodyHeight
+            val bodyWidth = w * 0.78f
+            val neckWidth = w * 0.38f
+            val bodyLeft = (w - bodyWidth) / 2f
+            val bodyTop = neckHeight
+            val neckLeft = (w - neckWidth) / 2f
+            val corner = bodyWidth * 0.12f
+            val neckCorner = neckWidth * 0.25f
 
             val colors = bottle.colors
             val emptySegments = height - colors.size
+            val segmentHeight = bodyHeight / height
 
-            if (emptySegments > 0) {
+            if (isSelected) {
+                val glowRadius = bodyWidth * 0.15f + pulseGlow * bodyWidth * 0.1f
                 drawRoundRect(
-                    color = Color.Transparent,
-                    topLeft = Offset(bottleLeft, 0f),
-                    size = Size(bottleWidth, emptySegments * segmentHeight),
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+                    color = borderGlowColor.copy(alpha = 0.3f),
+                    topLeft = Offset(bodyLeft - glowRadius * 0.3f, bodyTop - glowRadius * 0.3f),
+                    size = Size(bodyWidth + glowRadius * 0.6f, bodyHeight + glowRadius * 0.6f + neckHeight * 0.6f),
+                    cornerRadius = CornerRadius(corner + glowRadius * 0.1f, corner + glowRadius * 0.1f)
+                )
+            }
+
+            drawRoundRect(
+                color = GLASS_COLOR,
+                topLeft = Offset(bodyLeft, bodyTop),
+                size = Size(bodyWidth, bodyHeight),
+                cornerRadius = CornerRadius(corner, corner)
+            )
+
+            if (neckHeight > 0f) {
+                drawRoundRect(
+                    color = GLASS_COLOR,
+                    topLeft = Offset(neckLeft, 0f),
+                    size = Size(neckWidth, neckHeight),
+                    cornerRadius = CornerRadius(neckCorner, neckCorner)
                 )
             }
 
             for (i in colors.indices) {
                 val colorIndex = colors[i]
-                val segTop = (emptySegments + i) * segmentHeight
-                val segBottom = segTop + segmentHeight
-
-                val color = if (colorIndex in WATER_COLORS.indices) {
+                val baseColor = if (colorIndex in WATER_COLORS.indices) {
                     WATER_COLORS[colorIndex]
                 } else {
                     Color.Gray
                 }
 
+                val segTop = bodyTop + (emptySegments + i) * segmentHeight
                 val isTopSegment = i == colors.lastIndex
                 val isBottomSegment = i == 0 && emptySegments == 0
 
-                val drawCornerRadius = if (isTopSegment || (isBottomSegment && colors.size == height)) {
-                    CornerRadius(cornerRadius, cornerRadius)
-                } else {
-                    CornerRadius(0f, 0f)
-                }
+                val segCornerRadius = if (isTopSegment || isBottomSegment) corner else 0f
+
+                val gradientBrush = Brush.verticalGradient(
+                    colors = listOf(
+                        baseColor.copy(alpha = 0.85f),
+                        baseColor,
+                        baseColor.copy(alpha = 0.9f)
+                    ),
+                    startY = segTop,
+                    endY = segTop + segmentHeight
+                )
 
                 drawRoundRect(
-                    color = color,
-                    topLeft = Offset(bottleLeft, segTop),
-                    size = Size(bottleWidth, segmentHeight),
-                    cornerRadius = drawCornerRadius
+                    brush = gradientBrush,
+                    topLeft = Offset(bodyLeft, segTop),
+                    size = Size(bodyWidth, segmentHeight),
+                    cornerRadius = CornerRadius(segCornerRadius, segCornerRadius)
                 )
 
                 if (isTopSegment) {
-                    val highlightAlpha = 0.25f
-                    drawRoundRect(
-                        color = Color.White.copy(alpha = highlightAlpha),
-                        topLeft = Offset(bottleLeft, segTop),
-                        size = Size(bottleWidth, segmentHeight * 0.4f),
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+                    val waveAmplitude = segmentHeight * 0.08f
+                    val wavePath = Path().apply {
+                        moveTo(bodyLeft, segTop)
+                        for (x in 0..((bodyWidth / 2f).toInt())) {
+                            val px = bodyLeft + x * 2f
+                            val relX = (px - bodyLeft) / bodyWidth
+                            val wave = sin(relX * PI.toFloat() * 2f) * waveAmplitude
+                            lineTo(px, segTop - wave)
+                        }
+                        lineTo(bodyLeft + bodyWidth, segTop)
+                        close()
+                    }
+                    drawPath(
+                        path = wavePath,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                baseColor.copy(alpha = 0.7f),
+                                baseColor.copy(alpha = 0.0f)
+                            ),
+                            startY = segTop - waveAmplitude,
+                            endY = segTop + waveAmplitude
+                        )
                     )
                 }
+
+                if (!isBottomSegment && i < colors.size - 1) {
+                    val dividerY = segTop + segmentHeight - 1f
+                    drawLine(
+                        color = baseColor.copy(alpha = 0.3f),
+                        start = Offset(bodyLeft + 4f, dividerY),
+                        end = Offset(bodyLeft + bodyWidth - 4f, dividerY),
+                        strokeWidth = 1.5f
+                    )
+                }
+
+                val highlightWidth = bodyWidth * 0.12f
+                val highlightLeft = bodyLeft + bodyWidth * 0.15f
+                drawRoundRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.05f)
+                        ),
+                        startY = segTop,
+                        endY = segTop + segmentHeight
+                    ),
+                    topLeft = Offset(highlightLeft, segTop),
+                    size = Size(highlightWidth, segmentHeight),
+                    cornerRadius = CornerRadius(segCornerRadius * 0.5f, segCornerRadius * 0.5f)
+                )
             }
 
-            drawRoundRect(
-                color = borderColor,
-                topLeft = Offset(bottleLeft, 0f),
-                size = Size(bottleWidth, canvasHeight),
-                cornerRadius = CornerRadius(cornerRadius, cornerRadius),
-                style = Stroke(width = borderWidth.toPx())
-            )
-        }
+            val borderBrush = if (isSelected) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        borderGlowColor,
+                        borderGlowColor.copy(alpha = 0.7f),
+                        borderGlowColor
+                    )
+                )
+            } else {
+                SolidColor(GLASS_BORDER)
+            }
+            val borderWidth = if (isSelected) 2.5f else 1.8f
 
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Color(0x1A4CAF50), RoundedCornerShape(8.dp))
+            drawRoundRect(
+                brush = borderBrush,
+                topLeft = Offset(bodyLeft, bodyTop),
+                size = Size(bodyWidth, bodyHeight),
+                cornerRadius = CornerRadius(corner, corner),
+                style = Stroke(width = borderWidth.dp.toPx())
+            )
+
+            if (neckHeight > 0f) {
+                drawRoundRect(
+                    brush = borderBrush,
+                    topLeft = Offset(neckLeft, 0f),
+                    size = Size(neckWidth, neckHeight),
+                    cornerRadius = CornerRadius(neckCorner, neckCorner),
+                    style = Stroke(width = borderWidth.dp.toPx())
+                )
+
+                val flareLeft = bodyLeft + bodyWidth * 0.1f
+                val flareWidth = bodyWidth * 0.8f
+                val flareTop = neckHeight - bodyWidth * 0.08f
+                val flareH = bodyWidth * 0.08f
+                drawRoundRect(
+                    color = GLASS_COLOR,
+                    topLeft = Offset(flareLeft, flareTop),
+                    size = Size(flareWidth, flareH),
+                    cornerRadius = CornerRadius(flareH * 0.3f, flareH * 0.3f)
+                )
+                drawRoundRect(
+                    brush = borderBrush,
+                    topLeft = Offset(flareLeft, flareTop),
+                    size = Size(flareWidth, flareH),
+                    cornerRadius = CornerRadius(flareH * 0.3f, flareH * 0.3f),
+                    style = Stroke(width = borderWidth.dp.toPx())
+                )
+            }
+
+            val glassHighlightLeft = bodyLeft + bodyWidth * 0.08f
+            val glassHighlightWidth = bodyWidth * 0.06f
+            drawRoundRect(
+                color = GLASS_HIGHLIGHT,
+                topLeft = Offset(glassHighlightLeft, bodyTop + bodyHeight * 0.05f),
+                size = Size(glassHighlightWidth, bodyHeight * 0.9f),
+                cornerRadius = CornerRadius(glassHighlightWidth * 0.3f, glassHighlightWidth * 0.3f)
             )
         }
     }

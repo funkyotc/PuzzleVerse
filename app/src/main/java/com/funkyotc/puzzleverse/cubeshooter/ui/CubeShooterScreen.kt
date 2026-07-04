@@ -290,8 +290,8 @@ fun CubeShooterScreen(
             ) {
                 val cols = state.level.cols
                 val rows = state.level.rows
-                val totalCols = cols + 2
-                val totalRows = rows + 2
+                val totalCols = cols + 4
+                val totalRows = rows + 4
 
                 val cellSize = minOf(
                     maxWidth / totalCols,
@@ -304,8 +304,8 @@ fun CubeShooterScreen(
                     val pathIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                     val themeBgColor = MaterialTheme.colorScheme.background
                     Canvas(modifier = Modifier.matchParentSize()) {
-                        val trackPathWidth = (cols + 1) * cellSize.toPx()
-                        val trackPathHeight = (rows + 1) * cellSize.toPx()
+                        val trackPathWidth = (cols + 3) * cellSize.toPx()
+                        val trackPathHeight = (rows + 3) * cellSize.toPx()
                         val left = 0.5f * cellSize.toPx()
                         val top = 0.5f * cellSize.toPx()
 
@@ -347,7 +347,7 @@ fun CubeShooterScreen(
                             Row(modifier = Modifier.wrapContentSize()) {
                                 for (c in 0 until totalCols) {
                                     val isTrack = isTrackCell(r, c, cols, rows)
-                                    val isCube = r in 1..rows && c in 1..cols
+                                    val isCube = r in 2..rows + 1 && c in 2..cols + 1
 
                                     Box(
                                         modifier = Modifier
@@ -358,7 +358,7 @@ fun CubeShooterScreen(
                                         if (isTrack) {
                                             // Empty content so it acts as a transparent layout spacing placeholder
                                         } else if (isCube) {
-                                            val cubeColorId = state.level.grid[r - 1][c - 1]
+                                            val cubeColorId = state.level.grid[r - 2][c - 2]
                                             if (cubeColorId != null) {
                                                 Box(
                                                     modifier = Modifier
@@ -368,7 +368,7 @@ fun CubeShooterScreen(
                                                 )
                                             } else {
                                                 // Check for Fading/Exploding Cubes
-                                                val fadingCube = state.fadingCubes.find { it.row == r - 1 && it.col == c - 1 }
+                                                val fadingCube = state.fadingCubes.find { it.row == r - 2 && it.col == c - 2 }
                                                 if (fadingCube != null) {
                                                     Box(
                                                         modifier = Modifier
@@ -414,9 +414,9 @@ fun CubeShooterScreen(
                     }
 
                     // 3. Smoothly Animated Tanks Overlay
-                    val loopLen = 2 * (cols + rows)
+                    val loopLen = 2 * (cols + rows + 4)
                     val tankSize = 56.dp
-                    val edgeBump = 6f
+                    val edgeBump = 15f
                     state.track.forEach { trackTank ->
                         val pos = trackTank.position
                         val idx1 = pos.toInt() % loopLen
@@ -433,22 +433,22 @@ fun CubeShooterScreen(
                         val sideC = coord1.second
                         val bumpX = when {
                             sideC == 0 -> -edgeBump
-                            sideC == cols + 1 -> edgeBump
+                            sideC == cols + 3 -> edgeBump
                             else -> 0f
                         }
                         val bumpY = when {
                             sideR == 0 -> -edgeBump
-                            sideR == rows + 1 -> edgeBump
+                            sideR == rows + 3 -> edgeBump
                             else -> 0f
                         }
                         val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpX
                         val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpY
 
                         val angle = when {
-                            sideR == 0 -> 180f     // Top edge: points DOWN
-                            sideC == cols + 1 -> 270f // Right edge: points LEFT
-                            sideR == rows + 1 -> 0f   // Bottom edge: points UP
-                            sideC == 0 -> 90f      // Left edge: points RIGHT
+                            sideR == 0 -> 180f         // Top edge: points DOWN
+                            sideC == cols + 3 -> 270f  // Right edge: points LEFT
+                            sideR == rows + 3 -> 0f    // Bottom edge: points UP
+                            sideC == 0 -> 90f          // Left edge: points RIGHT
                             else -> 0f
                         }
 
@@ -464,9 +464,9 @@ fun CubeShooterScreen(
                     }
 
                     // 4. Track entry position marker (matches TrackTank top-left positioning)
-                    val middleColEntry = (cols + 1) / 2
+                    val middleColEntry = (cols + 3) / 2
                     val entryXOff = middleColEntry * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                    val entryYOff = (rows + 1) * cellSize.value + (cellSize.value - tankSize.value) / 2f + edgeBump
+                    val entryYOff = (rows + 3) * cellSize.value + (cellSize.value - tankSize.value) / 2f + edgeBump
                     Box(
                         modifier = Modifier
                             .offset(x = entryXOff.dp, y = entryYOff.dp)
@@ -774,25 +774,27 @@ fun CubeShooterScreen(
 }
 
 private fun isTrackCell(r: Int, c: Int, cols: Int, rows: Int): Boolean {
-    return (r == 0 && c in 1..cols) ||
-           (r in 1..rows && c == cols + 1) ||
-           (r == rows + 1 && c in 1..cols) ||
-           (r in 1..rows && c == 0)
+    return (r == 0 && c in 1..cols + 2) ||
+           (r in 1..rows + 2 && c == cols + 3) ||
+           (r == rows + 3 && c in 1..cols + 2) ||
+           (r in 1..rows + 2 && c == 0)
 }
 
 private fun getTrackIndex(r: Int, c: Int, cols: Int, rows: Int): Int {
+    val topCount = cols + 2
+    val rightCount = rows + 2
     return when {
-        r == 0 && c in 1..cols -> {
+        r == 0 && c in 1..cols + 2 -> {
             c - 1
         }
-        r in 1..rows && c == cols + 1 -> {
-            cols + (r - 1)
+        r in 1..rows + 2 && c == cols + 3 -> {
+            topCount + (r - 1)
         }
-        r == rows + 1 && c in 1..cols -> {
-            (cols + rows) + (cols - c)
+        r == rows + 3 && c in 1..cols + 2 -> {
+            topCount + rightCount + (cols + 2 - c)
         }
-        r in 1..rows && c == 0 -> {
-            (2 * cols + rows) + (rows - r)
+        r in 1..rows + 2 && c == 0 -> {
+            topCount + rightCount + topCount + (rows + 2 - r)
         }
         else -> -1
     }
@@ -801,8 +803,8 @@ private fun getTrackIndex(r: Int, c: Int, cols: Int, rows: Int): Int {
 private fun getTrackArrow(r: Int, c: Int, cols: Int, rows: Int): String {
     return when {
         r == 0 -> "→"
-        c == cols + 1 -> "↓"
-        r == rows + 1 -> "←"
+        c == cols + 3 -> "↓"
+        r == rows + 3 -> "←"
         c == 0 -> "↑"
         else -> ""
     }
@@ -810,18 +812,18 @@ private fun getTrackArrow(r: Int, c: Int, cols: Int, rows: Int): String {
 
 private fun getComposeColor(colorId: Int?): Color {
     return when (colorId) {
-        0 -> Color(0xFF00ACC1) // Cyan
-        1 -> Color(0xFFD81B60) // Magenta
-        2 -> Color(0xFFFBC02D) // Yellow
-        3 -> Color(0xFF43A047) // Green
-        4 -> Color(0xFFF57C00) // Orange
-        5 -> Color(0xFF8E24AA) // Purple
+        0 -> Color(0xFF00BCD4) // Cyan
+        1 -> Color(0xFFE040FB) // Magenta (vivid, not pink-red)
+        2 -> Color(0xFFFFEB3B) // Yellow
+        3 -> Color(0xFF4CAF50) // Green
+        4 -> Color(0xFFFF9800) // Orange
+        5 -> Color(0xFF9C27B0) // Purple
         6 -> Color(0xFFE53935) // Red
-        7 -> Color(0xFF1E88E5) // Blue
+        7 -> Color(0xFF2196F3) // Blue
         8 -> Color(0xFF00897B) // Teal
-        9 -> Color(0xFFF06292) // Pink
-        10 -> Color(0xFF3949AB) // Indigo
-        11 -> Color(0xFFAFB42B) // Lime
+        9 -> Color(0xFFF48FB1) // Pink (lighter)
+        10 -> Color(0xFF3F51B5) // Indigo
+        11 -> Color(0xFFC0CA33) // Lime (bright yellow-green)
         else -> Color.Transparent
     }
 }
@@ -850,8 +852,8 @@ fun TankView(
                 // Main tank body
                 drawRoundRect(
                     color = baseColor,
-                    topLeft = Offset(w * 0.15f, h * 0.25f),
-                    size = Size(w * 0.7f, h * 0.55f),
+                    topLeft = Offset(w * 0.15f, h * 0.17f),
+                    size = Size(w * 0.7f, h * 0.66f),
                     cornerRadius = CornerRadius(w * 0.1f, w * 0.1f)
                 )
                 
@@ -859,15 +861,15 @@ fun TankView(
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
                     topLeft = Offset(w * 0.12f, h * 0.05f),
-                    size = Size(w * 0.76f, h * 0.12f),
+                    size = Size(w * 0.76f, h * 0.13f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 
                 // Bottom Tread (horizontal, follows the path direction)
                 drawRoundRect(
                     color = Color.DarkGray.copy(alpha = alpha),
-                    topLeft = Offset(w * 0.12f, h * 0.83f),
-                    size = Size(w * 0.76f, h * 0.12f),
+                    topLeft = Offset(w * 0.12f, h * 0.82f),
+                    size = Size(w * 0.76f, h * 0.13f),
                     cornerRadius = CornerRadius(w * 0.04f, w * 0.04f)
                 )
                 
@@ -912,22 +914,24 @@ fun TankView(
 }
 
 private fun getTrackCellCoordinates(index: Int, cols: Int, rows: Int): Pair<Int, Int> {
-    val loopLen = 2 * (cols + rows)
+    val topCount = cols + 2
+    val rightCount = rows + 2
+    val loopLen = 2 * (cols + rows + 4)
     val idx = (index % loopLen + loopLen) % loopLen
     return when {
-        idx < cols -> {
+        idx < topCount -> {
             Pair(0, idx + 1)
         }
-        idx < cols + rows -> {
-            val r = idx - cols + 1
-            Pair(r, cols + 1)
+        idx < topCount + rightCount -> {
+            val r = idx - topCount + 1
+            Pair(r, cols + 3)
         }
-        idx < 2 * cols + rows -> {
-            val c = cols - (idx - (cols + rows))
-            Pair(rows + 1, c)
+        idx < topCount + rightCount + topCount -> {
+            val c = (cols + 2) - (idx - (topCount + rightCount))
+            Pair(rows + 3, c)
         }
         else -> {
-            val r = rows - (idx - (2 * cols + rows))
+            val r = (rows + 2) - (idx - (topCount + rightCount + topCount))
             Pair(r, 0)
         }
     }

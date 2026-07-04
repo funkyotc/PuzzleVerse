@@ -1,8 +1,5 @@
 package com.funkyotc.puzzleverse.pullpin.ui
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,10 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -52,13 +50,15 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.pullpin.data.BallState
+import com.funkyotc.puzzleverse.pullpin.data.Cell
 import com.funkyotc.puzzleverse.pullpin.data.CellType
 import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
 import com.funkyotc.puzzleverse.pullpin.data.PullPinState
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModel
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModelFactory
-import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 private val BALL_COLORS = mapOf(
     1 to Color(0xFFE53935),
@@ -71,7 +71,19 @@ private val BALL_COLORS = mapOf(
     8 to Color(0xFFD81B60)
 )
 
+private val COLOR_LABELS = mapOf(
+    1 to "Red",
+    2 to "Blue",
+    3 to "Green",
+    4 to "Yellow",
+    5 to "Purple",
+    6 to "Orange",
+    7 to "Cyan",
+    8 to "Pink"
+)
+
 private fun ballColor(index: Int): Color = BALL_COLORS[index] ?: Color.Gray
+private fun colorLabel(index: Int): String = COLOR_LABELS[index] ?: "?"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,19 +124,21 @@ fun PullPinScreen(
 
     PullPinDialogHowToPlay(showHowToPlay) { showHowToPlay = false }
 
-    if (showWinDialog && state != null) {
-        PullPinWinDialog(
-            state = state!!,
-            onDismiss = { showWinDialog = false },
-            onNextPuzzle = {
-                showWinDialog = false
-                viewModel.startNewGame()
-            },
-            onBackToBrowser = {
-                showWinDialog = false
-                navController.popBackStack()
-            }
-        )
+    state?.let { s ->
+        if (showWinDialog) {
+            PullPinWinDialog(
+                state = s,
+                onDismiss = { showWinDialog = false },
+                onNextPuzzle = {
+                    showWinDialog = false
+                    viewModel.startNewGame()
+                },
+                onBackToBrowser = {
+                    showWinDialog = false
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 
     Scaffold(
@@ -154,17 +168,94 @@ fun PullPinScreen(
         }
     ) { paddingValues ->
         state?.let { gameState ->
-            PullPinBoard(
-                state = gameState,
+            val ballsRemaining = gameState.balls.count { !it.inCup }
+
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(8.dp),
-                onPinClick = { row, col ->
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.removePin(row, col)
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Text(
+                        text = "Balls: $ballsRemaining/${gameState.balls.size}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Moves: ${gameState.moves}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
-            )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                PullPinColorLegend(
+                    balls = gameState.balls,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                PullPinBoard(
+                    state = gameState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    onPinClick = { row, col ->
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.removePin(row, col)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PullPinColorLegend(
+    balls: List<BallState>,
+    modifier: Modifier = Modifier
+) {
+    val activeColors = balls.map { it.color }.distinct().sorted()
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        activeColors.forEach { colorIdx ->
+            val inCup = balls.any { it.color == colorIdx && it.inCup }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(ballColor(colorIdx).copy(alpha = if (inCup) 0.4f else 1f))
+                        .border(
+                            1.dp,
+                            ballColor(colorIdx).copy(alpha = if (inCup) 0.4f else 1f),
+                            CircleShape
+                        )
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = "$colorIdx:${colorLabel(colorIdx)}",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (inCup) 0.4f else 1f)
+                )
+                if (inCup) {
+                    Text(
+                        text = "✓",
+                        fontSize = 10.sp,
+                        color = ballColor(colorIdx)
+                    )
+                }
+            }
         }
     }
 }
@@ -178,43 +269,31 @@ private fun PullPinBoard(
     val rows = state.level.rows
     val cols = state.level.cols
 
-    val animatingBalls = remember(state.balls, state.moves) {
-        state.balls.filter { !it.inCup }.map { ball ->
-            Triple(ball.row, ball.col, ball.color)
-        }
-    }
-
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = modifier
+            .aspectRatio(cols.toFloat() / rows.toFloat()),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(cols.toFloat() / rows.toFloat())
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceEvenly
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceEvenly
-            ) {
-                for (r in 0 until rows) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        for (c in 0 until cols) {
-                            val cell = state.grid[r][c]
-                            PullPinCell(
-                                cell = cell,
-                                gridSize = cols,
-                                onClick = {
-                                    if (cell.type == CellType.PIN) {
-                                        onPinClick(r, c)
-                                    }
+            for (r in 0 until rows) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    for (c in 0 until cols) {
+                        val cell = state.grid[r][c]
+                        PullPinCell(
+                            cell = cell,
+                            gridSize = cols,
+                            onClick = {
+                                if (cell.type == CellType.PIN) {
+                                    onPinClick(r, c)
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
             }
@@ -224,7 +303,7 @@ private fun PullPinBoard(
 
 @Composable
 private fun PullPinCell(
-    cell: com.funkyotc.puzzleverse.pullpin.data.Cell,
+    cell: Cell,
     gridSize: Int,
     onClick: () -> Unit
 ) {
@@ -233,20 +312,6 @@ private fun PullPinCell(
         gridSize <= 6 -> 48.dp
         gridSize <= 7 -> 40.dp
         else -> 36.dp
-    }
-
-    val pinAlpha = remember { Animatable(1f) }
-
-    LaunchedEffect(cell.type) {
-        if (cell.type != CellType.PIN) {
-            pinAlpha.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
     }
 
     Box(
@@ -259,7 +324,6 @@ private fun PullPinCell(
                         shape = RoundedCornerShape(4.dp)
                     )
                     CellType.PIN -> Modifier
-                        .alpha(pinAlpha.value)
                         .clip(CircleShape)
                         .background(Color(0xFFD7CCC8))
                         .border(2.dp, Color(0xFF5D4037), CircleShape)
@@ -283,7 +347,8 @@ private fun PullPinCell(
                     Text(
                         text = "${cell.color ?: ""}",
                         color = Color.White,
-                        fontSize = size.value.sp * 0.3f,
+                        fontSize = (size.value * 0.3f).sp,
+                        fontWeight = FontWeight.Bold,
                         softWrap = false
                     )
                 }
@@ -300,7 +365,8 @@ private fun PullPinCell(
                     Text(
                         text = "${cell.color ?: ""}",
                         color = color,
-                        fontSize = size.value.sp * 0.3f,
+                        fontSize = (size.value * 0.3f).sp,
+                        fontWeight = FontWeight.Bold,
                         softWrap = false
                     )
                 }
@@ -330,9 +396,9 @@ private fun PullPinDialogHowToPlay(visible: Boolean, onDismiss: () -> Unit) {
                     Text("Pull the Pin is a logic puzzle game!")
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("• Tap on pins to remove them")
-                    Text("• When pins are removed, balls fall due to gravity")
-                    Text("• Balls roll down, then left/right to find their path")
+                    Text("• Each ball falls straight down when its path is clear")
                     Text("• Each colored ball must land in its matching cup")
+                    Text("• The legend shows which colors are in cup (✓)")
                     Text("• Clear all balls to win!")
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Tip: Plan which pin to remove first!")

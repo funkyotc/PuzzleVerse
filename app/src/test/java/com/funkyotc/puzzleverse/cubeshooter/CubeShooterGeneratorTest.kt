@@ -94,8 +94,10 @@ class CubeShooterGeneratorTest {
         // The track tank's position should be the bottom-middle index
         val cols = stateCompleted.level.cols
         val rows = stateCompleted.level.rows
-        val middleCol = (cols + 1) / 2
-        val expectedStartPos = cols + rows + (cols - middleCol)
+        val middleCol = (cols + 3) / 2
+        val topCount = cols + 2
+        val rightCount = rows + 2
+        val expectedStartPos = topCount + rightCount + (cols + 2 - middleCol)
         assertEquals(expectedStartPos.toFloat(), stateCompleted.track.first().position)
         
         // Update source tank count assertion above to capture tank ammo before dispatch

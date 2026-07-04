@@ -73,12 +73,11 @@ class WaterSortViewModel(
         if (current.isWon) return
         if (index < 0 || index >= current.bottles.size) return
 
-        val bottle = current.bottles[index]
-        if (bottle.isEmpty()) return
-
         if (current.selectedIndex == index) {
             _state.value = current.copy(selectedIndex = -1)
         } else if (current.selectedIndex == -1) {
+            val bottle = current.bottles[index]
+            if (bottle.isEmpty()) return
             _state.value = current.copy(selectedIndex = index)
         } else {
             pour(current.selectedIndex, index)

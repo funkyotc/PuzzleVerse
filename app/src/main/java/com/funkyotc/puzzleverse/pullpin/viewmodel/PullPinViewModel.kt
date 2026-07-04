@@ -54,11 +54,11 @@ class PullPinViewModel(
 
         val cell = current.grid.getOrNull(row)?.getOrNull(col) ?: return
         if (cell.type != CellType.PIN) return
-        if (Pair(row, col).toString() in current.removedPins) return
+        if ("$row,$col" in current.removedPins) return
 
         val newGrid = current.grid.map { it.toMutableList() }.toMutableList()
         newGrid[row][col] = Cell(CellType.EMPTY)
-        val newRemovedPins = current.removedPins + "${row},${col}"
+        val newRemovedPins = current.removedPins + "$row,$col"
 
         val (finalGrid, finalBalls) = simulateCascade(newGrid, current.balls)
         val won = finalBalls.all { it.inCup }
@@ -130,90 +130,154 @@ class PullPinViewModel(
         grid: List<List<Cell>>,
         balls: List<BallState>
     ): Pair<List<List<Cell>>, List<BallState>> {
-        val newGrid = grid.map { it.toMutableList() }.toMutableList()
-        var currentBalls = balls.map { it.copy() }.toMutableList()
-        val rows = newGrid.size
-        val cols = newGrid[0].size
+        val rows = grid.size
+        val cols = grid[0].size
+        val workGrid = grid.map { it.toMutableList() }.toMutableList()
 
-        var changed = true
-        var iterations = 0
-        val maxIterations = rows * cols * 2
+        val resultBalls = balls.map { it.copy() }.toMutableList()
 
-        val remainingBalls = currentBalls.filter { !it.inCup }.toMutableList()
-        val settledBalls = currentBalls.filter { it.inCup }.toMutableList()
+        for (i in resultBalls.indices) {
+            val b = resultBalls[i]
+            if (b.inCup) continue
 
-        while (changed && iterations < maxIterations) {
-            changed = false
-            iterations++
+            workGrid[b.row][b.col] = Cell(CellType.EMPTY)
 
-            val toRemove = mutableListOf<BallState>()
-            val toAdd = mutableListOf<BallState>()
+            val finalPos = dropBall(b.row, b.col, b.color, workGrid, rows, cols)
+            resultBalls[i] = finalPos
 
-            for (ball in remainingBalls) {
-                if (ball.inCup) {
-                    toRemove.add(ball)
-                    settledBalls.add(ball)
-                    continue
-                }
-
-                val moved = tryMoveBall(ball, newGrid, rows, cols)
-                if (moved != null) {
-                    newGrid[ball.row][ball.col] = Cell(CellType.EMPTY)
-                    val landedOnCup = newGrid[moved.row][moved.col].type == CellType.CUP
-                    val matchColor = !landedOnCup || newGrid[moved.row][moved.col].color == ball.color
-
-                    if (landedOnCup && matchColor) {
-                        newGrid[moved.row][moved.col] = Cell(CellType.CUP, ball.color)
-                        toRemove.add(ball)
-                        settledBalls.add(moved.copy(inCup = true))
-                    } else {
-                        newGrid[moved.row][moved.col] = Cell(CellType.BALL, ball.color)
-                        toRemove.add(ball)
-                        toAdd.add(moved)
-                    }
-                    changed = true
-                }
+            if (finalPos.inCup) {
+                workGrid[finalPos.row][finalPos.col] = Cell(CellType.CUP, finalPos.color)
+            } else {
+                workGrid[finalPos.row][finalPos.col] = Cell(CellType.BALL, finalPos.color)
             }
-
-            remainingBalls.removeAll(toRemove)
-            remainingBalls.addAll(toAdd)
-            toRemove.clear()
-            toAdd.clear()
-
-            remainingBalls.removeAll { it.inCup }
         }
 
-        return Pair(newGrid.map { it.toList() }, settledBalls + remainingBalls)
+        return Pair(workGrid.map { it.toList() }, resultBalls)
     }
 
-    private fun tryMoveBall(
-        ball: BallState,
+    private fun dropBall(
+        startRow: Int,
+        startCol: Int,
+        color: Int,
         grid: MutableList<MutableList<Cell>>,
         rows: Int,
         cols: Int
-    ): BallState? {
-        val directions = listOf(
-            Pair(1, 0),
-            Pair(0, -1),
-            Pair(0, 1)
-        )
-
-        for ((dr, dc) in directions) {
-            val nr = ball.row + dr
-            val nc = ball.col + dc
-
-            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
-
-            val target = grid[nr][nc]
-            if (target.type == CellType.WALL) continue
-            if (target.type == CellType.BALL) continue
-            if (target.type == CellType.PIN) continue
-            if (target.type == CellType.CUP && target.color != ball.color) continue
-
-            return BallState(row = nr, col = nc, color = ball.color)
+    ): BallState {
+        if (grid[startRow][startCol].type == CellType.CUP && grid[startRow][startCol].color == color) {
+            return BallState(startRow, startCol, color, inCup = true)
         }
 
+        val visited = mutableSetOf(startRow to startCol)
+        var r = startRow
+        var c = startCol
+
+        while (true) {
+            val moved = step(r, c, color, grid, rows, cols, visited)
+            if (moved == null) break
+            r = moved.first
+            c = moved.second
+            visited.add(r to c)
+
+            if (grid[r][c].type == CellType.CUP && grid[r][c].color == color) {
+                return BallState(r, c, color, inCup = true)
+            }
+        }
+
+        return BallState(row = r, col = c, color = color, inCup = false)
+    }
+
+    private fun step(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        val tryMoves = listOf(
+            ::moveDown,
+            ::moveDownLeft,
+            ::moveDownRight,
+            ::moveLeft,
+            ::moveRight
+        )
+
+        for (move in tryMoves) {
+            val result = move(r, c, color, grid, rows, cols, visited)
+            if (result != null) return result
+        }
         return null
+    }
+
+    private fun moveDown(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        val nr = r + 1
+        if (nr >= rows) return null
+        if (!canEnter(grid[nr][c], color)) return null
+        return nr to c
+    }
+
+    private fun canEnter(cell: Cell, ballColor: Int): Boolean {
+        return cell.type == CellType.EMPTY ||
+                (cell.type == CellType.CUP && cell.color == ballColor)
+    }
+
+    private fun moveDownLeft(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        if (r + 1 >= rows) return null
+        val nc = c - 1
+        if (nc < 0) return null
+        if (!canEnter(grid[r][nc], color)) return null
+        if (r to nc in visited) return null
+        if (!canEnter(grid[r + 1][nc], color)) return null
+        return r to nc
+    }
+
+    private fun moveDownRight(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        if (r + 1 >= rows) return null
+        val nc = c + 1
+        if (nc >= cols) return null
+        if (!canEnter(grid[r][nc], color)) return null
+        if (r to nc in visited) return null
+        if (!canEnter(grid[r + 1][nc], color)) return null
+        return r to nc
+    }
+
+    private fun moveLeft(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        val nc = c - 1
+        if (nc < 0) return null
+        if (!canEnter(grid[r][nc], color)) return null
+        if (r to nc in visited) return null
+        return r to nc
+    }
+
+    private fun moveRight(
+        r: Int, c: Int, color: Int,
+        grid: MutableList<MutableList<Cell>>,
+        rows: Int, cols: Int,
+        visited: MutableSet<Pair<Int, Int>>
+    ): Pair<Int, Int>? {
+        val nc = c + 1
+        if (nc >= cols) return null
+        if (!canEnter(grid[r][nc], color)) return null
+        if (r to nc in visited) return null
+        return r to nc
     }
 }
 

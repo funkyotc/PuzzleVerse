@@ -2,7 +2,7 @@ package com.funkyotc.puzzleverse.pullpin.data
 
 private fun parseGrid(rows: Int, cols: Int, vararg rowStrings: String): List<List<Cell>> {
     return rowStrings.map { rowStr ->
-        require(rowStr.length == cols) { "Row length $rowStr != $cols" }
+        require(rowStr.length == cols) { "Row '$rowStr' length ${rowStr.length} != $cols" }
         rowStr.map { ch ->
             when {
                 ch == '.' -> Cell(CellType.EMPTY)
@@ -16,7 +16,7 @@ private fun parseGrid(rows: Int, cols: Int, vararg rowStrings: String): List<Lis
     }
 }
 
-private fun level(id: String, difficulty: String, rows: Int, cols: Int, vararg rowStrings: String): PullPinLevel {
+private fun lvl(id: String, difficulty: String, rows: Int, cols: Int, vararg rowStrings: String): PullPinLevel {
     return PullPinLevel(
         id = id,
         difficulty = difficulty,
@@ -26,131 +26,155 @@ private fun level(id: String, difficulty: String, rows: Int, cols: Int, vararg r
     )
 }
 
+/* ----------------------------------------------------------------- */
+/*  Easy (5×5): 1–2 balls, direct vertical drops, 1–2 pins each      */
+/*  Ball→Cup columns are identical; pins sit in same column.          */
+/* ----------------------------------------------------------------- */
 private fun chunkEasy(): List<PullPinLevel> = listOf(
-    level("pullpin_easy_001", "Easy", 5, 5,
+    /* 1 ball, 1 pin */
+    lvl("pullpin_easy_001", "Easy", 5, 5,
         ".....",
         "..1..",
         "..P..",
         "..a..",
         "WWWWW"
     ),
-    level("pullpin_easy_002", "Easy", 5, 5,
+    /* 2 balls, 2 pins */
+    lvl("pullpin_easy_002", "Easy", 5, 5,
         ".1.2.",
         ".....",
-        "..P..",
+        ".P.P.",
         ".a.b.",
         "WWWWW"
     ),
-    level("pullpin_easy_003", "Easy", 5, 5,
-        ".1...",
-        ".....",
+    /* 1 ball, 2 stacked pins (need 2 removals) */
+    lvl("pullpin_easy_003", "Easy", 5, 5,
+        "..1..",
         "..P..",
-        "...a.",
+        "..P..",
+        "..a..",
         "WWWWW"
     ),
-    level("pullpin_easy_004", "Easy", 5, 5,
-        "..1..",
+    /* 2 balls, 2 pins at row 1 */
+    lvl("pullpin_easy_004", "Easy", 5, 5,
+        ".1.2.",
+        ".P.P.",
         ".....",
-        ".P...",
-        "..a..",
+        ".a.b.",
         "WWWWW"
     )
 )
 
+/* ----------------------------------------------------------------- */
+/*  Medium (6×6): 2–3 balls, mixed pin counts, staggered rows         */
+/* ----------------------------------------------------------------- */
 private fun chunkMedium(): List<PullPinLevel> = listOf(
-    level("pullpin_medium_001", "Medium", 6, 6,
+    /* 3 balls, 3 pins — one each */
+    lvl("pullpin_medium_001", "Medium", 6, 6,
         ".1.2.3",
         "......",
-        "...P..",
+        ".P.P.P",
         "......",
         ".a.b.c",
         "WWWWWW"
     ),
-    level("pullpin_medium_002", "Medium", 6, 6,
+    /* 2 balls, different pin rows */
+    lvl("pullpin_medium_002", "Medium", 6, 6,
         ".1..2.",
+        ".P....",
         "......",
-        ".WPPW.",
-        "......",
+        "...P..",
         ".a..b.",
         "WWWWWW"
     ),
-    level("pullpin_medium_003", "Medium", 6, 6,
-        "1.....",
+    /* 2 balls, stacked pins on ball 1 */
+    lvl("pullpin_medium_003", "Medium", 6, 6,
+        "..1.2.",
         "......",
-        "..P...",
-        "...W..",
-        "....a.",
-        "WWWWWW"
-    ),
-    level("pullpin_medium_004", "Medium", 6, 6,
-        "..1...",
-        "..2...",
         "..P...",
         "..P...",
         "..a.b.",
         "WWWWWW"
+    ),
+    /* 3 balls, 2 pins, mixed columns */
+    lvl("pullpin_medium_004", "Medium", 6, 6,
+        "1.2.3.",
+        "..P...",
+        "....P.",
+        "......",
+        "a.b.c.",
+        "WWWWWW"
     )
 )
 
+/* ----------------------------------------------------------------- */
+/*  Hard (7×7): 3 balls, every ball has at least 1 pin               */
+/* ----------------------------------------------------------------- */
 private fun chunkHard(): List<PullPinLevel> = listOf(
-    level("pullpin_hard_001", "Hard", 7, 7,
-        ".1..2..",
+    lvl("pullpin_hard_001", "Hard", 7, 7,
+        "1..2..3",
         ".......",
-        "..PW...",
+        "..P....",
         "...P...",
-        "......3",
-        "..a.b.c",
+        "......P",
+        "a..b..c",
         "WWWWWWW"
     ),
-    level("pullpin_hard_002", "Hard", 7, 7,
-        "...1...",
-        "..2P...",
-        ".W..W..",
-        "..P.3..",
-        "......W",
+    lvl("pullpin_hard_002", "Hard", 7, 7,
+        ".1.2.3.",
+        ".P.....",
+        "...P...",
+        ".....P.",
+        ".......",
         ".a.b.c.",
         "WWWWWWW"
     ),
-    level("pullpin_hard_003", "Hard", 7, 7,
-        "1..2...",
+    lvl("pullpin_hard_003", "Hard", 7, 7,
+        "1..2..3",
         ".......",
-        ".W.P.W.",
+        "P......",
         "...P...",
-        ".......",
+        "......P",
         "a..b..c",
         "WWWWWWW"
     )
 )
 
+/* ----------------------------------------------------------------- */
+/*  Expert (8×8): 3–4 balls, wider board, more pins                  */
+/* ----------------------------------------------------------------- */
 private fun chunkExpert(): List<PullPinLevel> = listOf(
-    level("pullpin_expert_001", "Expert", 8, 8,
-        ".1..2..3",
+    /* 4 balls, 4 pins */
+    lvl("pullpin_expert_001", "Expert", 8, 8,
+        "1.2.3.4.",
         "........",
-        "..W..W..",
-        "...PP...",
-        "...PP...",
-        "..W..W..",
-        ".a..b..c",
+        "..P..P..",
+        "......P.",
+        "........",
+        "........",
+        "a.b.c.d.",
         "WWWWWWWW"
     ),
-    level("pullpin_expert_002", "Expert", 8, 8,
-        "1.......",
-        ".2.....3",
-        "..P.P...",
-        "...W....",
+    /* 3 balls, 3 pins, staggered */
+    lvl("pullpin_expert_002", "Expert", 8, 8,
+        "..1.2.3.",
+        "........",
+        "..P.....",
+        "....P...",
+        "......P.",
+        "........",
+        "..a.b.c.",
+        "WWWWWWWW"
+    ),
+    /* 3 balls, 4 pins (ball2 has 2) */
+    lvl("pullpin_expert_003", "Expert", 8, 8,
+        "1..2..3.",
+        "........",
+        "P..P....",
         "...P....",
-        "......4.",
-        "a..b..cd",
-        "WWWWWWWW"
-    ),
-    level("pullpin_expert_003", "Expert", 8, 8,
-        "..1..2..",
-        "..3..4..",
-        "..P..P..",
-        "..W..W..",
-        "..P..P..",
+        "......P.",
         "........",
-        ".a.b.c.d",
+        "a..b..c.",
         "WWWWWWWW"
     )
 )
