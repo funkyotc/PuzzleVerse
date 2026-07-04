@@ -3,6 +3,7 @@ package com.funkyotc.puzzleverse.woodnuts.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -32,14 +34,13 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
@@ -47,9 +48,12 @@ import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.woodnuts.data.Bolt
+import com.funkyotc.puzzleverse.woodnuts.data.Plank
 import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModel
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModelFactory
+import kotlin.math.sqrt
 
 private val PLANK_PALETTE = listOf(
     Color(0xFF8D6E63), Color(0xFFA1887F), Color(0xFFBCAAA4),
@@ -57,6 +61,9 @@ private val PLANK_PALETTE = listOf(
     Color(0xFFD7CCC8), Color(0xFFEFEBE9), Color(0xFF795548),
     Color(0xFF8B6F5E), Color(0xFFA0897C), Color(0xFFB8A69B)
 )
+
+private const val MAX_TILT_DEGREES = 18f
+private const val BOLT_UNSCREW_DURATION = 350
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,20 +140,13 @@ fun WoodNutsScreen(
                                 navController.popBackStack()
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Back to Browser")
-                        }
+                        ) { Text("Back to Browser") }
 
                         val nextId = puzzleId?.let { id ->
-                            val allPuzzles = WoodNutsPregenerated.ALL_LEVELS
-                            val currentIndex = allPuzzles.indexOfFirst { it.id == id }
-                            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                                allPuzzles[currentIndex + 1].id
-                            } else {
-                                null
-                            }
+                            val all = WoodNutsPregenerated.ALL_LEVELS
+                            val i = all.indexOfFirst { it.id == id }
+                            if (i != -1 && i + 1 < all.size) all[i + 1].id else null
                         }
-
                         if (nextId != null) {
                             Button(
                                 onClick = {
@@ -156,9 +156,7 @@ fun WoodNutsScreen(
                                     navController.navigate("game/woodnuts/puzzle/$nextId")
                                 },
                                 modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Next Puzzle")
-                            }
+                            ) { Text("Next Puzzle") }
                         }
                     } else {
                         Button(
@@ -168,10 +166,7 @@ fun WoodNutsScreen(
                                 viewModel.startNewGame()
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Play Again")
-                        }
-
+                        ) { Text("Play Again") }
                         Button(
                             onClick = {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -179,9 +174,7 @@ fun WoodNutsScreen(
                                 viewModel.startNewGame()
                             },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("New Game")
-                        }
+                        ) { Text("New Game") }
                     }
                 }
             }
@@ -218,9 +211,7 @@ fun WoodNutsScreen(
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -236,48 +227,60 @@ fun WoodNutsScreen(
                 )
 
                 BoxWithConstraints(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                        .padding(8.dp),
+                    modifier = Modifier.weight(1f).fillMaxSize().padding(8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     val density = LocalDensity.current
                     val rows = state.level.rows
                     val cols = state.level.cols
-                    val intersectionsCols = cols + 1
-                    val intersectionsRows = rows + 1
+                    val ic = cols + 1
+                    val ir = rows + 1
 
-                    val cellDp = minOf(
-                        maxWidth / intersectionsCols,
-                        maxHeight / intersectionsRows
-                    )
-
+                    val cellDp = minOf(maxWidth / ic, maxHeight / ir)
                     val cellPx = with(density) { cellDp.toPx() }
-                    val gridWidthDp = cellDp * intersectionsCols
-                    val gridHeightDp = cellDp * intersectionsRows
+                    val gridW = cellDp * ic
+                    val gridH = cellDp * ir
 
                     val boltRadius = cellPx * 0.18f
                     val plankCorner = cellPx * 0.12f
-                    val plankPaddingPx = cellPx * 0.08f
+                    val plankPad = cellPx * 0.08f
                     val strokePx = with(density) { 2.dp.toPx() }
 
-                    val removedPlankIds = remember { mutableStateMapOf<String, Float>() }
+                    // State for bolt unscrew animation
+                    val boltAnimProgress = remember { mutableStateMapOf<String, Float>() }
+                    // State for plank falling animation
+                    val fallAnimProgress = remember { mutableStateMapOf<String, Float>() }
 
+                    val scope = rememberCoroutineScope()
+
+                    // Trigger bolt unscrew animation on new removal
+                    LaunchedEffect(state.lastRemovedBoltId) {
+                        state.lastRemovedBoltId?.let { id ->
+                            if (id !in boltAnimProgress) {
+                                boltAnimProgress[id] = 0f
+                                val anim = Animatable(0f)
+                                anim.animateTo(1f, animationSpec = tween(BOLT_UNSCREW_DURATION))
+                                boltAnimProgress[id] = 1f
+                            }
+                        }
+                    }
+
+                    // Trigger plank falling animation on new removal
                     LaunchedEffect(state.lastRemovedPlankId) {
                         state.lastRemovedPlankId?.let { id ->
-                            if (id !in removedPlankIds) {
-                                val anim = Animatable(1f)
-                                removedPlankIds[id] = 1f
-                                anim.animateTo(0f, animationSpec = tween(400))
-                                removedPlankIds[id] = 0f
+                            if (id !in fallAnimProgress) {
+                                fallAnimProgress[id] = 0f
+                                val anim = Animatable(0f)
+                                anim.animateTo(1f, animationSpec = tween(500))
+                                fallAnimProgress[id] = 1f
                             }
                         }
                     }
 
                     Canvas(
                         modifier = Modifier
-                            .size(gridWidthDp, gridHeightDp)
+                            .size(gridW, gridH)
+                            .background(Color(0xFF2E2E2E))
                             .pointerInput(state.bolts) {
                                 detectTapGestures { offset ->
                                     val col = (offset.x / cellPx).toInt()
@@ -292,59 +295,55 @@ fun WoodNutsScreen(
                                 }
                             }
                     ) {
+                        // === PASS 1: Draw flat & tilted planks ===
                         for (plank in state.planks) {
-                            val alpha = if (plank.removed) {
-                                removedPlankIds[plank.id] ?: 0f
-                            } else {
-                                1f
+                            if (plank.removed && fallAnimProgress.containsKey(plank.id)) {
+                                // drawn in pass 2
+                                continue
                             }
-                            if (alpha <= 0f) continue
+                            if (plank.removed && !fallAnimProgress.containsKey(plank.id)) {
+                                continue
+                            }
 
                             val colorIndex = state.planks.indexOf(plank) % PLANK_PALETTE.size
-                            val left = (plank.startCol + plankPaddingPx * 0f) * cellPx
-                            val top = (plank.startRow + plankPaddingPx * 0f) * cellPx
-                            val w = (plank.endCol - plank.startCol + 1) * cellPx - plankPaddingPx * 2f
-                            val h = (plank.endRow - plank.startRow + 1) * cellPx - plankPaddingPx * 2f
+                            val color = PLANK_PALETTE[colorIndex]
 
-                            drawRoundRect(
-                                color = PLANK_PALETTE[colorIndex].copy(alpha = alpha),
-                                topLeft = Offset(left + plankPaddingPx, top + plankPaddingPx),
-                                size = Size(w, h),
-                                cornerRadius = CornerRadius(plankCorner, plankCorner)
-                            )
+                            val remainingBolts = plank.boltIds
+                                .mapNotNull { id -> state.bolts.find { it.id == id } }
+                                .filter { !it.removed }
 
-                            if (!plank.removed) {
-                                drawRoundRect(
-                                    color = PLANK_PALETTE[colorIndex].copy(alpha = 0.3f),
-                                    topLeft = Offset(left + plankPaddingPx, top + plankPaddingPx),
-                                    size = Size(w, h),
-                                    cornerRadius = CornerRadius(plankCorner, plankCorner),
-                                    style = Stroke(width = strokePx)
-                                )
+                            val allPresent = remainingBolts.size == plank.boltIds.size
+
+                            if (allPresent) {
+                                drawFlatPlank(plank, color, cellPx, plankPad, plankCorner, strokePx)
+                            } else {
+                                drawTiltedPlank(plank, remainingBolts, color, cellPx, plankPad, plankCorner, strokePx)
                             }
                         }
 
+                        // === PASS 2: Draw falling planks (on top) ===
+                        for (plank in state.planks) {
+                            if (!plank.removed) continue
+                            val progress = fallAnimProgress[plank.id] ?: continue
+                            if (progress >= 1f) continue
+
+                            val colorIndex = state.planks.indexOf(plank) % PLANK_PALETTE.size
+                            drawFallingPlank(plank, PLANK_PALETTE[colorIndex], cellPx, plankPad, plankCorner, strokePx, progress)
+                        }
+
+                        // === PASS 3: Draw bolts ===
                         for (bolt in state.bolts) {
-                            if (bolt.removed) continue
+                            val unscrewProgress = boltAnimProgress[bolt.id]
+                            if (bolt.removed && unscrewProgress == null) continue
 
                             val cx = bolt.col * cellPx
                             val cy = bolt.row * cellPx
 
-                            drawCircle(
-                                color = Color(0xFF37474F),
-                                radius = boltRadius,
-                                center = Offset(cx, cy)
-                            )
-                            drawCircle(
-                                color = Color(0xFF78909C),
-                                radius = boltRadius * 0.7f,
-                                center = Offset(cx, cy)
-                            )
-                            drawCircle(
-                                color = Color(0xFFB0BEC5),
-                                radius = boltRadius * 0.4f,
-                                center = Offset(cx, cy)
-                            )
+                            if (bolt.removed && unscrewProgress != null) {
+                                drawUnscrewingBolt(cx, cy, boltRadius, unscrewProgress)
+                            } else if (!bolt.removed) {
+                                drawNormalBolt(cx, cy, boltRadius)
+                            }
                         }
                     }
                 }
@@ -357,5 +356,121 @@ fun WoodNutsScreen(
                 )
             }
         }
+    }
+}
+
+private fun DrawScope.drawFlatPlank(
+    plank: Plank,
+    color: Color,
+    cellPx: Float,
+    pad: Float,
+    corner: Float,
+    stroke: Float
+) {
+    val left = plank.startCol * cellPx + pad
+    val top = plank.startRow * cellPx + pad
+    val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
+    val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
+
+    drawRoundRect(color, Offset(left, top), Size(w, h), CornerRadius(corner, corner))
+    drawRoundRect(color.copy(alpha = 0.3f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke))
+}
+
+private fun DrawScope.drawTiltedPlank(
+    plank: Plank,
+    remainingBolts: List<Bolt>,
+    color: Color,
+    cellPx: Float,
+    pad: Float,
+    corner: Float,
+    stroke: Float
+) {
+    // Support center (average of remaining bolt positions) in pixels
+    val sx = remainingBolts.map { it.col.toFloat() * cellPx }.average().toFloat()
+    val sy = remainingBolts.map { it.row.toFloat() * cellPx }.average().toFloat()
+    val pivot = Offset(sx, sy)
+
+    // Plank center in grid coords, then pixels
+    val pcCol = plank.startCol + (plank.endCol - plank.startCol + 1) / 2f
+    val pcRow = plank.startRow + (plank.endRow - plank.startRow + 1) / 2f
+    val dx = pcCol.toDouble() - remainingBolts.map { it.col }.average()
+    val dy = pcRow.toDouble() - remainingBolts.map { it.row }.average()
+    val dist = sqrt(dx * dx + dy * dy)
+
+    // Max possible distance for this plank (half-diagonal)
+    val maxDistCol = (plank.endCol - plank.startCol + 1) / 2.0
+    val maxDistRow = (plank.endRow - plank.startRow + 1) / 2.0
+    val maxDist = sqrt(maxDistCol * maxDistCol + maxDistRow * maxDistRow)
+
+    val offsetRatio = (dist / maxDist).toFloat().coerceIn(0f, 1f)
+    val tiltAngle = offsetRatio * MAX_TILT_DEGREES
+
+    rotate(tiltAngle, pivot) {
+        val left = plank.startCol * cellPx + pad
+        val top = plank.startRow * cellPx + pad
+        val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
+        val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
+
+        drawRoundRect(color, Offset(left, top), Size(w, h), CornerRadius(corner, corner))
+        drawRoundRect(color.copy(alpha = 0.25f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke))
+    }
+}
+
+private fun DrawScope.drawFallingPlank(
+    plank: Plank,
+    color: Color,
+    cellPx: Float,
+    pad: Float,
+    corner: Float,
+    stroke: Float,
+    progress: Float
+) {
+    val alpha = 1f - progress
+    val fallDistance = cellPx * 3f * progress
+
+    // Random-ish spin based on plank id
+    val spinDir = if (plank.id.hashCode() % 2 == 0) 1f else -1f
+    val spin = spinDir * progress * 35f
+
+    val left = plank.startCol * cellPx + pad
+    val top = plank.startRow * cellPx + pad
+    val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
+    val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
+
+    val centerX = left + w / 2f
+    val centerY = top + h / 2f
+
+    rotate(spin, Offset(centerX, centerY + fallDistance)) {
+        val transl = top + fallDistance
+        drawRoundRect(
+            color.copy(alpha = alpha),
+            Offset(left, transl),
+            Size(w, h),
+            CornerRadius(corner, corner)
+        )
+    }
+}
+
+private fun DrawScope.drawNormalBolt(cx: Float, cy: Float, radius: Float) {
+    drawCircle(Color(0xFF37474F), radius, Offset(cx, cy))
+    drawCircle(Color(0xFF78909C), radius * 0.7f, Offset(cx, cy))
+    drawCircle(Color(0xFFB0BEC5), radius * 0.4f, Offset(cx, cy))
+}
+
+private fun DrawScope.drawUnscrewingBolt(cx: Float, cy: Float, radius: Float, progress: Float) {
+    val alpha = 1f - progress
+    val scale = 1f - 0.4f * progress
+    val r = radius * scale
+    val spin = progress * 360f
+
+    rotate(spin, Offset(cx, cy)) {
+        drawCircle(Color(0xFF37474F).copy(alpha = alpha), r, Offset(cx, cy))
+        drawCircle(Color(0xFF78909C).copy(alpha = alpha), r * 0.7f, Offset(cx, cy))
+        drawCircle(Color(0xFFB0BEC5).copy(alpha = alpha), r * 0.4f, Offset(cx, cy))
+
+        // Cross-slot indicator
+        val slotLen = r * 0.5f
+        drawLine(Color(0xFF546E7A).copy(alpha = alpha), Offset(cx - slotLen, cy), Offset(cx + slotLen, cy), r * 0.15f)
+        drawLine(Color(0xFF546E7A).copy(alpha = alpha), Offset(cx, cy - slotLen), Offset(cx, cy + slotLen), r * 0.15f)
     }
 }

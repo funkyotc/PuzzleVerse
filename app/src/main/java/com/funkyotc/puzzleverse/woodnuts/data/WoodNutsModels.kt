@@ -35,5 +35,6 @@ data class WoodNutsState(
     val planks: List<Plank>,
     val moves: Int = 0,
     val isWon: Boolean = false,
-    val lastRemovedPlankId: String? = null
+    val lastRemovedPlankId: String? = null,
+    val lastRemovedBoltId: String? = null
 )

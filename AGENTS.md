@@ -6,9 +6,15 @@ Android app with 5+ puzzle games (Sudoku, Nonogram, Kakuro, Word Search, Bonza).
 ## Commands
 ```bash
 # Build (use gradlew.bat on Windows, ./gradlew on Linux/Mac)
+## IMPORTANT: Do NOT append `2>&1` — PowerShell wraps stderr in ErrorRecord objects,
+## making build errors invisible and causing hangs on Gradle failures.
 gradlew.bat assembleDebug
 gradlew.bat assembleStaging
 gradlew.bat assembleFinalRelease
+
+# If build hangs, clean stale Gradle locks first:
+#   Get-ChildItem -Recurse -Filter "*.lock" .\.gradle\ | Remove-Item -Force
+# Or: gradlew.bat --stop
 
 # Tests
 gradlew.bat testDebugUnitTest

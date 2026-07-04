@@ -117,7 +117,8 @@ class WoodNutsViewModel(
             planks = updatedPlanks,
             moves = currentState.moves + 1,
             isWon = isWon,
-            lastRemovedPlankId = lastRemoved
+            lastRemovedPlankId = lastRemoved,
+            lastRemovedBoltId = boltId
         )
     }
 }
