@@ -55,7 +55,8 @@ val games = listOf(
     Game("cubeshooter", "Cube Shooter"),
     Game("pullpin", "Pull the Pin"),
     Game("watersort", "Water Sort"),
-    Game("woodnuts", "Wood Nuts & Bolts")
+    Game("woodnuts", "Wood Nuts & Bolts"),
+    Game("hexasort", "Hexa Sort")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

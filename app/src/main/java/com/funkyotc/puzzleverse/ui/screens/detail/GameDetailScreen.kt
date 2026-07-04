@@ -238,6 +238,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("woodnuts/puzzles")
                     }
                 }
+                "hexasort" -> {
+                    MenuCard(text = "Random Puzzle") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/hexasort/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("hexasort/puzzles")
+                    }
+                }
                 else -> {
                     MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
