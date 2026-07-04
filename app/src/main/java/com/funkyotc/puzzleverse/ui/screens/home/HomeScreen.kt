@@ -97,7 +97,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle", "tfe") }
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
-                        val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                        val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                         val isDailyCompleted = streak.lastCompletedEpochDay == today
 
                         Box(modifier = Modifier.width(160.dp).height(90.dp)) {
@@ -120,7 +120,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
 
             items(games) { game ->
                 val streak = streakRepository.getStreak(game.id)
-                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
 
                 Box(modifier = Modifier.height(90.dp)) {

@@ -62,8 +62,7 @@ class FlowFreeViewModel(
             }
 
             val puzzle = if (mode == "daily") {
-                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
-                val seed = today.toEpochDay()
+                val seed = com.funkyotc.puzzleverse.core.todayEpochDay()
                 FlowFreePuzzleLibrary.getDailyPuzzle(seed)
             } else {
                 FlowFreePuzzleLibrary.getRandomPuzzle(_difficulty.value)
@@ -155,7 +154,7 @@ class FlowFreeViewModel(
         if (st.paths.isEmpty()) return
         // Just remove the most recently added/modified path for a simple undo
         val newPaths = st.paths.toMutableList()
-        newPaths.removeLast()
+        newPaths.removeAt(newPaths.lastIndex)
         _state.update { it.copy(paths = newPaths, isWon = false) }
     }
 

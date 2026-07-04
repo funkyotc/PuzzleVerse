@@ -111,7 +111,7 @@ fun ConstellationsScreen(
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
             } else if (mode == "daily") {
-                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                 val streak = streakRepository.getStreak("constellations")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(
@@ -276,7 +276,7 @@ fun ConstellationsScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val timeFormatted = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+            val timeFormatted = String.format(java.util.Locale.ROOT, "%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp, start = 8.dp, end = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween

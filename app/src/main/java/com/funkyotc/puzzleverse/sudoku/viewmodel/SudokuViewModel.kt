@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import com.funkyotc.puzzleverse.core.todayEpochDay
 
 class SudokuViewModel(
     context: Context,
@@ -27,7 +27,7 @@ class SudokuViewModel(
     private val generator = SudokuGenerator()
     private val repository = SudokuRepository(context)
     private val completionRepo = PuzzleCompletionRepository(context, "Sudoku")
-    private val dailyChallengeSeed = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+    private val dailyChallengeSeed = todayEpochDay()
     private val boardKey = if (mode == "daily") "daily_sudoku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_sudoku_board"
 
     private val _board: MutableStateFlow<SudokuBoard>
@@ -162,7 +162,7 @@ class SudokuViewModel(
 
     fun undo() {
         if (boardHistory.size > 1) {
-            boardHistory.removeLast()
+            boardHistory.removeAt(boardHistory.lastIndex)
             val previousBoard = boardHistory.last()
             _board.value = previousBoard
             repository.saveBoard(previousBoard, boardKey)
@@ -267,7 +267,7 @@ class SudokuViewModel(
             }
 
             if (mode == "daily") {
-                val today = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                val today = todayEpochDay()
                 val streak = streakRepository.getStreak("sudoku")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

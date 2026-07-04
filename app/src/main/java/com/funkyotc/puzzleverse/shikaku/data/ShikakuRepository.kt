@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.shikaku.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.google.gson.Gson
 
 class ShikakuRepository(context: Context) {
@@ -11,7 +12,7 @@ class ShikakuRepository(context: Context) {
     fun saveBoard(board: ShikakuBoard, key: String = board.puzzleId) {
         try {
             val json = gson.toJson(board)
-            sharedPreferences.edit().putString("savedBoard_$key", json).apply()
+            sharedPreferences.edit { putString("savedBoard_$key", json) }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -27,12 +28,12 @@ class ShikakuRepository(context: Context) {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            sharedPreferences.edit().remove("savedBoard_$puzzleId").apply()
+            sharedPreferences.edit { remove("savedBoard_$puzzleId") }
             null
         }
     }
 
     fun clearBoard(puzzleId: String) {
-        sharedPreferences.edit().remove("savedBoard_$puzzleId").apply()
+        sharedPreferences.edit { remove("savedBoard_$puzzleId") }
     }
 }

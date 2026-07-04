@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.settings.data
 
 import android.content.Context
+import androidx.core.content.edit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -22,19 +23,19 @@ class SettingsRepository(context: Context) {
 
     fun setActiveTheme(theme: String) {
         if (_unlockedThemes.value.contains(theme)) {
-            sharedPreferences.edit().putString("active_theme", theme).apply()
+            sharedPreferences.edit { putString("active_theme", theme) }
             _activeTheme.value = theme
         }
     }
 
     fun setSoundEffectsEnabled(enabled: Boolean) {
-        sharedPreferences.edit().putBoolean("sound_effects_enabled", enabled).apply()
+        sharedPreferences.edit { putBoolean("sound_effects_enabled", enabled) }
         _soundEffectsEnabled.value = enabled
     }
 
     fun addWin() {
         val newWins = _totalWins.value + 1
-        sharedPreferences.edit().putInt("total_wins", newWins).apply()
+        sharedPreferences.edit { putInt("total_wins", newWins) }
         _totalWins.value = newWins
 
         // Unlock logic
@@ -46,7 +47,7 @@ class SettingsRepository(context: Context) {
         if (newWins >= 50) newUnlocks.add("cyberpunk")
 
         if (newUnlocks.size > _unlockedThemes.value.size) {
-            sharedPreferences.edit().putStringSet("unlocked_themes", newUnlocks).apply()
+            sharedPreferences.edit { putStringSet("unlocked_themes", newUnlocks) }
             _unlockedThemes.value = newUnlocks
         }
     }

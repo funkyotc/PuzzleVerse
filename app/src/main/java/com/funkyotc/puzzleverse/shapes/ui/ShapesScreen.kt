@@ -113,7 +113,7 @@ fun ShapesScreen(
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
             } else if (mode == "daily") {
-                val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                 val streak = streakRepository.getStreak("shapes")
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

@@ -72,16 +72,16 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation("androidx.compose.ui:ui-text-google-fonts")
+    implementation(libs.ui.text.google.fonts)
 
     // Accompanist
-    implementation("com.google.accompanist:accompanist-navigation-animation:0.32.0")
+    implementation(libs.accompanist.navigation.animation)
 
     // Gson
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation(libs.gson)
 
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)

@@ -8,8 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.time.LocalDate
-import java.time.ZoneOffset
+import com.funkyotc.puzzleverse.core.todayEpochDay
 
 class CubeShooterViewModel(
     private val streakRepository: StreakRepository? = null,
@@ -30,7 +29,7 @@ class CubeShooterViewModel(
                 CubeShooterPregenerated.ALL_LEVELS.find { it.id == puzzleId }
             }
             mode == "daily" -> {
-                val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
+                val today = todayEpochDay()
                 val index = (today % CubeShooterPregenerated.ALL_LEVELS.size).toInt()
                 CubeShooterPregenerated.ALL_LEVELS[index]
             }
@@ -358,7 +357,7 @@ class CubeShooterViewModel(
         val isGameOver = (currentState.storageTray.size + allReturns.size) > 5
 
         if (isWon && !currentState.isWon && mode == "daily") {
-            val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
+            val today = todayEpochDay()
             streakRepository?.let { repo ->
                 val streak = repo.getStreak("cubeshooter")
                 if (streak.lastCompletedEpochDay != today) {

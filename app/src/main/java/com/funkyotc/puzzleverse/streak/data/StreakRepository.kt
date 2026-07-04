@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.streak.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.google.gson.Gson
 
 class StreakRepository(context: Context) {
@@ -19,6 +20,6 @@ class StreakRepository(context: Context) {
 
     fun saveStreak(streak: Streak) {
         val streakJson = gson.toJson(streak)
-        sharedPreferences.edit().putString(streak.gameId, streakJson).apply()
+        sharedPreferences.edit { putString(streak.gameId, streakJson) }
     }
 }

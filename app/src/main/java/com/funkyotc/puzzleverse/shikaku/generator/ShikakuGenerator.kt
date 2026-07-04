@@ -28,7 +28,8 @@ class ShikakuGenerator(private val seed: Long) {
         // Lower the maximum split count to get larger boxes and more variety!
         val maxRectangles = (gridSize * gridSize) / 4.5f
 
-        val targetRectangles = random.nextInt(minRectangles, maxRectangles.toInt() + 1)
+        val bound = maxRectangles.toInt() + 1 - minRectangles
+        val targetRectangles = if (bound > 0) random.nextInt(bound) + minRectangles else minRectangles
 
         val rectangles = generateRectangles(gridSize, gridSize, maxArea, targetRectangles)
         val cells = createCells(gridSize, gridSize, rectangles)

@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.sudoku.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.google.gson.Gson
 import java.lang.Exception
 
@@ -11,7 +12,7 @@ class SudokuRepository(context: Context) {
 
     fun saveBoard(board: SudokuBoard, key: String) {
         val boardJson = gson.toJson(board)
-        sharedPreferences.edit().putString(key, boardJson).apply()
+        sharedPreferences.edit { putString(key, boardJson) }
     }
 
     fun loadBoard(key: String): SudokuBoard? {
@@ -27,7 +28,7 @@ class SudokuRepository(context: Context) {
         } catch (e: Exception) {
             // If we catch an exception, it means the saved data is corrupt.
             // We delete the bad data and return null to force a new board to be created.
-            sharedPreferences.edit().remove(key).apply()
+            sharedPreferences.edit { remove(key) }
             null
         }
     }

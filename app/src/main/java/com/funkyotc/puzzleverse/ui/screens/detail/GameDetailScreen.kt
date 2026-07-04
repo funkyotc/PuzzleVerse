@@ -214,7 +214,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             }
 
             val streak = streakRepository.getStreak(gameId)
-            val today = java.time.LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+            val today = com.funkyotc.puzzleverse.core.todayEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
             if (gameId !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle")) {

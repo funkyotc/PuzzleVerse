@@ -11,7 +11,7 @@ import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.time.LocalDate
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import kotlin.random.Random
 
 class ShapesViewModel(
@@ -88,7 +88,7 @@ class ShapesViewModel(
         }
 
         val seed = if (mode == "daily") {
-            LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+            todayEpochDay()
         } else {
             Random.nextLong()
         }

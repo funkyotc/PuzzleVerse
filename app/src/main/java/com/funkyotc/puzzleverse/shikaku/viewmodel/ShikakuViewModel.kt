@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.time.LocalDate
+import com.funkyotc.puzzleverse.core.todayEpochDay
 
 class ShikakuViewModel(
     context: Context,
@@ -29,7 +29,7 @@ class ShikakuViewModel(
     private val generator = ShikakuGenerator(System.currentTimeMillis())
     private val repository = ShikakuRepository(context)
     private val completionRepo = PuzzleCompletionRepository(context, "Shikaku")
-    private val dailyChallengeSeed = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+    private val dailyChallengeSeed = todayEpochDay()
     private val boardKey = if (mode == "daily") "daily_shikaku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_shikaku_board"
 
     private val _board = MutableStateFlow(generateInitialBoard())
@@ -271,7 +271,7 @@ class ShikakuViewModel(
 
     fun undo() {
         if (boardHistory.size > 1) {
-            boardHistory.removeLast()
+            boardHistory.removeAt(boardHistory.lastIndex)
             val previousBoard = boardHistory.last()
             _board.value = previousBoard
             repository.saveBoard(previousBoard, boardKey)
@@ -355,7 +355,7 @@ class ShikakuViewModel(
         }
 
         if (mode == "daily") {
-            val today = LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+            val today = todayEpochDay()
             streakRepository?.getStreak("shikaku")?.let { streak ->
                 if (streak.lastCompletedEpochDay != today) {
                     val newStreak = streak.copy(

@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.wordle.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class WordleStatsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("wordle_stats", Context.MODE_PRIVATE)
@@ -24,17 +25,16 @@ class WordleStatsRepository(context: Context) {
         val currentStreak = if (won) getCurrentStreak() + 1 else 0
         val maxStreak = maxOf(getMaxStreak(), currentStreak)
 
-        val editor = prefs.edit()
-            .putInt("games_played", gamesPlayed)
-            .putInt("games_won", gamesWon)
-            .putInt("current_streak", currentStreak)
-            .putInt("max_streak", maxStreak)
+        prefs.edit {
+            putInt("games_played", gamesPlayed)
+            putInt("games_won", gamesWon)
+            putInt("current_streak", currentStreak)
+            putInt("max_streak", maxStreak)
 
-        if (won && guesses in 1..6) {
-            val count = prefs.getInt("guess_dist_$guesses", 0)
-            editor.putInt("guess_dist_$guesses", count + 1)
+            if (won && guesses in 1..6) {
+                val count = prefs.getInt("guess_dist_$guesses", 0)
+                putInt("guess_dist_$guesses", count + 1)
+            }
         }
-        
-        editor.apply()
     }
 }

@@ -14,7 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import kotlin.random.Random
 
 class ConstellationsViewModel(
@@ -57,7 +57,7 @@ class ConstellationsViewModel(
             }
         
             val seed = if (mode == "daily") {
-                LocalDate.now(java.time.ZoneOffset.UTC).toEpochDay()
+                todayEpochDay()
             } else {
                 Random.nextLong()
             }
