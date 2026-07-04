@@ -53,6 +53,12 @@ import com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated
 import com.funkyotc.puzzleverse.shikaku.data.ShikakuPregenerated
 import com.funkyotc.puzzleverse.cubeshooter.ui.CubeShooterScreen
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
+import com.funkyotc.puzzleverse.woodnuts.ui.WoodNutsScreen
+import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
+import com.funkyotc.puzzleverse.watersort.ui.WaterSortScreen
+import com.funkyotc.puzzleverse.watersort.data.WaterSortPregenerated
+import com.funkyotc.puzzleverse.pullpin.ui.PullPinScreen
+import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -152,6 +158,9 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "shikaku" -> ShikakuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -176,6 +185,9 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "shikaku" -> ShikakuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -225,6 +237,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             CubeShooterScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("pullpin/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Pull the Pin Puzzles",
+                gameName = "PullPin",
+                navController = navController,
+                puzzlesByDifficulty = PullPinPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/pullpin/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/pullpin/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            PullPinScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
@@ -386,6 +421,52 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             ShikakuScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("watersort/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Water Sort Puzzles",
+                gameName = "Water Sort",
+                navController = navController,
+                puzzlesByDifficulty = WaterSortPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/watersort/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/watersort/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            WaterSortScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("woodnuts/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Wood Nuts Puzzles",
+                gameName = "Wood Nuts",
+                navController = navController,
+                puzzlesByDifficulty = WoodNutsPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/woodnuts/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/woodnuts/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            WoodNutsScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,

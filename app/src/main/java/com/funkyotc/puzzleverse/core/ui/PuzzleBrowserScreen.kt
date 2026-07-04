@@ -218,6 +218,8 @@ fun GameTypePreview(gameName: String, isCompleted: Boolean) {
         "constellations" -> Text("✨", fontSize = 20.sp, color = tint)
         "shapes" -> Text("▲", fontSize = 20.sp, color = tint)
         "minesweeper" -> Text("💣", fontSize = 20.sp, color = tint)
+        "pullpin" -> Text("📌", fontSize = 20.sp, color = tint)
+        "wood nuts" -> Text("🔩", fontSize = 20.sp, color = tint)
         else -> Text("●", fontSize = 20.sp, color = tint)
     }
 }
