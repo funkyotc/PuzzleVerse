@@ -2,9 +2,7 @@ import os
 import json
 import math
 
-# Define the standard 7 Tangram pieces around their centroids
 PIECES = [
-    # 1. Large Pink Triangle (LT1)
     {
         "id": 1,
         "initialVertices": [
@@ -13,7 +11,6 @@ PIECES = [
             {"x": 0.6667, "y": 0.0}
         ]
     },
-    # 2. Large Blue Triangle (LT2)
     {
         "id": 2,
         "initialVertices": [
@@ -22,7 +19,6 @@ PIECES = [
             {"x": 0.0, "y": -0.6667}
         ]
     },
-    # 3. Medium Triangle (MT)
     {
         "id": 3,
         "initialVertices": [
@@ -31,7 +27,6 @@ PIECES = [
             {"x": 0.3333, "y": 0.6667}
         ]
     },
-    # 4. Small Turquoise Triangle (ST1)
     {
         "id": 4,
         "initialVertices": [
@@ -40,7 +35,6 @@ PIECES = [
             {"x": 0.0, "y": 0.3333}
         ]
     },
-    # 5. Small Red Triangle (ST2)
     {
         "id": 5,
         "initialVertices": [
@@ -49,7 +43,6 @@ PIECES = [
             {"x": -0.3333, "y": 0.0}
         ]
     },
-    # 6. Green Square (SQ)
     {
         "id": 6,
         "initialVertices": [
@@ -59,7 +52,6 @@ PIECES = [
             {"x": 0.0, "y": 0.5}
         ]
     },
-    # 7. Orange Parallelogram (PA)
     {
         "id": 7,
         "initialVertices": [
@@ -71,15 +63,61 @@ PIECES = [
     }
 ]
 
+def transform_vertices(vertices, pos, rot):
+    """Rotate then translate vertices."""
+    rad = math.radians(rot)
+    cos_a = math.cos(rad)
+    sin_a = math.sin(rad)
+    result = []
+    for v in vertices:
+        rx = v["x"] * cos_a - v["y"] * sin_a
+        ry = v["x"] * sin_a + v["y"] * cos_a
+        result.append({"x": round(rx + pos["x"], 4), "y": round(ry + pos["y"], 4)})
+    return result
+
+def compute_silhouette(piece_solutions):
+    """Compute the outer silhouette of all pieces combined.
+    Uses convex hull since tangram puzzles tile to convex shapes."""
+    all_verts = []
+    for sol in piece_solutions:
+        piece_def = next(pdef for pdef in PIECES if pdef["id"] == sol["id"])
+        world_verts = transform_vertices(piece_def["initialVertices"], sol["pos"], sol["rot"])
+        all_verts.extend(world_verts)
+    return convex_hull(all_verts)
+
+def cross(o, a, b):
+    return (a["x"] - o["x"]) * (b["y"] - o["y"]) - (a["y"] - o["y"]) * (b["x"] - o["x"])
+
+def convex_hull(points):
+    unique = []
+    seen = set()
+    for p in points:
+        key = (p["x"], p["y"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    if len(unique) <= 3:
+        return unique
+    pts = sorted(unique, key=lambda p: (p["x"], p["y"]))
+
+    lower = []
+    for p in pts:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
+            lower.pop()
+        lower.append(p)
+
+    upper = []
+    for p in reversed(pts):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
+            upper.pop()
+        upper.append(p)
+
+    return lower[:-1] + upper[:-1]
+
 BASE_PUZZLES = {
     "Easy": {
-        "name": "Square",
-        "target": [
-            {"x": -1.0, "y": -1.0},
-            {"x": 1.0, "y": -1.0},
-            {"x": 1.0, "y": 1.0},
-            {"x": -1.0, "y": 1.0}
-        ],
+        "name": "Tangram Square",
+        "type": "Square",
         "pieces_solution": [
             {"id": 1, "pos": {"x": -0.6667, "y": 0.0}, "rot": 0},
             {"id": 2, "pos": {"x": 0.0, "y": 0.6667}, "rot": 0},
@@ -92,14 +130,7 @@ BASE_PUZZLES = {
     },
     "Medium": {
         "name": "Chevron",
-        "target": [
-            {"x": -1.0, "y": -1.0},
-            {"x": 1.0, "y": -1.0},
-            {"x": 1.0, "y": 1.0},
-            {"x": 2.0, "y": 2.0},
-            {"x": 0.0, "y": 2.0},
-            {"x": 0.0, "y": 0.0}
-        ],
+        "type": "Chevron",
         "pieces_solution": [
             {"id": 1, "pos": {"x": 0.3333, "y": 1.0}, "rot": 0},
             {"id": 2, "pos": {"x": 1.0, "y": 1.6667}, "rot": 0},
@@ -112,12 +143,7 @@ BASE_PUZZLES = {
     },
     "Hard": {
         "name": "Parallelogram",
-        "target": [
-            {"x": -1.0, "y": -1.0},
-            {"x": 1.0, "y": -1.0},
-            {"x": 3.0, "y": 1.0},
-            {"x": 1.0, "y": 1.0}
-        ],
+        "type": "Parallelogram",
         "pieces_solution": [
             {"id": 1, "pos": {"x": 1.3333, "y": 0.0}, "rot": 0},
             {"id": 2, "pos": {"x": 2.0, "y": 0.6667}, "rot": 0},
@@ -130,6 +156,11 @@ BASE_PUZZLES = {
     }
 }
 
+# Compute targets for base puzzles
+for diff in BASE_PUZZLES:
+    base = BASE_PUZZLES[diff]
+    base["target"] = compute_silhouette(base["pieces_solution"])
+
 TRANSFORMS = [
     {"tx": 0.0, "ty": 0.0, "rot": 0},
     {"tx": 0.5, "ty": 0.0, "rot": 0},
@@ -140,7 +171,22 @@ TRANSFORMS = [
     {"tx": 0.0, "ty": 0.0, "rot": 90},
     {"tx": 0.0, "ty": 0.0, "rot": 180},
     {"tx": 0.0, "ty": 0.0, "rot": 270},
-    {"tx": 0.2, "ty": -0.2, "rot": 45}
+    {"tx": 0.3, "ty": -0.2, "rot": 45},
+    {"tx": -0.5, "ty": 0.5, "rot": 0},
+    {"tx": 0.6, "ty": -0.5, "rot": 0},
+    {"tx": -0.3, "ty": -0.4, "rot": 0},
+    {"tx": 0.4, "ty": 0.4, "rot": 0},
+    {"tx": 0.6, "ty": 0.0, "rot": 90},
+    {"tx": 0.0, "ty": -0.6, "rot": 90},
+    {"tx": -0.6, "ty": 0.0, "rot": 180},
+    {"tx": 0.0, "ty": 0.6, "rot": 180},
+    {"tx": 0.5, "ty": 0.6, "rot": 270},
+    {"tx": -0.6, "ty": -0.6, "rot": 270},
+    {"tx": 0.3, "ty": 0.0, "rot": 15},
+    {"tx": -0.3, "ty": 0.2, "rot": 60},
+    {"tx": 0.0, "ty": -0.3, "rot": 120},
+    {"tx": 0.7, "ty": 0.3, "rot": 90},
+    {"tx": -0.7, "ty": -0.3, "rot": 90},
 ]
 
 def rotate_point(pt, angle_degrees):
@@ -171,18 +217,13 @@ def main():
         for idx, trans in enumerate(TRANSFORMS):
             tx, ty, rot = trans["tx"], trans["ty"], trans["rot"]
             
-            # Transform target
             new_target_vertices = [translate_point(rotate_point(v, rot), tx, ty) for v in base["target"]]
             
-            # Transform pieces
             pieces_data = []
             for solution_info in base["pieces_solution"]:
                 piece_def = next(pdef for pdef in PIECES if pdef["id"] == solution_info["id"])
-                
-                # Transform piece solution coordinates
                 new_pos = translate_point(rotate_point(solution_info["pos"], rot), tx, ty)
                 new_rot = (solution_info["rot"] + rot) % 360
-                
                 pieces_data.append({
                     "id": piece_def["id"],
                     "initialVertices": piece_def["initialVertices"],
@@ -191,7 +232,7 @@ def main():
                 })
                 
             data = {
-                "name": f"{base['name']} #{idx+1}",
+                "name": f"{base['type']} #{idx+1}",
                 "target": {"vertices": new_target_vertices},
                 "pieces": pieces_data
             }

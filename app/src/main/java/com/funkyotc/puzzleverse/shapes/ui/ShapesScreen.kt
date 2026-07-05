@@ -70,17 +70,18 @@ fun ShapesScreen(
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
     streakRepository: StreakRepository,
-    viewModel: ShapesViewModel = viewModel(factory = ShapesViewModelFactory(mode, puzzleId))
+    viewModel: ShapesViewModel? = null
 ) {
-    val puzzle by viewModel.puzzle.collectAsState()
+    val context = LocalContext.current
+    val vm = viewModel ?: viewModel(factory = ShapesViewModelFactory(context, mode, puzzleId))
+    val puzzle by vm.puzzle.collectAsState()
     val soundManager = LocalSoundManager.current
-    val isGameWon by viewModel.isGameWon.collectAsState()
+    val isGameWon by vm.isGameWon.collectAsState()
     var selectedPieceId by remember { mutableStateOf<Int?>(null) }
     var showNewGameDialog by remember { mutableStateOf(false) }
     var showHowToDialog by remember { mutableStateOf(false) }
     var showHintDialog by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
     val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "shapes") }
 
     if (showHintDialog) {
@@ -92,7 +93,7 @@ fun ShapesScreen(
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     showHintDialog = false
-                    viewModel.hint() }) {
+                    vm.hint() }) {
                     Text("Yes")
                 }
             },
@@ -163,7 +164,7 @@ fun ShapesScreen(
 
     if (isGameWon) {
         AlertDialog(
-            onDismissRequest = { viewModel.loadNewPuzzle() },
+            onDismissRequest = { vm.loadNewPuzzle() },
             title = { Text(text = "Congratulations!") },
             text = { Text(text = "You solved the puzzle! All pieces fit perfectly.") },
             confirmButton = {
@@ -214,7 +215,7 @@ fun ShapesScreen(
 
                 Button(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.loadNewPuzzle()
+                    vm.loadNewPuzzle()
                 }) {
                     Text("New Puzzle")
 
@@ -232,7 +233,7 @@ fun ShapesScreen(
             confirmButton = {
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.loadNewPuzzle()
+                    vm.loadNewPuzzle()
                     showNewGameDialog = false
                     selectedPieceId = null // Deselect on new game
                 }) {
@@ -299,7 +300,7 @@ fun ShapesScreen(
                   Button(
                       onClick = {
                           soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                          selectedPieceId?.let { viewModel.rotatePiece(it, -45f) }
+                          selectedPieceId?.let { vm.rotatePiece(it, -45f) }
                       },
                       enabled = selectedPieceId != null
                   ) {
@@ -309,7 +310,7 @@ fun ShapesScreen(
                   Button(
                       onClick = {
                           soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                          selectedPieceId?.let { viewModel.rotatePiece(it, 45f) }
+                          selectedPieceId?.let { vm.rotatePiece(it, 45f) }
                       },
                       enabled = selectedPieceId != null
                   ) {
@@ -381,7 +382,7 @@ fun ShapesScreen(
                                      if (clickedPiece != null) {
                                          soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                          selectedPieceId = clickedPiece.id
-                                         viewModel.rotatePiece(clickedPiece.id, 45f)
+                                         vm.rotatePiece(clickedPiece.id, 45f)
                                      }
                                 }
                             }
@@ -408,19 +409,19 @@ fun ShapesScreen(
                                 change.consume()
                                 selectedPieceId?.let { id ->
                                     val virtualDragAmount = Offset(dragAmount.x / scale, dragAmount.y / scale)
-                                    viewModel.movePieceDelta(id, virtualDragAmount)
+                                    vm.movePieceDelta(id, virtualDragAmount)
                                 }
                             },
                             onDragEnd = {
                                 selectedPieceId?.let { id ->
                                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    viewModel.snapPiece(id)
+                                    vm.snapPiece(id)
                                 }
                             },
                             onDragCancel = {
                                 selectedPieceId?.let { id ->
                                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    viewModel.snapPiece(id)
+                                    vm.snapPiece(id)
                                 }
                             }
                         )
@@ -502,7 +503,7 @@ fun ShapesScreen(
                                     piece.initialVertices,
                                     piece.position,
                                     animRotation,
-                                    isFlipped = false
+                                    isFlipped = piece.isFlipped
                                 )
 
                                 val piecePath = Path().apply {
