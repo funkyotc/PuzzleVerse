@@ -45,13 +45,10 @@ class SudokuViewModel(
     private var boardHistory = mutableListOf<SudokuBoard>()
 
     init {
-        _board = MutableStateFlow(SudokuBoard(emptyList()))
+        val initialBoard = generateInitialBoard()
+        _board = MutableStateFlow(initialBoard)
         board = _board
-        viewModelScope.launch(Dispatchers.Default) {
-            val initialBoard = generateInitialBoard()
-            _board.value = initialBoard
-            boardHistory.add(initialBoard)
-        }
+        boardHistory.add(initialBoard)
     }
 
     private fun generateInitialBoard(): SudokuBoard {

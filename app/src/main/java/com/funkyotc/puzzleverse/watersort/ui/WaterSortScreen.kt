@@ -415,7 +415,7 @@ private fun BottleView(
                 )
             }
 
-            for (i in colors.indices) {
+            for (i in colors.indices.reversed()) {
                 val colorIndex = colors[i]
                 val baseColor = if (colorIndex in WATER_COLORS.indices) {
                     WATER_COLORS[colorIndex]
@@ -423,7 +423,7 @@ private fun BottleView(
                     Color.Gray
                 }
 
-                val segTop = bodyTop + (emptySegments + i) * segmentHeight
+                val segTop = bodyTop + (height - 1 - i) * segmentHeight
                 val isTopSegment = i == colors.lastIndex
                 val isBottomSegment = i == 0 && emptySegments == 0
 
@@ -472,7 +472,7 @@ private fun BottleView(
                     )
                 }
 
-                if (!isBottomSegment && i < colors.size - 1) {
+                if (i > 0) {
                     val dividerY = segTop + segmentHeight - 1f
                     drawLine(
                         color = baseColor.copy(alpha = 0.3f),
