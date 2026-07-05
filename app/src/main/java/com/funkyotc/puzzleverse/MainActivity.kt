@@ -163,7 +163,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -191,7 +191,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -497,8 +497,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
-                streakRepository = streakRepository,
-                settingsRepository = settingsRepository
+                streakRepository = streakRepository!!,
+                settingsRepository = settingsRepository!!
             )
         }
     }

@@ -1,10 +1,5 @@
 package com.funkyotc.puzzleverse.hexasort.data
 
-data class HexCell(
-    val color: Int,
-    val removed: Boolean = false
-)
-
 data class HexaSortLevel(
     val id: String,
     val difficulty: String,

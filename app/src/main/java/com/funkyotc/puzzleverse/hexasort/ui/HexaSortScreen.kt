@@ -1,12 +1,12 @@
 package com.funkyotc.puzzleverse.hexasort.ui
 
+import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -43,11 +42,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
-import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortEvent
 import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortViewModel
 import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
@@ -75,35 +75,47 @@ fun HexaSortScreen(
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
     streakRepository: StreakRepository,
+    context: Context = LocalContext.current,
     viewModel: HexaSortViewModel = viewModel(
-        factory = HexaSortViewModelFactory(mode, puzzleId)
+        factory = HexaSortViewModelFactory(context, mode, forceNewGame, streakRepository, puzzleId)
     )
 ) {
     val state by viewModel.state.collectAsState()
+    val elapsedSeconds by viewModel.elapsedSeconds.collectAsState()
     val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
+    var showVictoryDialog by remember { mutableStateOf(false) }
+    var showGameOverDialog by remember { mutableStateOf(false) }
+    var victoryScore by remember { mutableStateOf(0) }
+    var streakUpdated by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val completionRepo = remember { PuzzleCompletionRepository(context, "HexaSort") }
-
-    val gameState = state
-
-    LaunchedEffect(gameState?.isWon) {
-        if (gameState?.isWon == true) {
-            settingsRepository.addWin()
-            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
-            if (mode == "puzzle" && puzzleId != null) {
-                completionRepo.markCompleted(puzzleId)
-            } else if (mode == "daily") {
-                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
-                val streak = streakRepository.getStreak("hexasort")
-                if (streak.lastCompletedEpochDay != today) {
-                    val newStreak = streak.copy(
-                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                        lastCompletedEpochDay = today
-                    )
-                    streakRepository.saveStreak(newStreak)
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is HexaSortEvent.Won -> {
+                    victoryScore = event.score
+                    showVictoryDialog = true
+                    settingsRepository.addWin()
+                    soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
+                    if (mode == "puzzle" && puzzleId != null) {
+                        com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "HexaSort").markCompleted(puzzleId)
+                    } else if (mode == "daily" && !streakUpdated) {
+                        streakUpdated = true
+                        val today = com.funkyotc.puzzleverse.core.todayEpochDay()
+                        val streak = streakRepository.getStreak("hexasort")
+                        if (streak.lastCompletedEpochDay != today) {
+                            val newStreak = streak.copy(
+                                count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                                lastCompletedEpochDay = today
+                            )
+                            streakRepository.saveStreak(newStreak)
+                        }
+                    }
+                }
+                is HexaSortEvent.GameOver -> {
+                    showGameOverDialog = true
+                    soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
                 }
             }
         }
@@ -123,19 +135,21 @@ fun HexaSortScreen(
         )
     }
 
-    if (gameState?.isWon == true) {
+    if (showVictoryDialog) {
         AlertDialog(
             onDismissRequest = {},
             title = { Text("Victory!") },
-            text = { Text("All hexes cleared! Score: ${gameState.score}") },
+            text = { Text("All hexes cleared! Score: $victoryScore") },
             confirmButton = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showVictoryDialog = false
                         navController.navigate("home") { popUpTo(0) }
                     }) { Text("Main Menu") }
                     Button(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showVictoryDialog = false
                         viewModel.startNewGame()
                     }) { Text("Play Again") }
                 }
@@ -143,19 +157,21 @@ fun HexaSortScreen(
         )
     }
 
-    if (gameState?.isGameOver == true && !gameState.isWon) {
+    if (showGameOverDialog) {
         AlertDialog(
             onDismissRequest = {},
             title = { Text("Game Over") },
-            text = { Text("No more moves available! Score: ${gameState.score}") },
+            text = { Text("No more moves available!") },
             confirmButton = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showGameOverDialog = false
                         navController.navigate("home") { popUpTo(0) }
                     }) { Text("Main Menu") }
                     Button(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        showGameOverDialog = false
                         viewModel.startNewGame()
                     }) { Text("Try Again") }
                 }
@@ -171,8 +187,8 @@ fun HexaSortScreen(
             confirmButton = {
                 TextButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
                     showNewGameDialog = false
+                    viewModel.startNewGame()
                 }) { Text("Confirm") }
             },
             dismissButton = {
@@ -222,39 +238,39 @@ fun HexaSortScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            gameState?.let { gs ->
+            state?.let { gs ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Text(text = "Score: ${gs.score}")
-                    Text(text = "Moves: ${gs.moves}")
+                    Text(text = "Score: ${gs.score}", fontSize = 16.sp)
+                    Text(text = "Moves: ${gs.moves}", fontSize = 16.sp)
+                    val timeFormatted = String.format(java.util.Locale.ROOT, "%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+                    Text(text = timeFormatted, fontSize = 16.sp)
                 }
 
                 val level = gs.level
-                val hexWidth = 50f
-                val hexHeight = (sqrt(3.0) * hexWidth / 2).toFloat()
 
-                val gridWidth = level.cols * hexWidth * 0.75f + hexWidth * 0.5f
-                val gridHeight = level.rows * hexHeight + hexHeight / 2
-
-                var canvasSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
+                    var canvasSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
                             .onGloballyPositioned { canvasSize = it.size }
                             .pointerInput(level.rows, level.cols, canvasSize) {
+                                if (canvasSize.width == 0 || canvasSize.height == 0) return@pointerInput
+                                val cW = canvasSize.width.toFloat()
+                                val cH = canvasSize.height.toFloat()
+                                val (hexW, _) = computeHexSize(level.rows, level.cols, cW, cH)
                                 detectTapGestures { offset ->
                                     val cellCoords = hitTestHex(
-                                        offset, level.rows, level.cols,
-                                        hexWidth, hexHeight,
-                                        canvasSize.width.toFloat(), canvasSize.height.toFloat()
+                                        offset, level.rows, level.cols, hexW, cW, cH
                                     )
                                     if (cellCoords != null) {
                                         val (r, c) = cellCoords
@@ -264,16 +280,21 @@ fun HexaSortScreen(
                                 }
                             }
                     ) {
-                        drawHexGrid(
-                            gs.grid, level.rows, level.cols,
-                            hexWidth, hexHeight,
-                            gs.flashingCells
-                        )
+                        val (hexW, hexH) = computeHexSize(level.rows, level.cols, size.width, size.height)
+                        drawHexGrid(gs.grid, level.rows, level.cols, hexW, hexH, gs.flashingCells)
                     }
                 }
             }
         }
     }
+}
+
+private fun computeHexSize(rows: Int, cols: Int, canvasW: Float, canvasH: Float): Pair<Float, Float> {
+    if (rows == 0 || cols == 0 || canvasW <= 0 || canvasH <= 0) return 40f to 34.64f
+    val hexWByWidth = (canvasW - 10f) / (cols * 0.75f + 0.5f)
+    val hexHByHeight = (canvasH - 10f) / (rows * sqrt(3.0) / 2 + sqrt(3.0) / 4).toFloat()
+    val hexW = minOf(hexWByWidth, hexHByHeight * 2f / sqrt(3.0).toFloat(), 80f)
+    return hexW to (sqrt(3.0) * hexW / 2).toFloat()
 }
 
 private fun DrawScope.drawHexGrid(
@@ -291,18 +312,19 @@ private fun DrawScope.drawHexGrid(
         for (c in 0 until cols) {
             val cellValue = grid[r][c] ?: continue
             val isFlashing = (r to c) in flashingCells
-            val x = offsetX + c * hexWidth * 0.75f + hexWidth / 2
-            val y = offsetY + r * hexHeight + (if (r % 2 == 1) hexHeight / 2 else 0f) + hexHeight / 2
+            val cx = offsetX + c * hexWidth * 0.75f + hexWidth / 2
+            val cy = offsetY + r * hexHeight + (if (r % 2 == 1) hexHeight / 2 else 0f) + hexHeight / 2
 
-            val colorIdx = if (cellValue in paletteColors.indices) cellValue else 0
-            var fillColor = paletteColors[colorIdx]
+            val colorIdx = cellValue.coerceIn(0, paletteColors.lastIndex)
+            val fillColor = paletteColors[colorIdx]
+            val strokeColor = fillColor.copy(alpha = 0.7f)
+
+            val path = createHexPath(cx, cy, hexWidth / 2)
             if (isFlashing) {
-                fillColor = fillColor.copy(alpha = 0.4f)
+                drawPath(path, fillColor.copy(alpha = 0.35f), style = Fill)
+            } else {
+                drawPath(path, fillColor, style = Fill)
             }
-            val strokeColor = fillColor.copy(alpha = 0.6f)
-
-            val path = createHexPath(x, y, hexWidth / 2)
-            drawPath(path, fillColor, style = Fill)
             drawPath(path, strokeColor, style = Stroke(width = 2f))
         }
     }
@@ -325,14 +347,14 @@ private fun hitTestHex(
     rows: Int,
     cols: Int,
     hexWidth: Float,
-    hexHeight: Float,
     canvasWidth: Float,
     canvasHeight: Float
 ): Pair<Int, Int>? {
+    val hexHeight = (sqrt(3.0) * hexWidth / 2).toFloat()
     val offsetX = (canvasWidth - cols * hexWidth * 0.75f - hexWidth * 0.5f) / 2
     val offsetY = (canvasHeight - rows * hexHeight - hexHeight / 2) / 2
-    val radius = hexWidth / 2
-    val radiusSq = radius * radius
+    val inRadius = hexWidth / 2 * cos(PI / 6).toFloat()
+    val inRadiusSq = inRadius * inRadius
 
     for (r in 0 until rows) {
         for (c in 0 until cols) {
@@ -340,7 +362,7 @@ private fun hitTestHex(
             val cy = offsetY + r * hexHeight + (if (r % 2 == 1) hexHeight / 2 else 0f) + hexHeight / 2
             val dx = tap.x - cx
             val dy = tap.y - cy
-            if (dx * dx + dy * dy <= radiusSq) {
+            if (dx * dx + dy * dy <= inRadiusSq) {
                 return r to c
             }
         }

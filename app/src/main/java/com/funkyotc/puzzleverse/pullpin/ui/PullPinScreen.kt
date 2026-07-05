@@ -1,5 +1,11 @@
 package com.funkyotc.puzzleverse.pullpin.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,7 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,15 +58,14 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
-import com.funkyotc.puzzleverse.pullpin.data.BallState
 import com.funkyotc.puzzleverse.pullpin.data.Cell
 import com.funkyotc.puzzleverse.pullpin.data.CellType
-import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
 import com.funkyotc.puzzleverse.pullpin.data.PullPinState
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModel
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import kotlinx.coroutines.launch
 
 private val BALL_COLORS = mapOf(
     1 to Color(0xFFE53935),
@@ -72,14 +79,8 @@ private val BALL_COLORS = mapOf(
 )
 
 private val COLOR_LABELS = mapOf(
-    1 to "Red",
-    2 to "Blue",
-    3 to "Green",
-    4 to "Yellow",
-    5 to "Purple",
-    6 to "Orange",
-    7 to "Cyan",
-    8 to "Pink"
+    1 to "Red", 2 to "Blue", 3 to "Green", 4 to "Yellow",
+    5 to "Purple", 6 to "Orange", 7 to "Cyan", 8 to "Pink"
 )
 
 private fun ballColor(index: Int): Color = BALL_COLORS[index] ?: Color.Gray
@@ -106,6 +107,7 @@ fun PullPinScreen(
 
     var showHowToPlay by remember { mutableStateOf(false) }
     var showWinDialog by remember { mutableStateOf(false) }
+    var prevInCup by remember { mutableStateOf(setOf<Int>()) }
 
     LaunchedEffect(streakRepository) {
         streakRepository?.let {
@@ -122,6 +124,17 @@ fun PullPinScreen(
         }
     }
 
+    LaunchedEffect(state?.moves) {
+        state?.let { s ->
+            val nowInCup = s.balls.filter { it.inCup }.map { it.color }.toSet()
+            val newInCup = nowInCup - prevInCup
+            if (newInCup.isNotEmpty()) {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+            }
+            prevInCup = nowInCup
+        }
+    }
+
     PullPinDialogHowToPlay(showHowToPlay) { showHowToPlay = false }
 
     state?.let { s ->
@@ -131,6 +144,7 @@ fun PullPinScreen(
                 onDismiss = { showWinDialog = false },
                 onNextPuzzle = {
                     showWinDialog = false
+                    prevInCup = emptySet()
                     viewModel.startNewGame()
                 },
                 onBackToBrowser = {
@@ -143,8 +157,19 @@ fun PullPinScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Pull the Pin") },
+                TopAppBar(
+                title = {
+                    Column {
+                        Text("Pull the Pin")
+                        state?.let { s ->
+                            Text(
+                                text = "${s.level.difficulty} • ${s.level.subtitle}",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -159,6 +184,7 @@ fun PullPinScreen(
                     }
                     IconButton(onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        prevInCup = emptySet()
                         viewModel.startNewGame()
                     }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Restart")
@@ -217,7 +243,7 @@ fun PullPinScreen(
 
 @Composable
 private fun PullPinColorLegend(
-    balls: List<BallState>,
+    balls: List<com.funkyotc.puzzleverse.pullpin.data.BallState>,
     modifier: Modifier = Modifier
 ) {
     val activeColors = balls.map { it.color }.distinct().sorted()
@@ -314,73 +340,134 @@ private fun PullPinCell(
         else -> 36.dp
     }
 
+    var prevType by remember { mutableStateOf(cell.type) }
+    val fadingPinAlpha = remember { Animatable(0f) }
+    var showFadingPin by remember { mutableStateOf(false) }
+
+    LaunchedEffect(cell.type) {
+        if (prevType == CellType.PIN && cell.type != CellType.PIN) {
+            showFadingPin = true
+            fadingPinAlpha.snapTo(1f)
+            fadingPinAlpha.animateTo(0f, tween(durationMillis = 400, easing = FastOutLinearInEasing))
+            showFadingPin = false
+        }
+        prevType = cell.type
+    }
+
     Box(
-        modifier = Modifier
-            .size(size)
-            .then(
-                when (cell.type) {
-                    CellType.WALL -> Modifier.background(
-                        MaterialTheme.colorScheme.outlineVariant,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-                    CellType.PIN -> Modifier
-                        .clip(CircleShape)
-                        .background(Color(0xFFD7CCC8))
-                        .border(2.dp, Color(0xFF5D4037), CircleShape)
-                        .clickable(onClick = onClick)
-                    else -> Modifier
-                }
-            ),
+        modifier = Modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        when (cell.type) {
-            CellType.BALL -> {
-                val color = ballColor(cell.color ?: 1)
+        if (showFadingPin) {
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .graphicsLayer(alpha = fadingPinAlpha.value)
+                    .shadow(4.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(Color(0xFFD7CCC8))
+                    .border(2.dp, Color(0xFF5D4037), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
                 Box(
-                    modifier = Modifier
-                        .size(size * 0.7f)
-                        .clip(CircleShape)
-                        .background(color)
-                        .border(1.dp, color.copy(alpha = 0.5f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "${cell.color ?: ""}",
-                        color = Color.White,
-                        fontSize = (size.value * 0.3f).sp,
-                        fontWeight = FontWeight.Bold,
-                        softWrap = false
-                    )
-                }
-            }
-            CellType.CUP -> {
-                val color = ballColor(cell.color ?: 1)
-                Box(
-                    modifier = Modifier
-                        .size(size * 0.8f)
-                        .border(2.dp, color, RoundedCornerShape(4.dp))
-                        .clip(RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "${cell.color ?: ""}",
-                        color = color,
-                        fontSize = (size.value * 0.3f).sp,
-                        fontWeight = FontWeight.Bold,
-                        softWrap = false
-                    )
-                }
-            }
-            CellType.PIN -> {
-                Box(
-                    modifier = Modifier
+                    Modifier
                         .size(size * 0.4f)
                         .clip(CircleShape)
                         .background(Color(0xFF8D6E63))
                 )
             }
-            CellType.EMPTY -> {}
-            CellType.WALL -> {}
+        }
+
+        if (cell.type == CellType.WALL) {
+            Box(
+                Modifier
+                    .size(size)
+                    .shadow(2.dp, RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(4.dp))
+            )
+        }
+
+        if (cell.type == CellType.PIN) {
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .shadow(4.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(Color(0xFFD7CCC8))
+                    .border(2.dp, Color(0xFF5D4037), CircleShape)
+                    .clickable(onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .size(size * 0.4f)
+                        .clip(CircleShape)
+                        .background(Color(0xFF8D6E63))
+                )
+            }
+        }
+
+        if (cell.type == CellType.BALL) {
+            val ballColor = ballColor(cell.color ?: 1)
+            val scale = remember { Animatable(0.3f) }
+
+            LaunchedEffect(Unit) {
+                launch {
+                    scale.animateTo(1.2f, tween(150, easing = FastOutSlowInEasing))
+                }
+                launch {
+                    scale.animateTo(1.0f, spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ))
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(size * 0.7f)
+                    .graphicsLayer(scaleX = scale.value, scaleY = scale.value)
+                    .clip(CircleShape)
+                    .background(ballColor)
+                    .border(1.dp, ballColor.copy(alpha = 0.5f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "${cell.color ?: ""}",
+                    color = Color.White,
+                    fontSize = (size.value * 0.3f).sp,
+                    fontWeight = FontWeight.Bold,
+                    softWrap = false
+                )
+            }
+        }
+
+        if (cell.type == CellType.CUP) {
+            val cupColor = ballColor(cell.color ?: 1)
+            Box(
+                modifier = Modifier
+                    .size(size * 0.9f)
+                    .border(
+                        border = androidx.compose.foundation.BorderStroke(2.dp, cupColor),
+                        shape = RoundedCornerShape(
+                            topStart = 0.dp, topEnd = 0.dp,
+                            bottomStart = 6.dp, bottomEnd = 6.dp
+                        )
+                    )
+                    .clip(RoundedCornerShape(
+                        topStart = 0.dp, topEnd = 0.dp,
+                        bottomStart = 6.dp, bottomEnd = 6.dp
+                    )),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "${cell.color ?: ""}",
+                    color = cupColor,
+                    fontSize = (size.value * 0.3f).sp,
+                    fontWeight = FontWeight.Bold,
+                    softWrap = false
+                )
+            }
         }
     }
 }
