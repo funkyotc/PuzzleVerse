@@ -83,6 +83,9 @@ dependencies {
     // Gson
     implementation(libs.gson)
 
+    // Chesslib
+    implementation(libs.chesslib)
+
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 

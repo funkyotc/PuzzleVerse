@@ -16,6 +16,7 @@ materialIconsExtended = "1.7.8"
 googleFonts = "1.7.8"
 accompanistNavAnimation = "0.32.0"
 gson = "2.10.1"
+chesslib = "1.3.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +41,7 @@ material-icons-extended = { group = "androidx.compose.material", name = "materia
 ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts", version.ref = "googleFonts" }
 accompanist-navigation-animation = { group = "com.google.accompanist", name = "accompanist-navigation-animation", version.ref = "accompanistNavAnimation" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+chesslib = { module = "com.github.bhlangonijr:chesslib", version.ref = "chesslib" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

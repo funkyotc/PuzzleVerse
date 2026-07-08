@@ -61,6 +61,8 @@ import com.funkyotc.puzzleverse.pullpin.ui.PullPinScreen
 import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
 import com.funkyotc.puzzleverse.hexasort.ui.HexaSortScreen
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated
+import com.funkyotc.puzzleverse.chess.ui.ChessScreen
+import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.google.accompanist.navigation.animation.composable
 import com.google.accompanist.navigation.animation.rememberAnimatedNavController
@@ -164,6 +166,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
+                "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -192,6 +195,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -499,6 +503,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 puzzleId = puzzleId,
                 streakRepository = streakRepository!!,
                 settingsRepository = settingsRepository!!
+            )
+        }
+        composable("chess/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Chess Puzzles",
+                gameName = "Chess",
+                navController = navController,
+                puzzlesByDifficulty = ChessPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/chess/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/chess/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            ChessScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
             )
         }
     }
