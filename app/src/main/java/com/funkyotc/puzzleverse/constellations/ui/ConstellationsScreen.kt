@@ -30,6 +30,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -80,27 +84,16 @@ fun ConstellationsScreen(
     val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "constellations") }
 
     if (showHintDialog) {
-        AlertDialog(
-            onDismissRequest = { showHintDialog = false },
-            title = { Text("Use a Hint?") },
-            text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                    constellationsViewModel.hint()
-                }) {
-                    Text("Yes")
-                }
+        GameConfirmDialog(
+            title = "Use a Hint?",
+            message = "Are you sure you want to use a hint to reveal part of the puzzle?",
+            confirmLabel = "Yes",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                showHintDialog = false
+                constellationsViewModel.hint()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showHintDialog = false }
         )
     }
 
@@ -125,148 +118,85 @@ fun ConstellationsScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Place one star in every row, column, and colored region. Stars cannot touch each other, not even diagonally.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("OK")
-                }
-            }
+        GameHowToDialog(
+            instructions = "Place one star in every row, column, and colored region. Stars cannot touch each other, not even diagonally.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (isGameWon) {
-        AlertDialog(
-            onDismissRequest = { /* Do nothing, wait for user entry */ },
-            title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            Text("Main Menu")
-                        }
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/constellations/standard/new") { popUpTo("home") }
-                        }) {
-                            Text("Random Puzzles")
-                        }
-                    }
-                } else if (mode == "puzzle" && puzzleId != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) {
-                            Text("Back to List")
-                        }
-                        val currentPuzzle = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
-                        val sameDiffPuzzles = if (currentPuzzle != null) {
-                            com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.ALL_PUZZLES
-                                .filter { it.difficulty == currentPuzzle.difficulty }
-                        } else emptyList()
-                        val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
-                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
-                            sameDiffPuzzles[currentIndex + 1]
-                        } else null
-                        if (nextPuzzle != null) {
-                            Button(onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.navigate("game/constellations/puzzle/${nextPuzzle.id}") {
-                                    popUpTo("constellations/puzzles")
-                                }
-                            }) {
-                                Text("Next Puzzle")
-                            }
-                        }
-                    }
-                } else {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        constellationsViewModel.loadNewPuzzle()
-                    }) {
-                        Text("New Game")
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val currentPuzzle = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
+            val sameDiffPuzzles = if (currentPuzzle != null) {
+                com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.ALL_PUZZLES
+                    .filter { it.difficulty == currentPuzzle.difficulty }
+            } else emptyList()
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
+                sameDiffPuzzles[currentIndex + 1]
+            } else null
+            if (nextPuzzle != null) {
+                {
+                    navController.navigate("game/constellations/puzzle/${nextPuzzle.id}") {
+                        popUpTo("constellations/puzzles")
                     }
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Congratulations!",
+            message = "You solved the puzzle!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/constellations/standard/new") { popUpTo("home") }
+                } else {
+                    constellationsViewModel.loadNewPuzzle()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
     
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Puzzle") },
-            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    constellationsViewModel.loadNewPuzzle()
-                    showNewGameDialog = false
-                }) {
-                    Text("Confirm")
-                }
+        GameConfirmDialog(
+            title = "New Puzzle",
+            message = "Are you sure you want to start a new puzzle? Your current progress will be lost.",
+            onConfirm = {
+                constellationsViewModel.loadNewPuzzle()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Constellations") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHintDialog = true
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Hint")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        constellationsViewModel.errorCheck()
-                    }) {
-                        Icon(Icons.Filled.Warning, contentDescription = "Check Errors")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
-                        }
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Constellations",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showHintDialog = true
+            }) {
+                Icon(Icons.Filled.Search, contentDescription = "Hint")
+            }
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                constellationsViewModel.errorCheck()
+            }) {
+                Icon(Icons.Filled.Warning, contentDescription = "Check Errors")
+            }
         }
     ) { paddingValues ->
         Column(

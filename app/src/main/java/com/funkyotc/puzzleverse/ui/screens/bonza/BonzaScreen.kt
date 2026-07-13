@@ -23,6 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,25 +94,16 @@ fun BonzaScreen(
     val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "bonza") }
     
     if (showHintDialog) {
-        AlertDialog(
-            onDismissRequest = { showHintDialog = false },
-            title = { Text("Use a Hint?") },
-            text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                    bonzaViewModel.hint() }) {
-                    Text("Yes")
-                }
+        GameConfirmDialog(
+            title = "Use a Hint?",
+            message = "Are you sure you want to use a hint to reveal part of the puzzle?",
+            confirmLabel = "Yes",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                showHintDialog = false
+                bonzaViewModel.hint()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showHintDialog = false }
         )
     }
 
@@ -123,160 +118,76 @@ fun BonzaScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Move the puzzle pieces around to form interlocking words based on the level's theme.") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/bonza/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("OK")
-
-                }
-                }
-            }
+        GameHowToDialog(
+            instructions = "Move the puzzle pieces around to form interlocking words based on the level's theme.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (isGameWon) {
-        AlertDialog(
-            onDismissRequest = { /* Do nothing */ },
-            title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/bonza/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val currentTheme = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)?.theme
+            val themePuzzles = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.PUZZLES_BY_THEME[currentTheme] ?: emptyList()
+            val currentIndex = themePuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex != -1 && currentIndex + 1 < themePuzzles.size) themePuzzles[currentIndex + 1] else null
+            if (nextPuzzle != null) {
+                {
+                    navController.navigate("game/bonza/puzzle/${nextPuzzle.id}") {
+                        popUpTo("bonza/puzzles")
                     }
-                } else if (mode == "puzzle" && puzzleId != null) {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) {
-                            androidx.compose.material3.Text("Back to List")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            val currentTheme = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)?.theme
-                            val themePuzzles = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.PUZZLES_BY_THEME[currentTheme] ?: emptyList()
-                            val currentIndex = themePuzzles.indexOfFirst { it.id == puzzleId }
-                            val nextPuzzle = if (currentIndex != -1 && currentIndex + 1 < themePuzzles.size) themePuzzles[currentIndex + 1] else null
-                            if (nextPuzzle != null) {
-                                navController.navigate("game/bonza/puzzle/${nextPuzzle.id}") {
-                                    popUpTo("bonza/puzzles")
-                                }
-                            } else {
-                                navController.popBackStack()
-                            }
-                        }) {
-                            androidx.compose.material3.Text("Next Puzzle")
-                        }
-                    }
-                } else {
-
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    bonzaViewModel.newGame()
-                }) {
-                    Text("New Game")
-
                 }
-                }
+            } else {
+                { navController.popBackStack() }
             }
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Congratulations!",
+            message = "You solved the puzzle!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/bonza/standard/new") { popUpTo("home") }
+                } else {
+                    bonzaViewModel.newGame()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Puzzle") },
-            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    bonzaViewModel.newGame()
-                    showNewGameDialog = false
-                }) {
-                    Text("Confirm")
-                }
+        GameConfirmDialog(
+            title = "New Puzzle",
+            message = "Are you sure you want to start a new puzzle? Your current progress will be lost.",
+            onConfirm = {
+                bonzaViewModel.newGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Bonza - ${puzzle.theme}") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHintDialog = true
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Hint")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
-                        }
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Bonza - ${puzzle.theme}",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showHintDialog = true
+            }) {
+                Icon(Icons.Filled.Search, contentDescription = "Hint")
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {

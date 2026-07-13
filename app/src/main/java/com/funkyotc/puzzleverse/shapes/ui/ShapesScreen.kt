@@ -27,6 +27,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,25 +89,16 @@ fun ShapesScreen(
     val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "shapes") }
 
     if (showHintDialog) {
-        AlertDialog(
-            onDismissRequest = { showHintDialog = false },
-            title = { Text("Use a Hint?") },
-            text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                    vm.hint() }) {
-                    Text("Yes")
-                }
+        GameConfirmDialog(
+            title = "Use a Hint?",
+            message = "Are you sure you want to use a hint to reveal part of the puzzle?",
+            confirmLabel = "Yes",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                showHintDialog = false
+                vm.hint()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showHintDialog = false }
         )
     }
 
@@ -128,195 +123,111 @@ fun ShapesScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Drag and rotate the pieces so they fit perfectly into the target shape.") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/shapes/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("OK")
-
-                }
-                }
-            }
+        GameHowToDialog(
+            instructions = "Drag and rotate the pieces so they fit perfectly into the target shape.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (isGameWon) {
-        AlertDialog(
-            onDismissRequest = { vm.loadNewPuzzle() },
-            title = { Text(text = "Congratulations!") },
-            text = { Text(text = "You solved the puzzle! All pieces fit perfectly.") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/shapes/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val currentPuzzle = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
+            val sameDiffPuzzles = if (currentPuzzle != null) {
+                com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES
+                    .filter { it.difficulty == currentPuzzle.difficulty }
+            } else emptyList()
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
+                sameDiffPuzzles[currentIndex + 1]
+            } else null
+            if (nextPuzzle != null) {
+                {
+                    navController.navigate("game/shapes/puzzle/${nextPuzzle.id}") {
+                        popUpTo("shapes/puzzles")
                     }
-                } else if (mode == "puzzle" && puzzleId != null) {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) {
-                            Text("Back to List")
-                        }
-                        val currentPuzzle = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
-                        val sameDiffPuzzles = if (currentPuzzle != null) {
-                            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES
-                                .filter { it.difficulty == currentPuzzle.difficulty }
-                        } else emptyList()
-                        val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
-                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
-                            sameDiffPuzzles[currentIndex + 1]
-                        } else null
-                        if (nextPuzzle != null) {
-                            Button(onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.navigate("game/shapes/puzzle/${nextPuzzle.id}") {
-                                    popUpTo("shapes/puzzles")
-                                }
-                            }) {
-                                Text("Next Puzzle")
-                            }
-                        }
-                    }
+                }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Congratulations!",
+            message = "You solved the puzzle! All pieces fit perfectly.",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
                 } else {
-
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    vm.loadNewPuzzle()
-                }) {
-                    Text("New Puzzle")
-
-                }
-                }
-            }
-        )
-    }
-    
-    if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Puzzle") },
-            text = { Text("Are you sure you want to start a new puzzle? Your current progress will be lost.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    vm.loadNewPuzzle()
-                    showNewGameDialog = false
-                    selectedPieceId = null // Deselect on new game
-                }) {
-                    Text("Confirm")
+                    navController.navigate("home") { popUpTo(0) }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) {
-                    Text("Cancel")
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/shapes/standard/new") { popUpTo("home") }
+                } else {
+                    vm.loadNewPuzzle()
                 }
-            }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Shapes") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHintDialog = true
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Hint")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
-                        }
-                    }
-                }
-            )
-        },
+    if (showNewGameDialog) {
+        GameConfirmDialog(
+            title = "New Puzzle",
+            message = "Are you sure you want to start a new puzzle? Your current progress will be lost.",
+            onConfirm = {
+                vm.loadNewPuzzle()
+                showNewGameDialog = false
+                selectedPieceId = null
+            },
+            onDismiss = { showNewGameDialog = false }
+        )
+    }
+
+    StandardGameLayout(
+        title = "Shapes",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
         bottomBar = {
-             // Controls for the selected piece
-             Row(
-                 modifier = Modifier
-                     .fillMaxWidth()
-                     .padding(16.dp)
-                     .background(MaterialTheme.colorScheme.surface),
-                 horizontalArrangement = Arrangement.Center,
-                 verticalAlignment = Alignment.CenterVertically
-             ) {
-                  Button(
-                      onClick = {
-                          soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                          selectedPieceId?.let { vm.rotatePiece(it, -45f) }
-                      },
-                      enabled = selectedPieceId != null
-                  ) {
-                      Text("Rotate L")
-                  }
-                  Spacer(modifier = Modifier.width(16.dp))
-                  Button(
-                      onClick = {
-                          soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                          selectedPieceId?.let { vm.rotatePiece(it, 45f) }
-                      },
-                      enabled = selectedPieceId != null
-                  ) {
-                      Text("Rotate R")
-                  }
-             }
+            // Controls for the selected piece
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .background(MaterialTheme.colorScheme.surface),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        selectedPieceId?.let { vm.rotatePiece(it, -45f) }
+                    },
+                    enabled = selectedPieceId != null
+                ) {
+                    Text("Rotate L")
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Button(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        selectedPieceId?.let { vm.rotatePiece(it, 45f) }
+                    },
+                    enabled = selectedPieceId != null
+                ) {
+                    Text("Rotate R")
+                }
+            }
+        },
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showHintDialog = true
+            }) {
+                Icon(Icons.Filled.Search, contentDescription = "Hint")
+            }
         }
     ) { paddingValues ->
         val currentPuzzleState by rememberUpdatedState(puzzle)
