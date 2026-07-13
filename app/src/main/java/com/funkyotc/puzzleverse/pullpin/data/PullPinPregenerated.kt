@@ -71,6 +71,48 @@ private fun chunkEasy(): List<PullPinLevel> = listOf(
         "WWPWW",
         "WWaWW",
         "WWWWW"
+    ),
+    /* Easy 6 - The Corridor */
+    lvl("pullpin_easy_006", "Easy", 5, 5,
+        "..1..",
+        "..P..",
+        ".W...",
+        ".a...",
+        "WWWWW"
+    ),
+    /* Easy 7 - Side-by-Side Mix */
+    lvl("pullpin_easy_007", "Easy", 5, 5,
+        "1.0.1",
+        "P.P.P",
+        "W.P.W",
+        "W.a.W",
+        "WWWWW"
+    ),
+    /* Easy 8 - Triple Gate */
+    lvl("pullpin_easy_008", "Easy", 5, 5,
+        "..1..",
+        "..P..",
+        "..P..",
+        "..P..",
+        "..a..",
+        "WWWWW"
+    ),
+    /* Easy 9 - Slope Slide */
+    lvl("pullpin_easy_009", "Easy", 5, 5,
+        "1....",
+        "P....",
+        "W.P..",
+        "WW.a.",
+        "WWWWW"
+    ),
+    /* Easy 10 - Split Stack */
+    lvl("pullpin_easy_010", "Easy", 5, 5,
+        "..1..",
+        "..P..",
+        "..0..",
+        "..P..",
+        "..a..",
+        "WWWWW"
     )
 )
 
@@ -121,6 +163,51 @@ private fun chunkMedium(): List<PullPinLevel> = listOf(
         "WW.0.W",
         "WW.P.W",
         "WW.a.W",
+        "WWWWWW"
+    ),
+    /* Medium 6 - Hourglass */
+    lvl("pullpin_medium_006", "Medium", 6, 6,
+        "0.1.0.",
+        "P.P.P.",
+        "W...WW",
+        "WW.PWW",
+        "WW.aWW",
+        "WWWWWW"
+    ),
+    /* Medium 7 - Chamber Swap */
+    lvl("pullpin_medium_007", "Medium", 6, 6,
+        ".1.0..",
+        ".P.P..",
+        "W...WW",
+        "WWPWWW",
+        "WWaWWW",
+        "WWWWWW"
+    ),
+    /* Medium 8 - Slope Mix */
+    lvl("pullpin_medium_008", "Medium", 6, 6,
+        "1.W...",
+        "P.W...",
+        "W.0...",
+        "W.P...",
+        "W.a...",
+        "WWWWWW"
+    ),
+    /* Medium 9 - Double Stack Split */
+    lvl("pullpin_medium_009", "Medium", 6, 6,
+        "1..0..",
+        "P..P..",
+        "0..1..",
+        "P..P..",
+        "a..a..",
+        "WWWWWW"
+    ),
+    /* Medium 10 - Horizontal Conveyor */
+    lvl("pullpin_medium_010", "Medium", 6, 6,
+        "10....",
+        "PP....",
+        "W.P...",
+        "WW.P..",
+        "WWW.a.",
         "WWWWWW"
     )
 )
@@ -176,6 +263,56 @@ private fun chunkHard(): List<PullPinLevel> = listOf(
         "W.P.P.W",
         "WWa.bWW",
         "WWWWWWW",
+        "WWWWWWW",
+        "WWWWWWW"
+    ),
+    /* Hard 6 - The Crossroad */
+    lvl("pullpin_hard_006", "Hard", 7, 7,
+        "1...2..",
+        "P...P..",
+        "W.P.W..",
+        "W.0.W..",
+        "W.P.W..",
+        "a...b..",
+        "WWWWWWW"
+    ),
+    /* Hard 7 - Color Gated Tunnel */
+    lvl("pullpin_hard_007", "Hard", 7, 7,
+        ".1.2.0.",
+        ".P.P.P.",
+        "W..W..W",
+        "WW.P.WW",
+        "WWa.bWW",
+        "WWWWWWW",
+        "WWWWWWW"
+    ),
+    /* Hard 8 - Contamination Well */
+    lvl("pullpin_hard_008", "Hard", 7, 7,
+        "1..2..0",
+        "P..P..P",
+        "W.P.P.W",
+        "W.a.b.W",
+        "WWWWWWW",
+        "WWWWWWW",
+        "WWWWWWW"
+    ),
+    /* Hard 9 - The Separator */
+    lvl("pullpin_hard_009", "Hard", 7, 7,
+        ".1.2...",
+        ".P.P...",
+        "WW.WW..",
+        "Wa.b...",
+        "WWWWWWW",
+        "WWWWWWW",
+        "WWWWWWW"
+    ),
+    /* Hard 10 - Symmetrical Sorting */
+    lvl("pullpin_hard_010", "Hard", 7, 7,
+        "10.02..",
+        "PP.PP..",
+        "WW.WW..",
+        "WW.P.WW",
+        "WWa.bWW",
         "WWWWWWW",
         "WWWWWWW"
     )
@@ -237,6 +374,61 @@ private fun chunkExpert(): List<PullPinLevel> = listOf(
         ".P.P.P..",
         "WW.P.WWW",
         "WW.a.WWW",
+        "WWWWWWWW",
+        "WWWWWWWW"
+    ),
+    /* Expert 6 - Three Color Sorting */
+    lvl("pullpin_expert_006", "Expert", 8, 8,
+        "1.2.3.0.",
+        "P.P.P.P.",
+        "W.P.P.W.",
+        "Wa.b.c.W",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW"
+    ),
+    /* Expert 7 - Intricate Sorting Grid */
+    lvl("pullpin_expert_007", "Expert", 8, 8,
+        "1.0.2.0.",
+        "P.P.P.P.",
+        "W.P.P.W.",
+        "W.a.b.cW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW"
+    ),
+    /* Expert 8 - The Double Funnel */
+    lvl("pullpin_expert_008", "Expert", 8, 8,
+        "1.0..0.2",
+        "P.P..P.P",
+        "W.0..0.W",
+        "W.P..P.W",
+        "WW.P..WW",
+        "WW.a..WW",
+        "Wb..c..W",
+        "WWWWWWWW"
+    ),
+    /* Expert 9 - Pin Overload */
+    lvl("pullpin_expert_009", "Expert", 8, 8,
+        "102030..",
+        "PPPPPP..",
+        "W.P.P.W.",
+        "Wa.b.c.W",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW"
+    ),
+    /* Expert 10 - The Final Sorter */
+    lvl("pullpin_expert_010", "Expert", 8, 8,
+        "10203080",
+        "PPPPPPPP",
+        "W.P.P.P.",
+        "Wa.b.c.d",
+        "WWWWWWWW",
+        "WWWWWWWW",
         "WWWWWWWW",
         "WWWWWWWW"
     )
