@@ -50,6 +50,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.chess.data.chessPieceToUnicode
 import com.funkyotc.puzzleverse.chess.viewmodel.ChessViewModel
@@ -95,115 +99,67 @@ fun ChessScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Find the checkmate move! Tap your piece, then tap the destination square to make your move. Solve the puzzle by achieving checkmate in the specified number of moves.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) { Text("OK") }
-            }
+        GameHowToDialog(
+            instructions = "Find the checkmate move! Tap your piece, then tap the destination square to make your move. Solve the puzzle by achieving checkmate in the specified number of moves.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Checkmate!") },
-            text = { Text("You found the solution!\n${state.message}") },
-            confirmButton = {
-                if (mode == "daily") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) { Text("Main Menu") }
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/chess/standard/new") { popUpTo("home") }
-                        }) { Text("Random Puzzles") }
-                    }
-                } else if (mode == "puzzle") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) { Text("Back to List") }
-                        val nextId = puzzleId?.let { id ->
-                            val allPuzzles = com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES
-                            val currentIndex = allPuzzles.indexOfFirst { it.id == id }
-                            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
-                        }
-                        if (nextId != null) {
-                            Button(onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.popBackStack()
-                                navController.navigate("game/chess/puzzle/$nextId")
-                            }) { Text("Next Puzzle") }
-                        }
-                    }
-                } else {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame()
-                    }) { Text("Play Again") }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val allPuzzles = com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES
+            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
+            if (nextId != null) {
+                {
+                    navController.popBackStack()
+                    navController.navigate("game/chess/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Checkmate!",
+            message = "You found the solution!\n${state.message}",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = { viewModel.startNewGame() },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Puzzle") },
-            text = { Text("Start a new checkmate puzzle?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                    showNewGameDialog = false
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Puzzle",
+            message = "Start a new checkmate puzzle?",
+            onConfirm = {
+                viewModel.startNewGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chess Puzzles") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "New Puzzle")
-                        }
-                    }
+    StandardGameLayout(
+        title = "Chess Puzzles",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        actions = {
+            if (mode != "daily") {
+                IconButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = true
+                }) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "New Puzzle")
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(

@@ -54,6 +54,10 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -115,154 +119,64 @@ fun CubeShooterScreen(
     var trackEntryRootPos by remember { mutableStateOf(Offset.Zero) }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = {
-                Text(
-                    "Cubes form Tetris-like clusters in the grid. " +
-                    "Tanks on the track move clockwise. " +
-                    "When a tank is adjacent to a same-color cube, it fires automatically, clearing the cube and losing 1 ammo. " +
-                    "Tap a tank in the tray to send it onto the track. " +
-                    "Clear all cubes to win!"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("Got it")
-                }
-            }
+        GameHowToDialog(
+            instructions = "Cubes form Tetris-like clusters in the grid. Tanks on the track move clockwise. When a tank is adjacent to a same-color cube, it fires automatically, clearing the cube and losing 1 ammo. Tap a tank in the tray to send it onto the track. Clear all cubes to win!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Victory!") },
-            text = { Text("You cleared all cubes! Final Score: ${state.score}") },
-            confirmButton = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (mode == "puzzle") {
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Back to Browser")
-                        }
-
-                        val nextId = puzzleId?.let { id ->
-                            val allPuzzles = CubeShooterPregenerated.ALL_LEVELS
-                            val currentIndex = allPuzzles.indexOfFirst { it.id == id }
-                            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                                allPuzzles[currentIndex + 1].id
-                            } else {
-                                null
-                            }
-                        }
-
-                        if (nextId != null) {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.popBackStack()
-                                    navController.navigate("game/cubeshooter/puzzle/$nextId")
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Next Puzzle")
-                            }
-                        }
-
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                val randomId = CubeShooterPregenerated.ALL_LEVELS.random().id
-                                navController.popBackStack()
-                                navController.navigate("game/cubeshooter/puzzle/$randomId")
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Random Puzzle")
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                viewModel.startNewGame()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Play Again")
-                        }
-
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                viewModel.startNewGame()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Random Puzzle")
-                        }
-                    }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val allPuzzles = CubeShooterPregenerated.ALL_LEVELS
+            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
+            if (nextId != null) {
+                {
+                    navController.popBackStack()
+                    navController.navigate("game/cubeshooter/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Victory!",
+            message = "You cleared all cubes! Final Score: ${state.score}",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = { viewModel.startNewGame() },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (state.isGameOver && !state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Game Over") },
-            text = { Text("Storage tray overflowed. Try again!") },
-            confirmButton = {
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                }) {
-                    Text("Try Again")
-                }
-            }
+        GameEndDialog(
+            isWon = false,
+            title = "Game Over",
+            message = "Storage tray overflowed. Try again!",
+            mode = mode,
+            onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+            onPlayAgainClick = { viewModel.startNewGame() }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Cube Shooter") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How to Play")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame()
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Cube Shooter",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                viewModel.startNewGame()
+            }) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+            }
         }
     ) { paddingValues ->
         Box(

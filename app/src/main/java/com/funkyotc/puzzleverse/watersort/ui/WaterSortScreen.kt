@@ -46,6 +46,10 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.watersort.data.WaterSortPregenerated
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModel
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModelFactory
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -100,150 +104,65 @@ fun WaterSortScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = {
-                Text(
-                    "Tap a bottle to pick up its top color, then tap another bottle to pour.\n\n" +
-                    "You can only pour onto a matching color or into an empty bottle.\n" +
-                    "A bottle can hold at most ${state.level.height} layers.\n\n" +
-                    "Goal: Sort each color into its own bottle!"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("Got it")
-                }
-            }
+        GameHowToDialog(
+            instructions = "Tap a bottle to pick up its top color, then tap another bottle to pour.\n\nYou can only pour onto a matching color or into an empty bottle.\nA bottle can hold at most ${state.level.height} layers.\n\nGoal: Sort each color into its own bottle!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start a new game?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                    viewModel.startNewGame()
-                }) {
-                    Text("Yes")
-                }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start a new game?",
+            onConfirm = {
+                showNewGameDialog = false
+                viewModel.startNewGame()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) {
-                    Text("No")
-                }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Victory!") },
-            text = { Text("Sorted in ${state.moves} moves!") },
-            confirmButton = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    when (mode) {
-                        "puzzle" -> {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.popBackStack()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Back to Browser")
-                            }
-                            val nextId = puzzleId?.let { id ->
-                                val allPuzzles = WaterSortPregenerated.ALL_LEVELS
-                                val currentIndex = allPuzzles.indexOfFirst { it.id == id }
-                                if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                                    allPuzzles[currentIndex + 1].id
-                                } else null
-                            }
-                            if (nextId != null) {
-                                Button(
-                                    onClick = {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                        navController.popBackStack()
-                                        navController.navigate("game/watersort/puzzle/$nextId")
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Next Puzzle")
-                                }
-                            }
-                        }
-                        "daily" -> {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.popBackStack()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Back to Home")
-                            }
-                        }
-                        else -> {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    viewModel.startNewGame()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Play Again")
-                            }
-                        }
-                    }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val allPuzzles = WaterSortPregenerated.ALL_LEVELS
+            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
+            if (nextId != null) {
+                {
+                    navController.popBackStack()
+                    navController.navigate("game/watersort/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Victory!",
+            message = "Sorted in ${state.moves} moves!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = { viewModel.startNewGame() },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Water Sort") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How to Play")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showNewGameDialog = true
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Water Sort",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showNewGameDialog = true
+            }) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+            }
         }
     ) { paddingValues ->
         Column(
