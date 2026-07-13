@@ -32,7 +32,7 @@ private fun lvl(id: String, difficulty: String, rows: Int, cols: Int, vararg row
 /*  Ball→Cup columns are identical; pins sit in same column.          */
 /* ----------------------------------------------------------------- */
 private fun chunkEasy(): List<PullPinLevel> = listOf(
-    /* 1 ball, 1 pin */
+    /* 1 ball, 1 pin - Warmup */
     lvl("pullpin_easy_001", "Easy", 5, 5,
         ".....",
         "..1..",
@@ -40,15 +40,15 @@ private fun chunkEasy(): List<PullPinLevel> = listOf(
         "..a..",
         "WWWWW"
     ),
-    /* 2 balls, 2 pins */
+    /* 1 ball, 1 pin - Simple Slide */
     lvl("pullpin_easy_002", "Easy", 5, 5,
-        ".1.2.",
+        ".1...",
         ".....",
-        ".P.P.",
-        ".a.b.",
+        "WWPWW",
+        "WWaWW",
         "WWWWW"
     ),
-    /* 1 ball, 2 stacked pins (need 2 removals) */
+    /* 1 ball, 2 stacked pins */
     lvl("pullpin_easy_003", "Easy", 5, 5,
         "..1..",
         "..P..",
@@ -56,15 +56,15 @@ private fun chunkEasy(): List<PullPinLevel> = listOf(
         "..a..",
         "WWWWW"
     ),
-    /* 2 balls, 2 pins at row 1 */
+    /* 1 colored, 1 grey - Basic Mix */
     lvl("pullpin_easy_004", "Easy", 5, 5,
-        ".1.2.",
+        ".1.0.",
         ".P.P.",
-        ".....",
-        ".a.b.",
+        "WWPWW",
+        "WWaWW",
         "WWWWW"
     ),
-    /* 1 colored, 1 grey, 3 pins - mix & color level */
+    /* 1 colored, 1 grey, 3 pins - Funnel Mix */
     lvl("pullpin_easy_005", "Easy", 5, 5,
         "W1.0W",
         "WP.PW",
@@ -78,43 +78,43 @@ private fun chunkEasy(): List<PullPinLevel> = listOf(
 /*  Medium (6×6): 2–3 balls, mixed pin counts, staggered rows         */
 /* ----------------------------------------------------------------- */
 private fun chunkMedium(): List<PullPinLevel> = listOf(
-    /* 3 balls, 3 pins — one each */
+    /* 1 colored, 2 grey - Symmetrical Funnel */
     lvl("pullpin_medium_001", "Medium", 6, 6,
-        ".1.2.3",
-        "......",
-        ".P.P.P",
-        "......",
-        ".a.b.c",
+        ".010..",
+        ".PPPP.",
+        "WW..WW",
+        "WWPWWW",
+        "WWaWWW",
         "WWWWWW"
     ),
-    /* 2 balls, different pin rows */
+    /* 1 colored, 1 grey - Gate Keeper */
     lvl("pullpin_medium_002", "Medium", 6, 6,
-        ".1..2.",
-        ".P....",
-        "......",
-        "...P..",
-        ".a..b.",
+        "WW1WWW",
+        "WWPWWW",
+        "W.0..W",
+        "W.P..W",
+        "W.a..W",
         "WWWWWW"
     ),
-    /* 2 balls, stacked pins on ball 1 */
+    /* 2 balls - Zig-Zag */
     lvl("pullpin_medium_003", "Medium", 6, 6,
-        "..1.2.",
-        "......",
-        "..P...",
-        "..P...",
-        "..a.b.",
+        "10....",
+        "PP....",
+        "WW.PWW",
+        "WW.PWW",
+        "WW.aWW",
         "WWWWWW"
     ),
-    /* 3 balls, 2 pins, mixed columns */
+    /* 2 balls - Separate Wells */
     lvl("pullpin_medium_004", "Medium", 6, 6,
-        "1.2.3.",
+        "1W0...",
+        "PWPPPP",
         "..P...",
-        "....P.",
-        "......",
-        "a.b.c.",
+        "..P...",
+        "..a...",
         "WWWWWW"
     ),
-    /* 1 colored, 2 grey, color propagation */
+    /* 1 colored, 2 grey - Color Cascade */
     lvl("pullpin_medium_005", "Medium", 6, 6,
         "W1.0.W",
         "WP.P.W",
@@ -129,40 +129,53 @@ private fun chunkMedium(): List<PullPinLevel> = listOf(
 /*  Hard (7×7): 3 balls, every ball has at least 1 pin               */
 /* ----------------------------------------------------------------- */
 private fun chunkHard(): List<PullPinLevel> = listOf(
+    /* Red and Blue split */
     lvl("pullpin_hard_001", "Hard", 7, 7,
-        "1..2..3",
-        ".......",
-        "..P....",
-        "...P...",
-        "......P",
-        "a..b..c",
+        "1...2..",
+        "P...P..",
+        "W.P.W..",
+        "W.a.bWW",
+        "WWWWWWW",
+        "WWWWWWW",
         "WWWWWWW"
     ),
+    /* Contamination Split */
     lvl("pullpin_hard_002", "Hard", 7, 7,
-        ".1.2.3.",
-        ".P.....",
-        "...P...",
-        ".....P.",
-        ".......",
-        ".a.b.c.",
+        ".1.0.2.",
+        ".P.P.P.",
+        "W..P..W",
+        "WW.P.WW",
+        "WWa.bWW",
+        "WWWWWWW",
         "WWWWWWW"
     ),
+    /* Chamber Lock */
     lvl("pullpin_hard_003", "Hard", 7, 7,
-        "1..2..3",
-        ".......",
-        "P......",
-        "...P...",
-        "......P",
-        "a..b..c",
+        "1..0..2",
+        "P..P..P",
+        "WW.P.WW",
+        "WWa.bWW",
+        "WWWWWWW",
+        "WWWWWWW",
         "WWWWWWW"
     ),
-    /* Multi-color contamination puzzle */
+    /* Gravity Slide */
     lvl("pullpin_hard_004", "Hard", 7, 7,
         "W1.0.2W",
         "WP.P.PW",
         "WW.0.WW",
         "WW.P.WW",
         "WWa.bWW",
+        "WWWWWWW",
+        "WWWWWWW"
+    ),
+    /* Dual Mix */
+    lvl("pullpin_hard_005", "Hard", 7, 7,
+        "10.02..",
+        "PP.PP..",
+        "W.P.P.W",
+        "WWa.bWW",
+        "WWWWWWW",
         "WWWWWWW",
         "WWWWWWW"
     )
@@ -172,29 +185,29 @@ private fun chunkHard(): List<PullPinLevel> = listOf(
 /*  Expert (8×8): 3–4 balls, wider board, more pins                  */
 /* ----------------------------------------------------------------- */
 private fun chunkExpert(): List<PullPinLevel> = listOf(
-    /* 4 balls, 4 pins */
+    /* Sorting Maze */
     lvl("pullpin_expert_001", "Expert", 8, 8,
-        "1.2.3.4.",
-        "........",
-        "..P..P..",
-        "......P.",
-        "........",
-        "........",
-        "a.b.c.d.",
+        "1.0.0.2.",
+        "P.P.P.P.",
+        "W..P..W.",
+        "WW.a.bWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
         "WWWWWWWW"
     ),
-    /* 3 balls, 3 pins, staggered */
+    /* Order Chaos */
     lvl("pullpin_expert_002", "Expert", 8, 8,
-        "..1.2.3.",
-        "........",
-        "..P.....",
-        "....P...",
-        "......P.",
-        "........",
-        "..a.b.c.",
+        "1.2.3.0.",
+        "P.P.P.P.",
+        "W.P.P.W.",
+        "WWa.b.cW",
+        "WWWWWWWW",
+        "WWWWWWWW",
+        "WWWWWWWW",
         "WWWWWWWW"
     ),
-    /* 3 balls, 4 pins (ball2 has 2) */
+    /* Dual Gate */
     lvl("pullpin_expert_003", "Expert", 8, 8,
         "1..2..3.",
         "........",
@@ -205,7 +218,7 @@ private fun chunkExpert(): List<PullPinLevel> = listOf(
         "a..b..c.",
         "WWWWWWWW"
     ),
-    /* Expert color separator and mixer puzzle */
+    /* Contamination Master */
     lvl("pullpin_expert_004", "Expert", 8, 8,
         "1.0..0.2",
         "P.P..P.P",
@@ -214,6 +227,17 @@ private fun chunkExpert(): List<PullPinLevel> = listOf(
         "WW.P..WW",
         "WW.a..WW",
         "Wb..b..W",
+        "WWWWWWWW"
+    ),
+    /* The Pit */
+    lvl("pullpin_expert_005", "Expert", 8, 8,
+        "...1....",
+        "...P....",
+        ".0.0.0..",
+        ".P.P.P..",
+        "WW.P.WWW",
+        "WW.a.WWW",
+        "WWWWWWWW",
         "WWWWWWWW"
     )
 )
