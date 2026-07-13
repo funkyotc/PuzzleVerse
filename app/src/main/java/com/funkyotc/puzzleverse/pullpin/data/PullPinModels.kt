@@ -20,9 +20,16 @@ data class PullPinLevel(
 data class BallState(
     val row: Int,
     val col: Int,
-    val color: Int,
+    val color: Int, // 0 indicates grey/uncolored
     val inCup: Boolean = false
 )
+
+enum class GameStatus {
+    IDLE,
+    SIMULATING,
+    WON,
+    LOST
+}
 
 data class PullPinState(
     val level: PullPinLevel,
@@ -30,5 +37,7 @@ data class PullPinState(
     val balls: List<BallState>,
     val removedPins: Set<String>,
     val moves: Int = 0,
-    val isWon: Boolean = false
+    val status: GameStatus = GameStatus.IDLE,
+    val lostReason: String? = null
 )
+

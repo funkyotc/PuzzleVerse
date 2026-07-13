@@ -8,6 +8,7 @@ private fun parseGrid(rows: Int, cols: Int, vararg rowStrings: String): List<Lis
                 ch == '.' -> Cell(CellType.EMPTY)
                 ch == 'W' -> Cell(CellType.WALL)
                 ch == 'P' -> Cell(CellType.PIN)
+                ch == '0' -> Cell(CellType.BALL, color = 0)
                 ch in '1'..'9' -> Cell(CellType.BALL, color = ch - '0')
                 ch in 'a'..'i' -> Cell(CellType.CUP, color = ch - 'a' + 1)
                 else -> throw IllegalArgumentException("Unknown cell char: $ch")
@@ -62,6 +63,14 @@ private fun chunkEasy(): List<PullPinLevel> = listOf(
         ".....",
         ".a.b.",
         "WWWWW"
+    ),
+    /* 1 colored, 1 grey, 3 pins - mix & color level */
+    lvl("pullpin_easy_005", "Easy", 5, 5,
+        "W1.0W",
+        "WP.PW",
+        "WWPWW",
+        "WWaWW",
+        "WWWWW"
     )
 )
 
@@ -104,6 +113,15 @@ private fun chunkMedium(): List<PullPinLevel> = listOf(
         "......",
         "a.b.c.",
         "WWWWWW"
+    ),
+    /* 1 colored, 2 grey, color propagation */
+    lvl("pullpin_medium_005", "Medium", 6, 6,
+        "W1.0.W",
+        "WP.P.W",
+        "WW.0.W",
+        "WW.P.W",
+        "WW.a.W",
+        "WWWWWW"
     )
 )
 
@@ -136,6 +154,16 @@ private fun chunkHard(): List<PullPinLevel> = listOf(
         "...P...",
         "......P",
         "a..b..c",
+        "WWWWWWW"
+    ),
+    /* Multi-color contamination puzzle */
+    lvl("pullpin_hard_004", "Hard", 7, 7,
+        "W1.0.2W",
+        "WP.P.PW",
+        "WW.0.WW",
+        "WW.P.WW",
+        "WWa.bWW",
+        "WWWWWWW",
         "WWWWWWW"
     )
 )
@@ -175,6 +203,17 @@ private fun chunkExpert(): List<PullPinLevel> = listOf(
         "......P.",
         "........",
         "a..b..c.",
+        "WWWWWWWW"
+    ),
+    /* Expert color separator and mixer puzzle */
+    lvl("pullpin_expert_004", "Expert", 8, 8,
+        "1.0..0.2",
+        "P.P..P.P",
+        "W.0..0.W",
+        "W.P..P.W",
+        "WW.P..WW",
+        "WW.a..WW",
+        "Wb..b..W",
         "WWWWWWWW"
     )
 )
