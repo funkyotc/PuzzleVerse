@@ -48,6 +48,9 @@ class ChessViewModel(
             else -> ChessPregenerated.getRandomPuzzle()
         }
 
+        puzzle = puzzle?.takeIf(::isSolvablePuzzle)
+            ?: ChessPregenerated.ALL_PUZZLES.firstOrNull(::isSolvablePuzzle)
+
         puzzle?.let { p ->
             chessBoard = Board()
             chessBoard.loadFromFen(p.fen)
@@ -69,6 +72,21 @@ class ChessViewModel(
         }
     }
 
+    private fun isSolvablePuzzle(candidate: PregeneratedChessPuzzle): Boolean {
+        return try {
+            val board = Board()
+            board.loadFromFen(candidate.fen)
+            val move = Move(
+                Square.fromValue(candidate.solutionFrom),
+                Square.fromValue(candidate.solutionTo)
+            )
+            if (!board.isMoveLegal(move, true)) return false
+            board.doMove(move)
+            board.isMated()
+        } catch (_: Exception) {
+            false
+        }
+    }
     fun onSquareClicked(row: Int, col: Int) {
         val st = _state.value
         if (st.isGameOver) return
@@ -100,7 +118,7 @@ class ChessViewModel(
         val p = puzzle ?: return
         val move = Move(fromSq, toSq)
 
-        if (fromSq.value() == p.solutionFrom && toSq.value() == p.solutionTo) {
+        if (fromSq.value() == p.solutionFrom && toSq.value() == p.solutionTo && chessBoard.isMoveLegal(move, true)) {
             chessBoard.doMove(move)
 
             if (chessBoard.isMated()) {
@@ -129,8 +147,8 @@ class ChessViewModel(
                     _state.update {
                         it.copy(
                             selectedRow = -1, selectedCol = -1,
-                            isGameOver = true, isWon = true,
-                            message = "Checkmate! But there's a faster solution. Try again!"
+                            moveAttempts = it.moveAttempts + 1,
+                            message = "That is checkmate, but find the puzzle's intended move."
                         )
                     }
                 } else {

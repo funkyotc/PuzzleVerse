@@ -136,7 +136,10 @@ class PullPinViewModel(
 
         val resultBalls = balls.map { it.copy() }.toMutableList()
 
-        for (i in resultBalls.indices) {
+        // Move the lowest balls first. A ball above must see the space that a
+        // lower ball has just vacated for a cascade to resolve correctly.
+        val orderedIndices = resultBalls.indices.sortedByDescending { resultBalls[it].row }
+        for (i in orderedIndices) {
             val b = resultBalls[i]
             if (b.inCup) continue
 

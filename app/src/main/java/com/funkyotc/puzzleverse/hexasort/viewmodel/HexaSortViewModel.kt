@@ -149,7 +149,7 @@ class HexaSortViewModel(
         group.forEach { (r, c) -> newGrid[r][c] = null }
         flashGroup(group)
         applyGravity(newGrid)
-        fillEmptyCells(newGrid, currentState.level.colorPalette)
+
 
         val allEmpty = newGrid.all { row -> row.all { it == null } }
         val noMoves = !allEmpty && !hasValidMoves(newGrid)
@@ -239,27 +239,6 @@ class HexaSortViewModel(
                     grid[writeRow][c] = grid[r][c]
                     if (writeRow != r) grid[r][c] = null
                     writeRow--
-                }
-            }
-        }
-    }
-
-    private fun fillEmptyCells(
-        grid: MutableList<MutableList<Int?>>,
-        palette: Set<Int>
-    ) {
-        val colors = palette.toList()
-        if (colors.isEmpty() || grid.isEmpty()) return
-        val rows = grid.size
-        val cols = grid[0].size
-        for (c in 0 until cols) {
-            var filled = false
-            for (r in 0 until rows) {
-                if (grid[r][c] == null && !filled) {
-                    grid[r][c] = colors[Random.nextInt(colors.size)]
-                    filled = true
-                } else if (grid[r][c] != null) {
-                    filled = false
                 }
             }
         }
