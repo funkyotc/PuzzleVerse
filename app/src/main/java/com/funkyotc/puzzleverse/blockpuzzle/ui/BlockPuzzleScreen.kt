@@ -36,6 +36,10 @@ import com.funkyotc.puzzleverse.blockpuzzle.viewmodel.BlockPuzzleViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,84 +72,40 @@ fun BlockPuzzleScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Drag shapes from the bottom tray onto the board. Make full rows or columns to clear them and score points!") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) { Text("OK") }
-            }
+        GameHowToDialog(
+            instructions = "Drag shapes from the bottom tray onto the board. Make full rows or columns to clear them and score points!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (state.isGameOver) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Game Over") },
-            text = { Text("No more space for the blocks. Final Score: ${state.score}") },
-            confirmButton = {
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                }) { Text("Try Again") }
-            }
+        GameEndDialog(
+            isWon = false,
+            title = "Game Over",
+            message = "No more space for the blocks. Final Score: ${state.score}",
+            mode = mode,
+            onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+            onPlayAgainClick = { viewModel.startNewGame() }
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start over?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                    showNewGameDialog = false
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start over?",
+            onConfirm = {
+                viewModel.startNewGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Block Puzzle") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
-                        }
-                    }
-                }
-            )
-        }
+    StandardGameLayout(
+        title = "Block Puzzle",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(

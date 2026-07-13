@@ -41,6 +41,10 @@ import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import java.util.UUID
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,108 +91,75 @@ fun ShikakuScreen(
     val gridSize = board.gridSize
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.setShowHowToDialog(false) },
-            title = { Text("How To Play Shikaku") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Divide the grid into rectangular or square cells.")
-                    Text("Each rectangle must contain exactly one number, which equals the area (width x height) of that rectangle.")
-                    Text("All cells in the grid must be filled with exactly one rectangle - no overlaps or gaps allowed.")
-                    Text("Draw rectangles by dragging across cells. Clear individual cells by tapping them.")
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.setShowHowToDialog(false) }) { Text("Got it!") }
-            }
+        GameHowToDialog(
+            title = "How To Play Shikaku",
+            instructions = "Divide the grid into rectangular or square cells.\n\nEach rectangle must contain exactly one number, which equals the area (width x height) of that rectangle.\n\nAll cells in the grid must be filled with exactly one rectangle - no overlaps or gaps allowed.\n\nDraw rectangles by dragging across cells. Clear individual cells by tapping them.",
+            onDismiss = { viewModel.setShowHowToDialog(false) }
         )
     }
 
     if (isGameWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("You Win!") },
-            text = { Text("You solved the Shikaku puzzle!") },
-            confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (mode == "daily") {
-                        Button(onClick = { navController.navigate("home") { popUpTo(0) } }) {
-                            Text("Main Menu")
-                        }
-                        Button(onClick = { navController.navigate("game/shikaku/standard") { popUpTo("home") } }) {
-                            Text("Play Again")
-                        }
-                    } else if (mode == "puzzle") {
-                        Button(onClick = { navController.popBackStack() }) {
-                            Text("Back to List")
-                        }
-                        val allPuzzles = ShikakuPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
-                        val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-                        if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                            val nextId = allPuzzles[currentIndex + 1].id
-                            Button(onClick = {
-                                navController.popBackStack()
-                                navController.navigate("game/shikaku/puzzle/$nextId")
-                            }) {
-                                Text("Next Puzzle")
-                            }
-                        }
-                    } else {
-                        Button(onClick = { viewModel.newGame() }) {
-                            Text("Play Again")
-                        }
-                    }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val allPuzzles = ShikakuPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
+            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
+            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
+                val nextId = allPuzzles[currentIndex + 1].id
+                {
+                    navController.popBackStack()
+                    navController.navigate("game/shikaku/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "You Win!",
+            message = "You solved the Shikaku puzzle!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/shikaku/standard") { popUpTo("home") }
+                } else {
+                    viewModel.newGame()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.setShowNewGameDialog(false) },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start a new game? Your current progress will be lost.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.newGame()
-                    viewModel.setShowNewGameDialog(false)
-                }) { Text("Start New Game") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start a new game? Your current progress will be lost.",
+            confirmLabel = "Start New Game",
+            onConfirm = {
+                viewModel.newGame()
+                viewModel.setShowNewGameDialog(false)
             },
-            dismissButton = {
-                TextButton(onClick = { viewModel.setShowNewGameDialog(false) }) { Text("Cancel") }
-            }
+            onDismiss = { viewModel.setShowNewGameDialog(false) }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Shikaku") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.setShowHowToDialog(true)
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To Play")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            viewModel.setShowNewGameDialog(true)
-                        }) {
-                            Icon(Icons.Filled.RestartAlt, contentDescription = "New Game")
-                        }
-                    }
+    StandardGameLayout(
+        title = "Shikaku",
+        navController = navController,
+        onHowToClick = { viewModel.setShowHowToDialog(true) },
+        actions = {
+            if (mode != "daily") {
+                IconButton(onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.setShowNewGameDialog(true)
+                }) {
+                    Icon(Icons.Filled.RestartAlt, contentDescription = "New Game")
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(

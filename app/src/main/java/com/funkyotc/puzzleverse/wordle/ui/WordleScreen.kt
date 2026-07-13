@@ -35,6 +35,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.wordle.data.WordleStatsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -77,61 +81,23 @@ fun WordleScreen(
     }
 
     if (showHintDialog) {
-        AlertDialog(
-            onDismissRequest = { showHintDialog = false },
-            title = { Text("Use a Hint?") },
-            text = { Text("Are you sure you want to use a hint to reveal part of the puzzle?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                    viewModel.hint()
-                }) {
-                    Text("Yes")
-                }
+        GameConfirmDialog(
+            title = "Use a Hint?",
+            message = "Are you sure you want to use a hint to reveal part of the puzzle?",
+            confirmLabel = "Yes",
+            cancelLabel = "Cancel",
+            onConfirm = {
+                showHintDialog = false
+                viewModel.hint()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHintDialog = false
-                }) {
-                    Text("Cancel")
-                }
-            }
+            onDismiss = { showHintDialog = false }
         )
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Guess the word in 6 tries. Colors show if the letter is correct, in the wrong place, or not in the word.") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/wordle/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("OK")
-                }
-                }
-            }
+        GameHowToDialog(
+            instructions = "Guess the word in 6 tries. Colors show if the letter is correct, in the wrong place, or not in the word.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
@@ -142,55 +108,32 @@ fun WordleScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Wordle", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHintDialog = true
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Hint")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showStatsDialog = true
-                    }) {
-                        Icon(Icons.Filled.BarChart, contentDescription = "Stats")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            viewModel.startNewGame()
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Puzzle")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1E272C),
-                    titleContentColor = TextColor,
-                    navigationIconContentColor = TextColor,
-                    actionIconContentColor = TextColor
-                )
-            )
-        },
-        containerColor = Color(0xFF161C20)
+    StandardGameLayout(
+        title = "Wordle",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { viewModel.startNewGame() } } else null,
+        containerColor = Color(0xFF161C20),
+        topBarColors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color(0xFF1E272C),
+            titleContentColor = TextColor,
+            navigationIconContentColor = TextColor,
+            actionIconContentColor = TextColor
+        ),
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showHintDialog = true
+            }) {
+                Icon(Icons.Filled.Search, contentDescription = "Hint")
+            }
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                showStatsDialog = true
+            }) {
+                Icon(Icons.Filled.BarChart, contentDescription = "Stats")
+            }
+        }
     ) { paddingValues ->
             val state = gameState
             if (state == null) {
@@ -202,7 +145,7 @@ fun WordleScreen(
                 ) {
                     CircularProgressIndicator(color = Color.White)
                 }
-                return@Scaffold
+                return@StandardGameLayout
             }
 
             Column(
@@ -250,70 +193,22 @@ fun WordleScreen(
 
                 // Dialogs
                 if (state.gameStatus == GameStatus.WON) {
-                    AlertDialog(
-                        onDismissRequest = {},
-                        title = { Text("Magnificent!") },
-                        text = { Text("You discovered the word correctly!") },
-                        confirmButton = {
-                            if (mode == "daily") {
-                                Button(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.navigate("home") { popUpTo(0) }
-                                }) {
-                                    Text("Main Menu")
-                                }
-                            } else {
-                                Button(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    viewModel.startNewGame()
-                                }) {
-                                    Text("Play Again")
-                                }
-                            }
-                        },
-                        dismissButton = {
-                            if (mode != "daily") {
-                                TextButton(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.navigate("home") { popUpTo(0) }
-                                }) {
-                                    Text("Main Menu")
-                                }
-                            }
-                        }
+                    GameEndDialog(
+                        isWon = true,
+                        title = "Magnificent!",
+                        message = "You discovered the word correctly!",
+                        mode = mode,
+                        onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+                        onPlayAgainClick = { viewModel.startNewGame() }
                     )
                 } else if (state.gameStatus == GameStatus.LOST) {
-                    AlertDialog(
-                        onDismissRequest = {},
-                        title = { Text("Game Over") },
-                        text = { Text("The correct word was ${state.solution}") },
-                        confirmButton = {
-                            if (mode == "daily") {
-                                Button(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.navigate("home") { popUpTo(0) }
-                                }) {
-                                    Text("Main Menu")
-                                }
-                            } else {
-                                Button(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    viewModel.startNewGame()
-                                }) {
-                                    Text("Play Again")
-                                }
-                            }
-                        },
-                        dismissButton = {
-                            if (mode != "daily") {
-                                TextButton(onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    navController.navigate("home") { popUpTo(0) }
-                                }) {
-                                    Text("Main Menu")
-                                }
-                            }
-                        }
+                    GameEndDialog(
+                        isWon = false,
+                        title = "Game Over",
+                        message = "The correct word was ${state.solution}",
+                        mode = mode,
+                        onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+                        onPlayAgainClick = { viewModel.startNewGame() }
                     )
                 }
             }

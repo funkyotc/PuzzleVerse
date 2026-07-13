@@ -28,6 +28,10 @@ import com.funkyotc.puzzleverse.minesweeper.viewmodel.MinesweeperViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,133 +61,51 @@ fun MinesweeperScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Tap to reveal a cell. Long press to place a flag on suspected mines. If you hit a mine, game over!") },
-            confirmButton = { TextButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showHowToDialog = false }) { Text("OK") } }
+        GameHowToDialog(
+            instructions = "Tap to reveal a cell. Long press to place a flag on suspected mines. If you hit a mine, game over!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (state.isGameOver) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Game Over") },
-            text = { Text("You hit a mine!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/minesweeper/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                }) { Text("Try Again") }
-
-                }
-            }
+        GameEndDialog(
+            isWon = false,
+            title = "Game Over",
+            message = "You hit a mine!",
+            mode = mode,
+            onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+            onPlayAgainClick = { viewModel.startNewGame() }
         )
     }
 
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("You Win!") },
-            text = { Text("You found all the safe tiles!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/minesweeper/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else {
-
-                Button(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                }) { Text("Play Again") }
-
-                }
-            }
+        GameEndDialog(
+            isWon = true,
+            title = "You Win!",
+            message = "You found all the safe tiles!",
+            mode = mode,
+            onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+            onPlayAgainClick = { viewModel.startNewGame() }
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start over?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                    showNewGameDialog = false
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start over?",
+            onConfirm = {
+                viewModel.startNewGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Minesweeper") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
-                        }
-                    }
-                }
-            )
-        }
+    StandardGameLayout(
+        title = "Minesweeper",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
         Column(
             modifier = Modifier

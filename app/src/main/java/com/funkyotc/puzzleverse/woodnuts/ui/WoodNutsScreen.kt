@@ -54,6 +54,10 @@ import com.funkyotc.puzzleverse.woodnuts.data.Plank
 import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModel
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModelFactory
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import kotlin.math.sqrt
 
 private val PLANK_PALETTE = listOf(
@@ -99,116 +103,58 @@ fun WoodNutsScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = {
-                Text(
-                    "Wooden planks are held together by bolts. " +
-                    "Tap a bolt to unscrew it. " +
-                    "When the last bolt holding a plank is removed, the plank falls off. " +
-                    "Planks falling may expose other bolts and trigger chain reactions. " +
-                    "Remove all planks to win!"
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) {
-                    Text("Got it")
-                }
-            }
+        GameHowToDialog(
+            instructions = "Wooden planks are held together by bolts. Tap a bolt to unscrew it. When the last bolt holding a plank is removed, the plank falls off. Planks falling may expose other bolts and trigger chain reactions. Remove all planks to win!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (showVictoryDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Victory!") },
-            text = { Text("All planks removed in ${state.moves} moves!") },
-            confirmButton = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (mode == "puzzle") {
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                showVictoryDialog = false
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Back to Browser") }
-
-                        val nextId = puzzleId?.let { id ->
-                            val all = WoodNutsPregenerated.ALL_LEVELS
-                            val i = all.indexOfFirst { it.id == id }
-                            if (i != -1 && i + 1 < all.size) all[i + 1].id else null
-                        }
-                        if (nextId != null) {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    showVictoryDialog = false
-                                    navController.popBackStack()
-                                    navController.navigate("game/woodnuts/puzzle/$nextId")
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) { Text("Next Puzzle") }
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                showVictoryDialog = false
-                                viewModel.startNewGame()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Play Again") }
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                showVictoryDialog = false
-                                viewModel.startNewGame()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("New Game") }
-                    }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val all = WoodNutsPregenerated.ALL_LEVELS
+            val i = all.indexOfFirst { it.id == puzzleId }
+            val nextId = if (i != -1 && i + 1 < all.size) all[i + 1].id else null
+            if (nextId != null) {
+                {
+                    showVictoryDialog = false
+                    navController.popBackStack()
+                    navController.navigate("game/woodnuts/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Victory!",
+            message = "All planks removed in ${state.moves} moves!",
+            mode = mode,
+            onMainMenuClick = {
+                showVictoryDialog = false
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                showVictoryDialog = false
+                viewModel.startNewGame()
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Wood Nuts & Bolts") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How to Play")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame()
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Wood Nuts & Bolts",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                viewModel.startNewGame()
+            }) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+            }
         }
     ) { paddingValues ->
         Box(

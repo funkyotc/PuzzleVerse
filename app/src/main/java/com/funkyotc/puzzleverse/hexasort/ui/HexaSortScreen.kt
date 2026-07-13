@@ -47,6 +47,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortEvent
 import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortViewModel
 import com.funkyotc.puzzleverse.hexasort.viewmodel.HexaSortViewModelFactory
@@ -122,114 +126,81 @@ fun HexaSortScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Tap groups of 2+ same-colored hexes to clear them. Clear all hexes to win!") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) { Text("OK") }
-            }
+        GameHowToDialog(
+            instructions = "Tap groups of 2+ same-colored hexes to clear them. Clear all hexes to win!",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (showVictoryDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Victory!") },
-            text = { Text("All hexes cleared! Score: $victoryScore") },
-            confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showVictoryDialog = false
-                        navController.navigate("home") { popUpTo(0) }
-                    }) { Text("Main Menu") }
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showVictoryDialog = false
-                        viewModel.startNewGame()
-                    }) { Text("Play Again") }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val allPuzzles = com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES
+            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
+            if (nextId != null) {
+                {
+                    showVictoryDialog = false
+                    navController.popBackStack()
+                    navController.navigate("game/hexasort/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "Victory!",
+            message = "All hexes cleared! Score: $victoryScore",
+            mode = mode,
+            onMainMenuClick = {
+                showVictoryDialog = false
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                showVictoryDialog = false
+                viewModel.startNewGame()
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showGameOverDialog) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("Game Over") },
-            text = { Text("No more moves available!") },
-            confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showGameOverDialog = false
-                        navController.navigate("home") { popUpTo(0) }
-                    }) { Text("Main Menu") }
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showGameOverDialog = false
-                        viewModel.startNewGame()
-                    }) { Text("Try Again") }
-                }
+        GameEndDialog(
+            isWon = false,
+            title = "Game Over",
+            message = "No more moves available!",
+            mode = mode,
+            onMainMenuClick = {
+                showGameOverDialog = false
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onPlayAgainClick = {
+                showGameOverDialog = false
+                viewModel.startNewGame()
             }
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start a new game?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                    viewModel.startNewGame()
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start a new game?",
+            onConfirm = {
+                showNewGameDialog = false
+                viewModel.startNewGame()
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Hexa Sort") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
-                        }
-                    }
-                }
-            )
-        }
+    StandardGameLayout(
+        title = "Hexa Sort",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
         Column(
             modifier = Modifier

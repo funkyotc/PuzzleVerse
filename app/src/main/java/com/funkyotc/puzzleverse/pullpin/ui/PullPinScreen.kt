@@ -64,6 +64,10 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import com.funkyotc.puzzleverse.pullpin.data.Cell
 import com.funkyotc.puzzleverse.pullpin.data.CellType
 import com.funkyotc.puzzleverse.pullpin.data.PullPinState
@@ -182,79 +186,65 @@ fun PullPinScreen(
         }
     }
 
-    PullPinDialogHowToPlay(showHowToPlay) { showHowToPlay = false }
+    if (showHowToPlay) {
+        GameHowToDialog(
+            title = "How to Play",
+            instructions = "Pull the Pin is a logic physics puzzle!\n\n• Tap on pin handles to pull them out.\n• Colored balls fall and roll under gravity.\n• Grey balls have no color. They must touch colored balls to gain color.\n• Guide all balls into their matching colored cups.\n• Avoid letting grey balls or wrong colors enter the cups!",
+            onDismiss = { showHowToPlay = false }
+        )
+    }
 
     state?.let { s ->
         if (showWinDialog) {
-            PullPinWinDialog(
-                state = s,
-                onDismiss = { showWinDialog = false },
-                onNextPuzzle = {
+            GameEndDialog(
+                isWon = true,
+                title = "Victory!",
+                message = "All balls are safely in their cups!\nMoves: ${s.moves}",
+                mode = mode,
+                onMainMenuClick = {
+                    showWinDialog = false
+                    navController.popBackStack()
+                },
+                onPlayAgainClick = {
                     showWinDialog = false
                     prevInCup = emptySet()
                     viewModel.startNewGame()
-                },
-                onBackToBrowser = {
-                    showWinDialog = false
-                    navController.popBackStack()
                 }
             )
         }
         if (showLoseDialog) {
-            PullPinLoseDialog(
-                state = s,
-                onDismiss = { showLoseDialog = false },
-                onRetry = {
+            GameEndDialog(
+                isWon = false,
+                title = "Defeat!",
+                message = "${s.lostReason ?: "You ran out of pins or balls got stuck."}\n\nTap Retry to try again!",
+                mode = mode,
+                onMainMenuClick = {
+                    showLoseDialog = false
+                    navController.popBackStack()
+                },
+                onPlayAgainClick = {
                     showLoseDialog = false
                     prevInCup = emptySet()
                     viewModel.startNewGame()
-                },
-                onBackToBrowser = {
-                    showLoseDialog = false
-                    navController.popBackStack()
                 }
             )
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Pull the Pin")
-                        state?.let { s ->
-                            Text(
-                                text = "${s.level.difficulty} • ${s.level.subtitle}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showHowToPlay = true }) {
-                        Text("?", fontSize = 18.sp)
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        prevInCup = emptySet()
-                        showLoseDialog = false
-                        showWinDialog = false
-                        viewModel.startNewGame()
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = state?.let { "Pull the Pin (${it.level.difficulty})" } ?: "Pull the Pin",
+        navController = navController,
+        onHowToClick = { showHowToPlay = true },
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                prevInCup = emptySet()
+                showLoseDialog = false
+                showWinDialog = false
+                viewModel.startNewGame()
+            }) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+            }
         }
     ) { paddingValues ->
         state?.let { gameState ->
@@ -550,87 +540,4 @@ private fun PullPinBoard(
     }
 }
 
-@Composable
-private fun PullPinDialogHowToPlay(visible: Boolean, onDismiss: () -> Unit) {
-    if (visible) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text("How to Play") },
-            text = {
-                Column {
-                    Text("Pull the Pin is a logic physics puzzle!")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("• Tap on pin handles to pull them out.")
-                    Text("• Colored balls fall and roll under gravity.")
-                    Text("• Grey balls have no color. They must touch colored balls to gain color.")
-                    Text("• Guide all balls into their matching colored cups.")
-                    Text("• Avoid letting grey balls or wrong colors enter the cups!")
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) {
-                    Text("Got it!")
-                }
-            }
-        )
-    }
-}
 
-@Composable
-private fun PullPinWinDialog(
-    state: PullPinState,
-    onDismiss: () -> Unit,
-    onNextPuzzle: () -> Unit,
-    onBackToBrowser: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Victory!") },
-        text = {
-            Column {
-                Text("All balls are safely in their cups!")
-                Text("Moves: ${state.moves}")
-            }
-        },
-        confirmButton = {
-            Button(onClick = onNextPuzzle) {
-                Text("Next Puzzle")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onBackToBrowser) {
-                Text("Back")
-            }
-        }
-    )
-}
-
-@Composable
-private fun PullPinLoseDialog(
-    state: PullPinState,
-    onDismiss: () -> Unit,
-    onRetry: () -> Unit,
-    onBackToBrowser: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Defeat!") },
-        text = {
-            Column {
-                Text(state.lostReason ?: "You ran out of pins or balls got stuck.")
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Tap Retry to try again!")
-            }
-        },
-        confirmButton = {
-            Button(onClick = onRetry) {
-                Text("Retry")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onBackToBrowser) {
-                Text("Back")
-            }
-        }
-    )
-}
