@@ -37,6 +37,10 @@ import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,152 +67,86 @@ fun FlowFreeScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Connect matching colors with pipes to create a flow. Pair all colors, and cover the entire board to solve each puzzle. Pipes cannot branch or cross each other.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) { Text("OK") }
-            }
+        GameHowToDialog(
+            instructions = "Connect matching colors with pipes to create a flow. Pair all colors, and cover the entire board to solve each puzzle. Pipes cannot branch or cross each other.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
-    // Track puzzle completion
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val completionRepo = remember { PuzzleCompletionRepository(context, "Flow") }
-
-    LaunchedEffect(state.isWon) {
-        if (state.isWon && mode == "puzzle" && puzzleId != null) {
-            completionRepo.markCompleted(puzzleId)
-        }
-    }
-
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("You Win!") },
-            text = { Text("You connected all flows and filled the grid!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            Text("Main Menu")
-                        }
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/flowfree/standard/new") { popUpTo("home") }
-                        }) {
-                            Text("Random Puzzles")
-                        }
-                    }
-                } else if (mode == "puzzle" && puzzleId != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) {
-                            Text("Back to List")
-                        }
-                        // Find next puzzle in same size group
-                        val currentPuzzle = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.getPuzzleById(puzzleId)
-                        val sameSizePuzzles = if (currentPuzzle != null) {
-                            com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
-                                .filter { it.size == currentPuzzle.size && it.difficulty == currentPuzzle.difficulty }
-                        } else emptyList()
-                        val currentIndex = sameSizePuzzles.indexOfFirst { it.id == puzzleId }
-                        val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameSizePuzzles.size - 1) {
-                            sameSizePuzzles[currentIndex + 1]
-                        } else null
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val currentPuzzle = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.getPuzzleById(puzzleId)
+            val sameSizePuzzles = if (currentPuzzle != null) {
+                com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
+                    .filter { it.size == currentPuzzle.size && it.difficulty == currentPuzzle.difficulty }
+            } else emptyList()
+            val currentIndex = sameSizePuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameSizePuzzles.size - 1) {
+                sameSizePuzzles[currentIndex + 1]
+            } else null
 
-                        if (nextPuzzle != null) {
-                            Button(onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.navigate("game/flowfree/puzzle/${nextPuzzle.id}") {
-                                    popUpTo("flowfree/puzzles")
-                                }
-                            }) {
-                                Text("Next Puzzle")
-                            }
-                        }
+            if (nextPuzzle != null) {
+                {
+                    navController.navigate("game/flowfree/puzzle/${nextPuzzle.id}") {
+                        popUpTo("flowfree/puzzles")
                     }
-                } else {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame()
-                    }) { Text("Play Again") }
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "You Win!",
+            message = "You connected all flows and filled the grid!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/flowfree/standard/new") { popUpTo("home") }
+                } else {
+                    viewModel.startNewGame()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start over?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                    showNewGameDialog = false
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start over?",
+            onConfirm = {
+                viewModel.startNewGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Flow Free") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.undo()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.restartLevel()
-                    }) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Restart")
-                    }
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily" && mode != "puzzle") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
-                        }
-                    }
-                }
-            )
+    StandardGameLayout(
+        title = "Flow Free",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily" && mode != "puzzle") { { showNewGameDialog = true } } else null,
+        actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                viewModel.undo()
+            }) {
+                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+            }
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                viewModel.restartLevel()
+            }) {
+                Icon(Icons.Filled.Refresh, contentDescription = "Restart")
+            }
         }
     ) { paddingValues ->
         Column(

@@ -29,6 +29,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,124 +65,65 @@ fun KakuroScreen(
     }
 
     if (showHowToDialog) {
-        AlertDialog(
-            onDismissRequest = { showHowToDialog = false },
-            title = { Text("How To Play") },
-            text = { Text("Fill white cells with numbers 1-9. Numbers in a run cannot repeat, and must sum up to the clue numbers. The top-right number is the horizontal sum, bottom-left is vertical.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showHowToDialog = false
-                }) { Text("OK") }
-            }
+        GameHowToDialog(
+            instructions = "Fill white cells with numbers 1-9. Numbers in a run cannot repeat, and must sum up to the clue numbers. The top-right number is the horizontal sum, bottom-left is vertical.",
+            onDismiss = { showHowToDialog = false }
         )
     }
 
     if (state.isWon) {
-        AlertDialog(
-            onDismissRequest = {},
-            title = { Text("You Win!") },
-            text = { Text("You solved the Kakuro puzzle!") },
-            confirmButton = {
-                if (mode == "daily") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("home") { popUpTo(0) }
-                        }) {
-                            androidx.compose.material3.Text("Main Menu")
-                        }
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/kakuro/standard/new") { popUpTo("home") }
-                        }) {
-                            androidx.compose.material3.Text("Random Puzzles")
-                        }
-                    }
-                } else if (mode == "puzzle") {
-                    androidx.compose.foundation.layout.Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                        androidx.compose.material3.Button(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.popBackStack()
-                        }) {
-                            androidx.compose.material3.Text("Back to List")
-                        }
-                        val nextId = puzzleId?.let { id ->
-                            val diffPuzzles = com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
-                            val currentIndex = diffPuzzles.indexOfFirst { it.id == id }
-                            if (currentIndex != -1 && currentIndex + 1 < diffPuzzles.size) diffPuzzles[currentIndex + 1].id else null
-                        }
-                        if (nextId != null) {
-                            androidx.compose.material3.Button(onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                navController.popBackStack()
-                                navController.navigate("game/kakuro/puzzle/$nextId")
-                            }) {
-                                androidx.compose.material3.Text("Next Puzzle")
-                            }
-                        }
-                    }
-                } else {
-                    Button(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        viewModel.startNewGame()
-                    }) { Text("Play Again") }
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val diffPuzzles = com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
+            val currentIndex = diffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextId = if (currentIndex != -1 && currentIndex + 1 < diffPuzzles.size) diffPuzzles[currentIndex + 1].id else null
+            if (nextId != null) {
+                {
+                    navController.popBackStack()
+                    navController.navigate("game/kakuro/puzzle/$nextId")
                 }
-            }
+            } else null
+        } else null
+
+        GameEndDialog(
+            isWon = true,
+            title = "You Win!",
+            message = "You solved the Kakuro puzzle!",
+            mode = mode,
+            onMainMenuClick = {
+                if (mode == "puzzle") {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate("home") { popUpTo(0) }
+                }
+            },
+            onPlayAgainClick = {
+                if (mode == "daily") {
+                    navController.navigate("game/kakuro/standard/new") { popUpTo("home") }
+                } else {
+                    viewModel.startNewGame()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 
     if (showNewGameDialog) {
-        AlertDialog(
-            onDismissRequest = { showNewGameDialog = false },
-            title = { Text("New Game") },
-            text = { Text("Are you sure you want to start over?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.startNewGame()
-                    showNewGameDialog = false
-                }) { Text("Confirm") }
+        GameConfirmDialog(
+            title = "New Game",
+            message = "Are you sure you want to start over?",
+            onConfirm = {
+                viewModel.startNewGame()
+                showNewGameDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    showNewGameDialog = false
-                }) { Text("Cancel") }
-            }
+            onDismiss = { showNewGameDialog = false }
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Kakuro") },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.popBackStack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        showHowToDialog = true
-                    }) {
-                        Icon(Icons.Filled.Info, contentDescription = "How To")
-                    }
-                    if (mode != "daily") {
-                        IconButton(onClick = {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            showNewGameDialog = true
-                        }) {
-                            Icon(Icons.Filled.Shuffle, contentDescription = "New Game")
-                        }
-                    }
-                }
-            )
-        }
+    StandardGameLayout(
+        title = "Kakuro",
+        navController = navController,
+        onHowToClick = { showHowToDialog = true },
+        onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
         Column(
             modifier = Modifier
