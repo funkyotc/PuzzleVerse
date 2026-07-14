@@ -18,5 +18,6 @@ data class HexaSortState(
     val moves: Int = 0,
     val isWon: Boolean = false,
     val isGameOver: Boolean = false,
-    val flashingCells: Set<Pair<Int, Int>> = emptySet()
+    val flashingCells: Set<Pair<Int, Int>> = emptySet(),
+    val shufflesRemaining: Int = 2
 )

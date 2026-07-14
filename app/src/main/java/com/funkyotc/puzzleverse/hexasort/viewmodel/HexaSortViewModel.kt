@@ -60,13 +60,15 @@ class HexaSortViewModel(
         val savedGrid = repository.loadGrid(gridKey)
         val savedScore = repository.loadInt("${gridKey}_score")
         val savedMoves = repository.loadInt("${gridKey}_moves")
+        val savedShuffles = repository.loadInt("${gridKey}_shuffles", 2)
         if (savedGrid != null && savedGrid.size == level.rows && savedGrid[0].size == level.cols) {
             val allEmpty = savedGrid.all { row -> row.all { it == null } }
             val noMoves = !allEmpty && !hasValidMoves(savedGrid)
             return HexaSortState(
                 level = level, grid = savedGrid,
                 score = savedScore, moves = savedMoves,
-                isWon = allEmpty, isGameOver = noMoves
+                isWon = allEmpty, isGameOver = noMoves,
+                shufflesRemaining = savedShuffles
             )
         }
         return generateFreshState()
@@ -75,7 +77,7 @@ class HexaSortViewModel(
     private fun generateFreshState(): HexaSortState? {
         val level = pickLevel() ?: return null
         val grid = level.grid.map { row -> row.map { it } }
-        val state = HexaSortState(level = level, grid = grid)
+        val state = HexaSortState(level = level, grid = grid, shufflesRemaining = 2)
         saveState(state)
         return state
     }
@@ -101,12 +103,14 @@ class HexaSortViewModel(
         repository.saveGrid(state.grid, gridKey)
         repository.saveInt("${gridKey}_score", state.score)
         repository.saveInt("${gridKey}_moves", state.moves)
+        repository.saveInt("${gridKey}_shuffles", state.shufflesRemaining)
     }
 
     private fun clearSavedState() {
         repository.removeKey(gridKey)
         repository.removeKey("${gridKey}_score")
         repository.removeKey("${gridKey}_moves")
+        repository.removeKey("${gridKey}_shuffles")
     }
 
     private fun startTimer() {
@@ -135,6 +139,7 @@ class HexaSortViewModel(
     fun tapCell(row: Int, col: Int) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
+        if (currentState.flashingCells.isNotEmpty()) return // Ignore taps during animation
 
         val grid = currentState.grid
         if (grid.isEmpty() || row !in grid.indices || col !in grid[0].indices) return
@@ -145,27 +150,89 @@ class HexaSortViewModel(
 
         if (group.size < 2) return
 
-        val newGrid = grid.map { it.toMutableList() }.toMutableList()
-        group.forEach { (r, c) -> newGrid[r][c] = null }
-        flashGroup(group)
-        applyGravity(newGrid)
+        // 1. Create holey grid (cells in group set to null)
+        val holeyGrid = grid.map { it.toMutableList() }.toMutableList()
+        group.forEach { (r, c) -> holeyGrid[r][c] = null }
 
+        // Update state to holey grid with flashing cells (pop animation stage)
+        val scoreIncrement = group.size * 10
+        val holeyState = currentState.copy(
+            grid = holeyGrid,
+            flashingCells = group,
+            score = currentState.score + scoreIncrement,
+            moves = currentState.moves + 1
+        )
+        _state.value = holeyState
 
-        val allEmpty = newGrid.all { row -> row.all { it == null } }
-        val noMoves = !allEmpty && !hasValidMoves(newGrid)
+        // 2. Apply gravity after the pop animation finishes (delay 250ms)
+        viewModelScope.launch {
+            delay(250)
+            val finalGrid = holeyGrid.map { it.toMutableList() }.toMutableList()
+            applyGravity(finalGrid)
+
+            val allEmpty = finalGrid.all { r -> r.all { it == null } }
+            val noMoves = !allEmpty && !hasValidMoves(finalGrid)
+
+            val finalState = holeyState.copy(
+                grid = finalGrid,
+                flashingCells = emptySet(),
+                isWon = allEmpty,
+                isGameOver = noMoves
+            )
+            _state.value = finalState
+            saveState(finalState)
+
+            if (allEmpty) onWin(finalState)
+            if (noMoves && !allEmpty) onGameOver()
+        }
+    }
+
+    fun shuffleGrid() {
+        val currentState = _state.value ?: return
+        if (currentState.isWon || currentState.isGameOver || currentState.shufflesRemaining <= 0) return
+        if (currentState.flashingCells.isNotEmpty()) return // Don't shuffle during animations
+
+        val grid = currentState.grid
+        val nonNullCells = grid.flatten().filterNotNull()
+        if (nonNullCells.isEmpty()) return
+
+        // Shuffle the colors and put them back in the occupied slots
+        var shuffledColors = nonNullCells.shuffled()
+        var newGrid = grid.map { row ->
+            row.map { cell ->
+                if (cell != null) {
+                    val c = shuffledColors.first()
+                    shuffledColors = shuffledColors.drop(1)
+                    c
+                } else null
+            }
+        }
+
+        // Try up to 10 times to ensure there is at least one valid move, if possible
+        var attempts = 0
+        while (!hasValidMoves(newGrid) && nonNullCells.size > 1 && attempts < 10) {
+            shuffledColors = nonNullCells.shuffled()
+            newGrid = grid.map { row ->
+                row.map { cell ->
+                    if (cell != null) {
+                        val c = shuffledColors.first()
+                        shuffledColors = shuffledColors.drop(1)
+                        c
+                    } else null
+                }
+            }
+            attempts++
+        }
+
+        val noMoves = !newGrid.all { row -> row.all { it == null } } && !hasValidMoves(newGrid)
 
         val newState = currentState.copy(
             grid = newGrid,
-            score = currentState.score + group.size * 10,
-            moves = currentState.moves + 1,
-            isWon = allEmpty,
+            shufflesRemaining = currentState.shufflesRemaining - 1,
             isGameOver = noMoves
         )
         _state.value = newState
         saveState(newState)
-
-        if (allEmpty) onWin(newState)
-        if (noMoves && !allEmpty) onGameOver()
     }
 
     private fun onWin(state: HexaSortState) {

@@ -1,21 +1,29 @@
 package com.funkyotc.puzzleverse.hexasort.ui
 
 import android.content.Context
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,12 +35,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -41,6 +53,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -60,6 +76,10 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.abs
+import kotlin.random.Random
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 
 private val paletteColors = listOf(
     Color(0xFFE53935),
@@ -68,6 +88,55 @@ private val paletteColors = listOf(
     Color(0xFFFDD835),
     Color(0xFF8E24AA),
     Color(0xFFFF6F00)
+)
+
+fun Color.lighten(factor: Float = 0.25f): Color {
+    return Color(
+        red = (red + (1f - red) * factor).coerceIn(0f, 1f),
+        green = (green + (1f - green) * factor).coerceIn(0f, 1f),
+        blue = (blue + (1f - blue) * factor).coerceIn(0f, 1f),
+        alpha = alpha
+    )
+}
+
+fun Color.darken(factor: Float = 0.25f): Color {
+    return Color(
+        red = (red * (1f - factor)).coerceIn(0f, 1f),
+        green = (green * (1f - factor)).coerceIn(0f, 1f),
+        blue = (blue * (1f - factor)).coerceIn(0f, 1f),
+        alpha = alpha
+    )
+}
+
+class VisualTile(
+    val color: Int,
+    var row: Int,
+    var col: Int,
+    val offsetY: Animatable<Float, AnimationVector1D> = Animatable(0f),
+    val scale: Animatable<Float, AnimationVector1D> = Animatable(1f),
+    val alpha: Animatable<Float, AnimationVector1D> = Animatable(1f),
+    val offsetX: Animatable<Float, AnimationVector1D> = Animatable(0f)
+)
+
+data class HexParticle(
+    var x: Float,
+    var y: Float,
+    var vx: Float,
+    var vy: Float,
+    val color: Color,
+    var alpha: Float,
+    val size: Float,
+    var life: Float
+)
+
+data class HexComboText(
+    val text: String,
+    val x: Float,
+    val y: Float,
+    val color: Color,
+    var currentYOffset: Float,
+    var alpha: Float,
+    var life: Float
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,6 +162,15 @@ fun HexaSortScreen(
     var showGameOverDialog by remember { mutableStateOf(false) }
     var victoryScore by remember { mutableStateOf(0) }
     var streakUpdated by remember { mutableStateOf(false) }
+
+    val activeTiles = remember { mutableMapOf<Pair<Int, Int>, VisualTile>() }
+    val disappearingTiles = remember { mutableStateListOf<VisualTile>() }
+    val particles = remember { mutableStateListOf<HexParticle>() }
+    val comboTexts = remember { mutableStateListOf<HexComboText>() }
+    val coroutineScope = rememberCoroutineScope()
+    var canvasSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    var isShufflingUI by remember { mutableStateOf(false) }
+    val textMeasurer = rememberTextMeasurer()
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -120,6 +198,208 @@ fun HexaSortScreen(
                 is HexaSortEvent.GameOver -> {
                     showGameOverDialog = true
                     soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(state?.grid, canvasSize) {
+        val gs = state ?: return@LaunchedEffect
+        val grid = gs.grid
+        val level = gs.level
+        val rows = level.rows
+        val cols = level.cols
+        if (canvasSize.width == 0 || canvasSize.height == 0) return@LaunchedEffect
+
+        val cW = canvasSize.width.toFloat()
+        val cH = canvasSize.height.toFloat()
+
+        val (hexW, _) = computeHexSize(rows, cols, cW, cH)
+        val R = hexW / sqrt(3.0).toFloat()
+        val dx = sqrt(3.0).toFloat() * R
+        val dy = 1.5f * R
+        val gridWidth = (cols + 0.5f) * dx
+        val gridHeight = (1.5f * rows + 0.5f) * R
+        val offsetX = (cW - gridWidth) / 2 + dx / 2
+        val offsetY = (cH - gridHeight) / 2 + R
+
+        if (gs.moves == 0 || activeTiles.isEmpty() || isShufflingUI) {
+            activeTiles.clear()
+            disappearingTiles.clear()
+            for (r in 0 until rows) {
+                for (c in 0 until cols) {
+                    val colorIdx = grid[r][c]
+                    if (colorIdx != null) {
+                        activeTiles[r to c] = VisualTile(
+                            color = colorIdx,
+                            row = r,
+                            col = c,
+                            offsetY = Animatable(0f),
+                            scale = Animatable(if (isShufflingUI) 0f else 1f),
+                            alpha = Animatable(if (isShufflingUI) 0f else 1f)
+                        )
+                        if (isShufflingUI) {
+                            coroutineScope.launch {
+                                launch { activeTiles[r to c]?.scale?.animateTo(1f, tween(250)) }
+                                launch { activeTiles[r to c]?.alpha?.animateTo(1f, tween(250)) }
+                            }
+                        }
+                    }
+                }
+            }
+            if (isShufflingUI) {
+                isShufflingUI = false
+            }
+        } else {
+            val flashing = gs.flashingCells
+            if (flashing.isNotEmpty()) {
+                flashing.forEach { coord ->
+                    val tile = activeTiles.remove(coord)
+                    if (tile != null) {
+                        disappearingTiles.add(tile)
+                        coroutineScope.launch {
+                            tile.scale.animateTo(0f, tween(200))
+                            disappearingTiles.remove(tile)
+                        }
+                        coroutineScope.launch {
+                            tile.alpha.animateTo(0f, tween(200))
+                        }
+
+                        val cx = offsetX + coord.second * dx + (if (coord.first % 2 == 1) dx / 2 else 0f)
+                        val cy = offsetY + coord.first * dy
+                        val baseColor = paletteColors[tile.color.coerceIn(0, paletteColors.lastIndex)]
+                        repeat(10) {
+                            val angle = Random.nextFloat() * 2 * PI.toFloat()
+                            val speed = Random.nextFloat() * 4f + 1f
+                            particles.add(
+                                HexParticle(
+                                    x = cx,
+                                    y = cy,
+                                    vx = cos(angle) * speed,
+                                    vy = sin(angle) * speed - 1.5f,
+                                    color = baseColor,
+                                    alpha = 1f,
+                                    size = Random.nextFloat() * 6f + 3f,
+                                    life = 1f
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if (flashing.size >= 5) {
+                    val avgX = flashing.map { it.second }.average().toFloat()
+                    val avgR = flashing.map { it.first }.average().toFloat()
+                    val cx = offsetX + avgX * dx + (if (avgR.toInt() % 2 == 1) dx / 2 else 0f)
+                    val cy = offsetY + avgR * dy
+                    val tileColor = flashing.firstNotNullOfOrNull { grid[it.first][it.second] }
+                        ?: flashing.firstNotNullOfOrNull { disappearingTiles.find { dt -> dt.row == it.first && dt.col == it.second }?.color }
+                        ?: 0
+                    val baseColor = paletteColors[tileColor.coerceIn(0, paletteColors.lastIndex)]
+                    comboTexts.add(
+                        HexComboText(
+                            text = "${flashing.size} Hex Combo!",
+                            x = cx,
+                            y = cy - 20f,
+                            color = baseColor,
+                            currentYOffset = 0f,
+                            alpha = 1f,
+                            life = 1f
+                        )
+                    )
+                }
+            } else {
+                val newActive = mutableMapOf<Pair<Int, Int>, VisualTile>()
+                for (c in 0 until cols) {
+                    val remainingOldTiles = mutableListOf<VisualTile>()
+                    for (r in rows - 1 downTo 0) {
+                        val tile = activeTiles[r to c]
+                        if (tile != null) {
+                            remainingOldTiles.add(tile)
+                        }
+                    }
+
+                    val newOccupiedRows = mutableListOf<Int>()
+                    for (r in rows - 1 downTo 0) {
+                        if (grid[r][c] != null) {
+                            newOccupiedRows.add(r)
+                        }
+                    }
+
+                    for (i in 0 until minOf(remainingOldTiles.size, newOccupiedRows.size)) {
+                        val tile = remainingOldTiles[i]
+                        val oldRow = tile.row
+                        val newRow = newOccupiedRows[i]
+
+                        tile.row = newRow
+                        newActive[newRow to c] = tile
+
+                        if (oldRow != newRow) {
+                            val startOffsetPx = (oldRow - newRow) * dy
+                            coroutineScope.launch {
+                                tile.offsetY.snapTo(startOffsetPx)
+                                tile.offsetY.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                activeTiles.clear()
+                activeTiles.putAll(newActive)
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameMillis {
+                val iterator = particles.iterator()
+                while (iterator.hasNext()) {
+                    val p = iterator.next()
+                    p.x += p.vx
+                    p.y += p.vy
+                    p.vy += 0.2f
+                    p.life -= 0.03f
+                    p.alpha = p.life.coerceIn(0f, 1f)
+                    if (p.life <= 0f) {
+                        iterator.remove()
+                    }
+                }
+
+                val textIterator = comboTexts.iterator()
+                while (textIterator.hasNext()) {
+                    val t = textIterator.next()
+                    t.currentYOffset -= 1f
+                    t.life -= 0.02f
+                    t.alpha = t.life.coerceIn(0f, 1f)
+                    if (t.life <= 0f) {
+                        textIterator.remove()
+                    }
+                }
+            }
+        }
+    }
+
+    val onShuffleClick = {
+        if (state != null) {
+            val gs = state!!
+            if (!isShufflingUI && !gs.isWon && !gs.isGameOver && gs.shufflesRemaining > 0 && gs.flashingCells.isEmpty()) {
+                isShufflingUI = true
+                coroutineScope.launch {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    val jobs = activeTiles.values.map { tile ->
+                        launch {
+                            tile.scale.animateTo(0f, tween(150))
+                            tile.alpha.animateTo(0f, tween(150))
+                        }
+                    }
+                    jobs.joinAll()
+                    viewModel.shuffleGrid()
                 }
             }
         }
@@ -212,12 +492,28 @@ fun HexaSortScreen(
             state?.let { gs ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = "Score: ${gs.score}", fontSize = 16.sp)
                     Text(text = "Moves: ${gs.moves}", fontSize = 16.sp)
                     val timeFormatted = String.format(java.util.Locale.ROOT, "%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
                     Text(text = timeFormatted, fontSize = 16.sp)
+                }
+
+                Button(
+                    onClick = onShuffleClick,
+                    enabled = gs.shufflesRemaining > 0 && !isShufflingUI && !gs.isWon && !gs.isGameOver && gs.flashingCells.isEmpty(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFF9100),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color.LightGray
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Shuffle (${gs.shufflesRemaining})", fontSize = 14.sp)
                 }
 
                 val level = gs.level
@@ -228,8 +524,6 @@ fun HexaSortScreen(
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
-                    var canvasSize by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
-
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
@@ -251,8 +545,107 @@ fun HexaSortScreen(
                                 }
                             }
                     ) {
-                        val (hexW, hexH) = computeHexSize(level.rows, level.cols, size.width, size.height)
-                        drawHexGrid(gs.grid, level.rows, level.cols, hexW, hexH, gs.flashingCells)
+                        val rows = level.rows
+                        val cols = level.cols
+                        val (hexW, _) = computeHexSize(rows, cols, size.width, size.height)
+                        val R = hexW / sqrt(3.0).toFloat()
+                        val dx = sqrt(3.0).toFloat() * R
+                        val dy = 1.5f * R
+                        val gridWidth = (cols + 0.5f) * dx
+                        val gridHeight = (1.5f * rows + 0.5f) * R
+                        val offsetX = (size.width - gridWidth) / 2 + dx / 2
+                        val offsetY = (size.height - gridHeight) / 2 + R
+
+                        // 1. Draw empty outlines
+                        for (r in 0 until rows) {
+                            for (c in 0 until cols) {
+                                if (gs.grid[r][c] == null) {
+                                    val cx = offsetX + c * dx + (if (r % 2 == 1) dx / 2 else 0f)
+                                    val cy = offsetY + r * dy
+                                    val path = createHexPath(cx, cy, R)
+                                    drawPath(path, Color.Gray.copy(alpha = 0.15f), style = Stroke(width = 1.5f))
+                                }
+                            }
+                        }
+
+                        // 2. Draw active tiles
+                        activeTiles.values.forEach { tile ->
+                            val scale = tile.scale.value
+                            val alpha = tile.alpha.value
+                            if (scale > 0f && alpha > 0f) {
+                                val cx = offsetX + tile.col * dx + (if (tile.row % 2 == 1) dx / 2 else 0f)
+                                val cy = offsetY + tile.row * dy + tile.offsetY.value
+
+                                val baseColor = paletteColors[tile.color.coerceIn(0, paletteColors.lastIndex)]
+                                val lightColor = baseColor.lighten(0.3f)
+                                val darkColor = baseColor.darken(0.3f)
+
+                                val shadowPath = createHexPath(cx + 2f, cy + 4f, R * scale)
+                                drawPath(shadowPath, Color.Black.copy(alpha = 0.15f * alpha), style = Fill)
+
+                                val path = createHexPath(cx, cy, R * scale)
+                                val brush = Brush.linearGradient(
+                                    colors = listOf(lightColor, darkColor),
+                                    start = Offset(cx - R * scale, cy - R * scale),
+                                    end = Offset(cx + R * scale, cy + R * scale)
+                                )
+                                drawPath(path, brush, alpha = alpha, style = Fill)
+                                drawPath(path, Color.White.copy(alpha = 0.35f * alpha), style = Stroke(width = 1.5f * scale))
+                            }
+                        }
+
+                        // 3. Draw disappearing tiles
+                        disappearingTiles.forEach { tile ->
+                            val scale = tile.scale.value
+                            val alpha = tile.alpha.value
+                            if (scale > 0f && alpha > 0f) {
+                                val cx = offsetX + tile.col * dx + (if (tile.row % 2 == 1) dx / 2 else 0f)
+                                val cy = offsetY + tile.row * dy + tile.offsetY.value
+
+                                val baseColor = paletteColors[tile.color.coerceIn(0, paletteColors.lastIndex)]
+                                val lightColor = baseColor.lighten(0.3f)
+                                val darkColor = baseColor.darken(0.3f)
+
+                                val shadowPath = createHexPath(cx + 2f, cy + 4f, R * scale)
+                                drawPath(shadowPath, Color.Black.copy(alpha = 0.15f * alpha), style = Fill)
+
+                                val path = createHexPath(cx, cy, R * scale)
+                                val brush = Brush.linearGradient(
+                                    colors = listOf(lightColor, darkColor),
+                                    start = Offset(cx - R * scale, cy - R * scale),
+                                    end = Offset(cx + R * scale, cy + R * scale)
+                                )
+                                drawPath(path, brush, alpha = alpha, style = Fill)
+                                drawPath(path, Color.White.copy(alpha = 0.35f * alpha), style = Stroke(width = 1.5f * scale))
+                            }
+                        }
+
+                        // 4. Draw particles
+                        particles.forEach { p ->
+                            drawCircle(
+                                color = p.color,
+                                radius = p.size * p.life,
+                                center = Offset(p.x, p.y),
+                                alpha = p.alpha
+                            )
+                        }
+
+                        // 5. Draw combo texts
+                        comboTexts.forEach { t ->
+                            val textLayoutResult = textMeasurer.measure(
+                                text = t.text,
+                                style = TextStyle(
+                                    color = t.color,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            )
+                            drawText(
+                                textLayoutResult = textLayoutResult,
+                                topLeft = Offset(t.x - textLayoutResult.size.width / 2f, t.y + t.currentYOffset),
+                                alpha = t.alpha
+                            )
+                        }
                     }
                 }
             }
@@ -262,43 +655,11 @@ fun HexaSortScreen(
 
 private fun computeHexSize(rows: Int, cols: Int, canvasW: Float, canvasH: Float): Pair<Float, Float> {
     if (rows == 0 || cols == 0 || canvasW <= 0 || canvasH <= 0) return 40f to 34.64f
-    val hexWByWidth = (canvasW - 10f) / (cols * 0.75f + 0.5f)
-    val hexHByHeight = (canvasH - 10f) / (rows * sqrt(3.0) / 2 + sqrt(3.0) / 4).toFloat()
-    val hexW = minOf(hexWByWidth, hexHByHeight * 2f / sqrt(3.0).toFloat(), 80f)
-    return hexW to (sqrt(3.0) * hexW / 2).toFloat()
-}
-
-private fun DrawScope.drawHexGrid(
-    grid: List<List<Int?>>,
-    rows: Int,
-    cols: Int,
-    hexWidth: Float,
-    hexHeight: Float,
-    flashingCells: Set<Pair<Int, Int>>
-) {
-    val offsetX = (size.width - cols * hexWidth * 0.75f - hexWidth * 0.5f) / 2
-    val offsetY = (size.height - rows * hexHeight - hexHeight / 2) / 2
-
-    for (r in 0 until rows) {
-        for (c in 0 until cols) {
-            val cellValue = grid[r][c] ?: continue
-            val isFlashing = (r to c) in flashingCells
-            val cx = offsetX + c * hexWidth * 0.75f + hexWidth / 2
-            val cy = offsetY + r * hexHeight + (if (r % 2 == 1) hexHeight / 2 else 0f) + hexHeight / 2
-
-            val colorIdx = cellValue.coerceIn(0, paletteColors.lastIndex)
-            val fillColor = paletteColors[colorIdx]
-            val strokeColor = fillColor.copy(alpha = 0.7f)
-
-            val path = createHexPath(cx, cy, hexWidth / 2)
-            if (isFlashing) {
-                drawPath(path, fillColor.copy(alpha = 0.35f), style = Fill)
-            } else {
-                drawPath(path, fillColor, style = Fill)
-            }
-            drawPath(path, strokeColor, style = Stroke(width = 2f))
-        }
-    }
+    val rWidthMax = canvasW / ((cols + 0.5f) * sqrt(3.0f))
+    val rHeightMax = canvasH / (1.5f * rows + 0.5f)
+    val r = minOf(rWidthMax, rHeightMax, 40f)
+    val hexW = r * sqrt(3.0f)
+    return hexW to (1.5f * r)
 }
 
 private fun createHexPath(centerX: Float, centerY: Float, radius: Float): Path {
@@ -321,19 +682,22 @@ private fun hitTestHex(
     canvasWidth: Float,
     canvasHeight: Float
 ): Pair<Int, Int>? {
-    val hexHeight = (sqrt(3.0) * hexWidth / 2).toFloat()
-    val offsetX = (canvasWidth - cols * hexWidth * 0.75f - hexWidth * 0.5f) / 2
-    val offsetY = (canvasHeight - rows * hexHeight - hexHeight / 2) / 2
-    val inRadius = hexWidth / 2 * cos(PI / 6).toFloat()
-    val inRadiusSq = inRadius * inRadius
+    val R = hexWidth / sqrt(3.0).toFloat()
+    val dx = sqrt(3.0).toFloat() * R
+    val dy = 1.5f * R
+    val gridWidth = (cols + 0.5f) * dx
+    val gridHeight = (1.5f * rows + 0.5f) * R
+    val offsetX = (canvasWidth - gridWidth) / 2 + dx / 2
+    val offsetY = (canvasHeight - gridHeight) / 2 + R
 
     for (r in 0 until rows) {
         for (c in 0 until cols) {
-            val cx = offsetX + c * hexWidth * 0.75f + hexWidth / 2
-            val cy = offsetY + r * hexHeight + (if (r % 2 == 1) hexHeight / 2 else 0f) + hexHeight / 2
-            val dx = tap.x - cx
-            val dy = tap.y - cy
-            if (dx * dx + dy * dy <= inRadiusSq) {
+            val cx = offsetX + c * dx + (if (r % 2 == 1) dx / 2 else 0f)
+            val cy = offsetY + r * dy
+            val dxCell = tap.x - cx
+            val dyCell = tap.y - cy
+
+            if (abs(dxCell) <= dx / 2f && abs(dyCell) + abs(dxCell) / sqrt(3.0f) <= R) {
                 return r to c
             }
         }
