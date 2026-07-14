@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
-import com.funkyotc.puzzleverse.chess.data.ChessPiece
+import com.funkyotc.puzzleverse.chess.data.ChessPieceUiModel
 import com.funkyotc.puzzleverse.chess.data.ChessState
 import com.funkyotc.puzzleverse.chess.data.PieceColor
 import com.funkyotc.puzzleverse.chess.data.PieceType
@@ -16,6 +16,7 @@ import com.github.bhlangonijr.chesslib.Side
 import com.github.bhlangonijr.chesslib.Square
 import com.github.bhlangonijr.chesslib.move.Move
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,8 +49,7 @@ class ChessViewModel(
             else -> ChessPregenerated.getRandomPuzzle()
         }
 
-        puzzle = puzzle?.takeIf(::isSolvablePuzzle)
-            ?: ChessPregenerated.ALL_PUZZLES.firstOrNull(::isSolvablePuzzle)
+        puzzle = puzzle ?: ChessPregenerated.ALL_PUZZLES.firstOrNull()
 
         puzzle?.let { p ->
             chessBoard = Board()
@@ -61,39 +61,53 @@ class ChessViewModel(
             }
 
             _state.value = ChessState(
+                pieces = createInitialPieces(chessBoard),
                 fen = p.fen,
                 puzzleId = p.id,
                 difficulty = p.difficulty,
                 mateIn = p.mateIn,
-                correctMoveFrom = p.solutionFrom,
-                correctMoveTo = p.solutionTo,
+                correctMoveIndex = 0,
                 message = "Find the checkmate in ${p.mateIn}"
             )
         }
     }
 
-    private fun isSolvablePuzzle(candidate: PregeneratedChessPuzzle): Boolean {
-        return try {
-            val board = Board()
-            board.loadFromFen(candidate.fen)
-            val move = Move(
-                Square.fromValue(candidate.solutionFrom),
-                Square.fromValue(candidate.solutionTo)
-            )
-            if (!board.isMoveLegal(move, true)) return false
-            board.doMove(move)
-            board.isMated()
-        } catch (_: Exception) {
-            false
+    private fun createInitialPieces(board: Board): List<ChessPieceUiModel> {
+        val pieces = mutableListOf<ChessPieceUiModel>()
+        val pieceCounts = mutableMapOf<String, Int>()
+
+        for (row in 0..7) {
+            for (col in 0..7) {
+                val sq = squareFromRowCol(row, col)
+                val piece = board.getPiece(sq)
+                if (piece != com.github.bhlangonijr.chesslib.Piece.NONE) {
+                    val color = if (piece.getPieceSide() == Side.WHITE) PieceColor.WHITE else PieceColor.BLACK
+                    val type = when (piece.pieceType) {
+                        com.github.bhlangonijr.chesslib.PieceType.KING -> PieceType.KING
+                        com.github.bhlangonijr.chesslib.PieceType.QUEEN -> PieceType.QUEEN
+                        com.github.bhlangonijr.chesslib.PieceType.ROOK -> PieceType.ROOK
+                        com.github.bhlangonijr.chesslib.PieceType.BISHOP -> PieceType.BISHOP
+                        com.github.bhlangonijr.chesslib.PieceType.KNIGHT -> PieceType.KNIGHT
+                        com.github.bhlangonijr.chesslib.PieceType.PAWN -> PieceType.PAWN
+                        else -> continue
+                    }
+                    val typePrefix = type.name.lowercase() + "_" + color.name.lowercase()
+                    val count = pieceCounts.getOrDefault(typePrefix, 0) + 1
+                    pieceCounts[typePrefix] = count
+                    val id = "${typePrefix}_$count"
+                    pieces.add(ChessPieceUiModel(id, type, color, row, col))
+                }
+            }
         }
+        return pieces
     }
+
     fun onSquareClicked(row: Int, col: Int) {
         val st = _state.value
         if (st.isGameOver) return
 
         val square = squareFromRowCol(row, col)
         val piece = chessBoard.getPiece(square)
-
         val isPlayer = isPlayerPiece(piece)
 
         if (st.selectedRow == -1) {
@@ -114,18 +128,35 @@ class ChessViewModel(
     private fun attemptMove(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
         val fromSq = squareFromRowCol(fromRow, fromCol)
         val toSq = squareFromRowCol(toRow, toCol)
+        val moveNotation = fromSq.value() + toSq.value()
         val st = _state.value
         val p = puzzle ?: return
-        val move = Move(fromSq, toSq)
 
-        if (fromSq.value() == p.solutionFrom && toSq.value() == p.solutionTo && chessBoard.isMoveLegal(move, true)) {
+        val move = Move(fromSq, toSq)
+        if (!chessBoard.isMoveLegal(move, true)) {
+            _state.update {
+                it.copy(
+                    selectedRow = -1, selectedCol = -1,
+                    moveAttempts = it.moveAttempts + 1,
+                    message = "Illegal move. Try again!"
+                )
+            }
+            return
+        }
+
+        // Check against the puzzle's expected move sequence
+        if (st.correctMoveIndex < p.solutionMoves.size && moveNotation == p.solutionMoves[st.correctMoveIndex]) {
+            // Correct move
+            applyMoveToUi(fromRow, fromCol, toRow, toCol)
             chessBoard.doMove(move)
 
-            if (chessBoard.isMated()) {
+            val nextIndex = st.correctMoveIndex + 1
+            if (nextIndex >= p.solutionMoves.size) {
                 _state.update {
                     it.copy(
                         selectedRow = -1, selectedCol = -1,
                         isGameOver = true, isWon = true,
+                        correctMoveIndex = nextIndex,
                         message = "Checkmate! You found the solution!"
                     )
                 }
@@ -134,42 +165,64 @@ class ChessViewModel(
                 _state.update {
                     it.copy(
                         selectedRow = -1, selectedCol = -1,
-                        moveAttempts = it.moveAttempts + 1,
-                        message = "Good move, but not the fastest mate. Try again!"
+                        correctMoveIndex = nextIndex,
+                        message = "Good move! Keep going."
                     )
                 }
-                chessBoard.undoMove()
+                // Opponent's turn to reply automatically
+                playOpponentReply(p.solutionMoves[nextIndex])
             }
         } else {
-            if (chessBoard.isMoveLegal(move, true)) {
+            // Wrong move, but legal
+            _state.update {
+                it.copy(
+                    selectedRow = -1, selectedCol = -1,
+                    moveAttempts = it.moveAttempts + 1,
+                    message = "Not the right move. Try again!"
+                )
+            }
+        }
+    }
+
+    private fun playOpponentReply(moveNotation: String) {
+        viewModelScope.launch {
+            delay(500) // small delay for animation / human feel
+            
+            val fromSq = Square.fromValue(moveNotation.substring(0, 2))
+            val toSq = Square.fromValue(moveNotation.substring(2, 4))
+            val move = Move(fromSq, toSq)
+            
+            val fromPos = rowColFromSquare(fromSq)
+            val toPos = rowColFromSquare(toSq)
+            
+            if (fromPos != null && toPos != null) {
+                applyMoveToUi(fromPos.first, fromPos.second, toPos.first, toPos.second)
                 chessBoard.doMove(move)
-                if (chessBoard.isMated()) {
-                    _state.update {
-                        it.copy(
-                            selectedRow = -1, selectedCol = -1,
-                            moveAttempts = it.moveAttempts + 1,
-                            message = "That is checkmate, but find the puzzle's intended move."
-                        )
-                    }
-                } else {
-                    _state.update {
-                        it.copy(
-                            selectedRow = -1, selectedCol = -1,
-                            moveAttempts = it.moveAttempts + 1,
-                            message = "Not the right move. Try again!"
-                        )
-                    }
-                }
-                chessBoard.undoMove()
-            } else {
+                
                 _state.update {
                     it.copy(
-                        selectedRow = -1, selectedCol = -1,
-                        moveAttempts = it.moveAttempts + 1,
-                        message = "Illegal move. Try again!"
+                        correctMoveIndex = it.correctMoveIndex + 1,
+                        message = "Opponent moved. Your turn!"
                     )
                 }
             }
+        }
+    }
+
+    private fun applyMoveToUi(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
+        _state.update { st ->
+            val updatedPieces = st.pieces.map { piece ->
+                if (piece.row == toRow && piece.col == toCol && !piece.isCaptured) {
+                    // This piece was captured
+                    piece.copy(isCaptured = true)
+                } else if (piece.row == fromRow && piece.col == fromCol && !piece.isCaptured) {
+                    // This is the piece that moved
+                    piece.copy(row = toRow, col = toCol)
+                } else {
+                    piece
+                }
+            }
+            st.copy(pieces = updatedPieces)
         }
     }
 
@@ -226,26 +279,6 @@ class ChessViewModel(
         val col = notation[0] - 'a'
         val row = '8' - notation[1]
         return if (row in 0..7 && col in 0..7) Pair(row, col) else null
-    }
-
-    fun getPieceAt(row: Int, col: Int): ChessPiece? {
-        val square = squareFromRowCol(row, col)
-        return chessLibPieceToModel(chessBoard.getPiece(square))
-    }
-
-    private fun chessLibPieceToModel(libPiece: com.github.bhlangonijr.chesslib.Piece): ChessPiece? {
-        if (libPiece == com.github.bhlangonijr.chesslib.Piece.NONE) return null
-        val color = if (libPiece.getPieceSide() == Side.WHITE) PieceColor.WHITE else PieceColor.BLACK
-        val type = when (libPiece) {
-            com.github.bhlangonijr.chesslib.Piece.WHITE_KING, com.github.bhlangonijr.chesslib.Piece.BLACK_KING -> PieceType.KING
-            com.github.bhlangonijr.chesslib.Piece.WHITE_QUEEN, com.github.bhlangonijr.chesslib.Piece.BLACK_QUEEN -> PieceType.QUEEN
-            com.github.bhlangonijr.chesslib.Piece.WHITE_ROOK, com.github.bhlangonijr.chesslib.Piece.BLACK_ROOK -> PieceType.ROOK
-            com.github.bhlangonijr.chesslib.Piece.WHITE_BISHOP, com.github.bhlangonijr.chesslib.Piece.BLACK_BISHOP -> PieceType.BISHOP
-            com.github.bhlangonijr.chesslib.Piece.WHITE_KNIGHT, com.github.bhlangonijr.chesslib.Piece.BLACK_KNIGHT -> PieceType.KNIGHT
-            com.github.bhlangonijr.chesslib.Piece.WHITE_PAWN, com.github.bhlangonijr.chesslib.Piece.BLACK_PAWN -> PieceType.PAWN
-            else -> return null
-        }
-        return ChessPiece(type, color)
     }
 }
 

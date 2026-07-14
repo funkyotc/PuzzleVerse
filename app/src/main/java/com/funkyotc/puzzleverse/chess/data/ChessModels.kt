@@ -13,18 +13,19 @@ enum class PieceType(val symbol: String) {
 
 enum class PieceColor { WHITE, BLACK }
 
-data class ChessPiece(val type: PieceType, val color: PieceColor)
+data class ChessPiece(val id: String, val type: PieceType, val color: PieceColor)
 
-data class ChessBoard(
-    val squares: List<List<ChessPiece?>> = List(8) { row ->
-        List(8) { col ->
-            initialPiece(row, col)
-        }
-    }
+data class ChessPieceUiModel(
+    val id: String,
+    val type: PieceType,
+    val color: PieceColor,
+    val row: Int,
+    val col: Int,
+    val isCaptured: Boolean = false
 )
 
 data class ChessState(
-    val board: ChessBoard = ChessBoard(),
+    val pieces: List<ChessPieceUiModel> = emptyList(),
     val fen: String = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
     val puzzleId: String = "",
     val difficulty: String = "Easy",
@@ -35,8 +36,7 @@ data class ChessState(
     val isWon: Boolean = false,
     val isLost: Boolean = false,
     val moveAttempts: Int = 0,
-    val correctMoveFrom: String = "",
-    val correctMoveTo: String = "",
+    val correctMoveIndex: Int = 0,
     val message: String = "Find the checkmate move"
 )
 
@@ -44,8 +44,7 @@ data class PregeneratedChessPuzzle(
     override val id: String,
     override val difficulty: String,
     val fen: String,
-    val solutionFrom: String,
-    val solutionTo: String,
+    val solutionMoves: List<String>,
     val mateIn: Int
 ) : BrowseablePuzzle {
     override val label: String get() = "Mate in $mateIn"
@@ -62,23 +61,23 @@ private fun initialPiece(row: Int, col: Int): ChessPiece? {
     val black = PieceColor.BLACK
     return when {
         row == 0 -> when (col) {
-            0, 7 -> ChessPiece(PieceType.ROOK, black)
-            1, 6 -> ChessPiece(PieceType.KNIGHT, black)
-            2, 5 -> ChessPiece(PieceType.BISHOP, black)
-            3 -> ChessPiece(PieceType.QUEEN, black)
-            4 -> ChessPiece(PieceType.KING, black)
-            else -> ChessPiece(PieceType.PAWN, black)
+            0, 7 -> ChessPiece("r0_$col", PieceType.ROOK, black)
+            1, 6 -> ChessPiece("n0_$col", PieceType.KNIGHT, black)
+            2, 5 -> ChessPiece("b0_$col", PieceType.BISHOP, black)
+            3 -> ChessPiece("q0_$col", PieceType.QUEEN, black)
+            4 -> ChessPiece("k0_$col", PieceType.KING, black)
+            else -> ChessPiece("p0_$col", PieceType.PAWN, black)
         }
         row == 7 -> when (col) {
-            0, 7 -> ChessPiece(PieceType.ROOK, white)
-            1, 6 -> ChessPiece(PieceType.KNIGHT, white)
-            2, 5 -> ChessPiece(PieceType.BISHOP, white)
-            3 -> ChessPiece(PieceType.QUEEN, white)
-            4 -> ChessPiece(PieceType.KING, white)
-            else -> ChessPiece(PieceType.PAWN, white)
+            0, 7 -> ChessPiece("r7_$col", PieceType.ROOK, white)
+            1, 6 -> ChessPiece("n7_$col", PieceType.KNIGHT, white)
+            2, 5 -> ChessPiece("b7_$col", PieceType.BISHOP, white)
+            3 -> ChessPiece("q7_$col", PieceType.QUEEN, white)
+            4 -> ChessPiece("k7_$col", PieceType.KING, white)
+            else -> ChessPiece("p7_$col", PieceType.PAWN, white)
         }
-        row == 1 -> ChessPiece(PieceType.PAWN, black)
-        row == 6 -> ChessPiece(PieceType.PAWN, white)
+        row == 1 -> ChessPiece("p1_$col", PieceType.PAWN, black)
+        row == 6 -> ChessPiece("p6_$col", PieceType.PAWN, white)
         else -> null
     }
 }

@@ -1,36 +1,31 @@
 package com.funkyotc.puzzleverse.chess.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,21 +38,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
-import com.funkyotc.puzzleverse.core.audio.SoundManager
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
-import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
-import com.funkyotc.puzzleverse.chess.data.chessPieceToUnicode
+import com.funkyotc.puzzleverse.R
+import com.funkyotc.puzzleverse.chess.data.ChessPieceUiModel
+import com.funkyotc.puzzleverse.chess.data.PieceColor
+import com.funkyotc.puzzleverse.chess.data.PieceType
 import com.funkyotc.puzzleverse.chess.viewmodel.ChessViewModel
 import com.funkyotc.puzzleverse.chess.viewmodel.ChessViewModelFactory
+import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
@@ -191,9 +190,10 @@ fun ChessScreen(
                 contentAlignment = Alignment.Center
             ) {
                 val boardSize = minOf(maxWidth, maxHeight)
+                val squareSize = boardSize / 8
                 val lightSquareColor = Color(0xFFF0D9B5)
                 val darkSquareColor = Color(0xFFB58863)
-                val selectedColor = Color(0xFFEEEED2)
+                val selectedColor = Color(0xFFEEEED2).copy(alpha = 0.5f)
                 val legalMoveColor = Color(0x6600AA00)
 
                 val legalMoves = if (state.selectedRow >= 0 && state.selectedCol >= 0) {
@@ -202,58 +202,115 @@ fun ChessScreen(
                     emptyList()
                 }
 
-                Column(
-                    modifier = Modifier.size(boardSize)
-                ) {
-                    for (row in 0..7) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                        ) {
-                            for (col in 0..7) {
-                                val isLight = (row + col) % 2 == 0
-                                val isSelected = state.selectedRow == row && state.selectedCol == col
-                                val isLegalMove = legalMoves.any { it.first == row && it.second == col }
-                                val piece = viewModel.getPieceAt(row, col)
+                Box(modifier = Modifier.size(boardSize)) {
+                    // Draw Board and Highlights
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        for (row in 0..7) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                for (col in 0..7) {
+                                    val isLight = (row + col) % 2 == 0
+                                    val isSelected = state.selectedRow == row && state.selectedCol == col
+                                    val isLegalMove = legalMoves.any { it.first == row && it.second == col }
 
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .background(if (isLight) lightSquareColor else darkSquareColor)
-                                        .then(
-                                            if (isSelected) Modifier.background(selectedColor.copy(alpha = 0.5f))
-                                            else Modifier
-                                        )
-                                        .clickable {
-                                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                            viewModel.onSquareClicked(row, col)
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (piece != null) {
-                                        Text(
-                                            text = chessPieceToUnicode(piece),
-                                            fontSize = (boardSize.value / 8 * 0.7f).sp,
-                                            color = if (piece.color == com.funkyotc.puzzleverse.chess.data.PieceColor.WHITE)
-                                                Color.White else Color.Black
-                                        )
-                                    }
-                                    if (isLegalMove) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(boardSize / 8 * 0.35f)
-                                                .clip(CircleShape)
-                                                .background(legalMoveColor)
-                                        )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .background(if (isLight) lightSquareColor else darkSquareColor)
+                                            .then(
+                                                if (isSelected) Modifier.background(selectedColor)
+                                                else Modifier
+                                            )
+                                            .clickable {
+                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                viewModel.onSquareClicked(row, col)
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isLegalMove) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(squareSize * 0.35f)
+                                                    .clip(CircleShape)
+                                                    .background(legalMoveColor)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+
+                    // Draw Animated Pieces
+                    state.pieces.forEach { piece ->
+                        val animatedOffsetX by animateDpAsState(
+                            targetValue = squareSize * piece.col,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "pieceX_${piece.id}"
+                        )
+                        val animatedOffsetY by animateDpAsState(
+                            targetValue = squareSize * piece.row,
+                            animationSpec = tween(durationMillis = 300),
+                            label = "pieceY_${piece.id}"
+                        )
+
+                        val alpha by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (piece.isCaptured) 0f else 1f,
+                            animationSpec = tween(durationMillis = 200),
+                            label = "pieceAlpha_${piece.id}"
+                        )
+                        val scale by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (piece.isCaptured) 0f else 1f,
+                            animationSpec = tween(durationMillis = 200),
+                            label = "pieceScale_${piece.id}"
+                        )
+
+                        if (alpha > 0f) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = animatedOffsetX, y = animatedOffsetY)
+                                    .size(squareSize)
+                                    .zIndex(if (piece.row == state.selectedRow && piece.col == state.selectedCol) 10f else 1f)
+                                    .alpha(alpha)
+                                    .scale(scale)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = getDrawableResId(piece)),
+                                    contentDescription = "${piece.color} ${piece.type}",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(4.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+private fun getDrawableResId(piece: ChessPieceUiModel): Int {
+    return when (piece.color) {
+        PieceColor.WHITE -> when (piece.type) {
+            PieceType.KING -> R.drawable.ic_chess_white_king
+            PieceType.QUEEN -> R.drawable.ic_chess_white_queen
+            PieceType.ROOK -> R.drawable.ic_chess_white_rook
+            PieceType.BISHOP -> R.drawable.ic_chess_white_bishop
+            PieceType.KNIGHT -> R.drawable.ic_chess_white_knight
+            PieceType.PAWN -> R.drawable.ic_chess_white_pawn
+        }
+        PieceColor.BLACK -> when (piece.type) {
+            PieceType.KING -> R.drawable.ic_chess_black_king
+            PieceType.QUEEN -> R.drawable.ic_chess_black_queen
+            PieceType.ROOK -> R.drawable.ic_chess_black_rook
+            PieceType.BISHOP -> R.drawable.ic_chess_black_bishop
+            PieceType.KNIGHT -> R.drawable.ic_chess_black_knight
+            PieceType.PAWN -> R.drawable.ic_chess_black_pawn
         }
     }
 }
