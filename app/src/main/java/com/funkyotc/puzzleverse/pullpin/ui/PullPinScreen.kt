@@ -64,6 +64,11 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.animatePiecePlacement
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
@@ -346,11 +351,18 @@ private fun PullPinDrawing(
     slideOffset: Float,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .size(size)
             .graphicsLayer(translationX = slideOffset * size.value * 1.5f)
-            .clickable(enabled = slideOffset == 0f, onClick = onClick),
+            .clickable(
+                enabled = slideOffset == 0f,
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .animateTapFeedback(interactionSource),
         contentAlignment = Alignment.CenterStart
     ) {
         // Needle Shaft
@@ -404,7 +416,9 @@ private fun PullPinBoard(
                         val pulled = "$r,$c" in state.removedPins
                         
                         Box(
-                            modifier = Modifier.size(cellWidth, cellHeight),
+                            modifier = Modifier
+                                .size(cellWidth, cellHeight)
+                                .animateEntrance(delayMillis = (r * cols + c) * 12),
                             contentAlignment = Alignment.Center
                         ) {
                             if (cell.type == CellType.WALL) {
@@ -484,12 +498,12 @@ private fun PullPinBoard(
 
             val animRow by animateFloatAsState(
                 targetValue = ball.row.toFloat(),
-                animationSpec = tween(durationMillis = 110, easing = LinearEasing),
+                animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                 label = "row_${ball.color}"
             )
             val animCol by animateFloatAsState(
                 targetValue = ball.col.toFloat(),
-                animationSpec = tween(durationMillis = 110, easing = LinearEasing),
+                animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                 label = "col_${ball.color}"
             )
 
@@ -511,6 +525,7 @@ private fun PullPinBoard(
                         scaleX = scale,
                         scaleY = scale
                     )
+                    .animatePiecePlacement(trigger = ball.inCup)
                     .shadow(if (ball.inCup) 1.dp else 4.dp, CircleShape)
                     .clip(CircleShape)
                     .background(

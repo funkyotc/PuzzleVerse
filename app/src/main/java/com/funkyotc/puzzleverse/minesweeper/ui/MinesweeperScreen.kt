@@ -28,12 +28,18 @@ import com.funkyotc.puzzleverse.minesweeper.viewmodel.MinesweeperViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.animatePiecePlacement
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
 import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MinesweeperScreen(
     navController: NavController,
@@ -144,6 +150,7 @@ fun MinesweeperScreen(
                             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 for (c in 0 until state.cols) {
                                     val cell = state.grid[r][c]
+                                    val cellInteractionSource = remember { MutableInteractionSource() }
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
@@ -153,37 +160,45 @@ fun MinesweeperScreen(
                                                 if (cell.isRevealed) MaterialTheme.colorScheme.surfaceVariant 
                                                 else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                             )
-                                            .pointerInput(Unit) {
-                                                detectTapGestures(
-                                                    onTap = {
-                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        if (cell.isRevealed) {
-                                                            viewModel.revealNeighbors(r, c)
-                                                        } else {
-                                                            viewModel.revealCell(r, c)
-                                                        }
-                                                    },
-                                                    onLongPress = {
-                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        viewModel.toggleFlag(r, c)
+                                            .animateEntrance(delayMillis = (r * state.cols + c) * 10)
+                                            .combinedClickable(
+                                                interactionSource = cellInteractionSource,
+                                                indication = null,
+                                                onClick = {
+                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                    if (cell.isRevealed) {
+                                                        viewModel.revealNeighbors(r, c)
+                                                    } else {
+                                                        viewModel.revealCell(r, c)
                                                     }
-                                                )
-                                            },
+                                                },
+                                                onLongClick = {
+                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                    viewModel.toggleFlag(r, c)
+                                                }
+                                            )
+                                            .animateTapFeedback(cellInteractionSource),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (cell.isRevealed) {
                                             if (cell.isMine) {
-                                                Text("💣", fontSize = 16.sp)
+                                                Text("💣", fontSize = 16.sp, modifier = Modifier.animatePiecePlacement(trigger = cell.isRevealed))
                                             } else if (cell.neighboringMines > 0) {
                                                 Text(
                                                     text = cell.neighboringMines.toString(),
                                                     color = getNumberColor(cell.neighboringMines),
                                                     fontWeight = FontWeight.Black,
-                                                    fontSize = 20.sp
+                                                    fontSize = 20.sp,
+                                                    modifier = Modifier.animatePiecePlacement(trigger = cell.isRevealed)
                                                 )
                                             }
                                         } else if (cell.isFlagged) {
-                                            Icon(Icons.Filled.Flag, contentDescription = "Flagged", tint = Color.Red, modifier = Modifier.size(16.dp))
+                                            Icon(
+                                                Icons.Filled.Flag, 
+                                                contentDescription = "Flagged", 
+                                                tint = Color.Red, 
+                                                modifier = Modifier.size(16.dp).animatePiecePlacement(trigger = cell.isFlagged)
+                                            )
                                         }
                                     }
                                 }

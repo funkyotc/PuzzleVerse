@@ -54,10 +54,8 @@ import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -279,6 +277,7 @@ fun CubeShooterScreen(
                                                         .fillMaxSize()
                                                         .clip(RoundedCornerShape(4.dp))
                                                         .background(getComposeColor(cubeColorId))
+                                                        .animatePiecePlacement(trigger = cubeColorId)
                                                 )
                                             } else {
                                                 // Check for Fading/Exploding Cubes
@@ -431,6 +430,7 @@ fun CubeShooterScreen(
                                           Modifier
                                       }
                                       val alpha = 1f
+                                      val interactionSource = remember(i) { MutableInteractionSource() }
                                       TankView(
                                           colorId = tank.color,
                                           ammo = tank.ammo,
@@ -440,10 +440,15 @@ fun CubeShooterScreen(
                                           modifier = Modifier
                                               .onGloballyPositioned { traySlotRootPositions[i] = it.positionInRoot() }
                                               .then(borderModifier)
-                                              .clickable(enabled = isDispatchEnabled) {
+                                              .clickable(
+                                                  interactionSource = interactionSource,
+                                                  indication = null,
+                                                  enabled = isDispatchEnabled
+                                              ) {
                                                  soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                  viewModel.dispatchFromStorage(i)
                                               }
+                                              .animateTapFeedback(interactionSource)
                                       )
                                   } else {
                                       // Empty slot
@@ -571,7 +576,7 @@ fun CubeShooterScreen(
                                                               animationSpec = spring(stiffness = Spring.StiffnessLow),
                                                              label = "tank_y"
                                                          )
-                                                         
+                                                         val interactionSource = remember(originalIndex) { MutableInteractionSource() }
                                                          TankView(
                                                              colorId = tank.color,
                                                              ammo = tank.ammo,
@@ -582,10 +587,15 @@ fun CubeShooterScreen(
                                                                   .offset(y = animatedY)
                                                                   .then(posModifier)
                                                                   .then(borderModifier)
-                                                                  .clickable(enabled = isDispatchEnabled) {
+                                                                  .clickable(
+                                                                      interactionSource = interactionSource,
+                                                                      indication = null,
+                                                                      enabled = isDispatchEnabled
+                                                                  ) {
                                                                      soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                                      viewModel.dispatchFromSource(colIndex)
                                                                  }
+                                                                 .animateTapFeedback(interactionSource)
                                                          )
                                                      }
                                                  }

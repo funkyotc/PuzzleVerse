@@ -29,6 +29,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animatePiecePlacement
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
@@ -152,17 +156,24 @@ fun KakuroScreen(
                             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                                 for (c in 0 until state.cols) {
                                     val cell = state.grid[r][c]
+                                    val cellInteractionSource = remember { MutableInteractionSource() }
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
                                             .fillMaxHeight()
                                             .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                                            .clickable {
+                                            .animateEntrance(delayMillis = (r * state.cols + c) * 15)
+                                            .then(
                                                 if (cell.type == CellType.PLAYER_INPUT) {
-                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                    selectedCell = Pair(r, c)
-                                                }
-                                            }
+                                                    Modifier.clickable(
+                                                        interactionSource = cellInteractionSource,
+                                                        indication = null
+                                                    ) {
+                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                        selectedCell = Pair(r, c)
+                                                    }.animateTapFeedback(cellInteractionSource)
+                                                } else Modifier
+                                            )
                                     ) {
                                         KakuroCellView(cell, isSelected = selectedCell == Pair(r, c))
                                     }
@@ -184,6 +195,7 @@ fun KakuroScreen(
                     ) {
                         for (col in 1..3) {
                             val num = row * 3 + col
+                            val interactionSource = remember { MutableInteractionSource() }
                             Button(
                                 onClick = {
                                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -191,7 +203,10 @@ fun KakuroScreen(
                                         viewModel.setCellValue(r, c, num)
                                     }
                                 },
-                                modifier = Modifier.size(64.dp)
+                                interactionSource = interactionSource,
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .animateTapFeedback(interactionSource)
                             ) {
                                 Text(num.toString(), fontSize = 24.sp)
                             }
@@ -294,7 +309,8 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
                     text = cell.playerValue.toString(),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.animatePiecePlacement(trigger = cell.playerValue)
                 )
             }
         }

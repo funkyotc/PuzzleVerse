@@ -45,6 +45,11 @@ import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
 import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.animatePiecePlacement
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,10 +158,15 @@ fun ShikakuScreen(
         onHowToClick = { viewModel.setShowHowToDialog(true) },
         actions = {
             if (mode != "daily") {
-                IconButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.setShowNewGameDialog(true)
-                }) {
+                val newGameInteractionSource = remember { MutableInteractionSource() }
+                IconButton(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.setShowNewGameDialog(true)
+                    },
+                    interactionSource = newGameInteractionSource,
+                    modifier = Modifier.animateTapFeedback(newGameInteractionSource)
+                ) {
                     Icon(Icons.Filled.RestartAlt, contentDescription = "New Game")
                 }
             }
@@ -185,6 +195,7 @@ fun ShikakuScreen(
                 Box(
                     modifier = Modifier
                         .size(actualGridSizeDp)
+                        .animateEntrance(trigger = board)
                         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
@@ -275,6 +286,7 @@ fun ShikakuScreen(
                                 )
                                 .width(cellSizeDp * rect.width)
                                 .height(cellSizeDp * rect.height)
+                                .animatePiecePlacement(trigger = rect.id)
                                 .padding(2.dp)
                                 .background(pastelFill, RoundedCornerShape(6.dp))
                                 .border(borderStroke, RoundedCornerShape(6.dp))
@@ -296,18 +308,22 @@ fun ShikakuScreen(
 
                         val animatedX by animateDpAsState(
                             targetValue = targetX,
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "dragX"
                         )
                         val animatedY by animateDpAsState(
                             targetValue = targetY,
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "dragY"
                         )
                         val animatedW by animateDpAsState(
                             targetValue = targetW,
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "dragW"
                         )
                         val animatedH by animateDpAsState(
                             targetValue = targetH,
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "dragH"
                         )
 
@@ -401,22 +417,37 @@ fun ShikakuScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                IconButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.undo()
-                }) {
+                val undoInteractionSource = remember { MutableInteractionSource() }
+                IconButton(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.undo()
+                    },
+                    interactionSource = undoInteractionSource,
+                    modifier = Modifier.animateTapFeedback(undoInteractionSource)
+                ) {
                     Icon(Icons.Filled.Undo, contentDescription = "Undo", tint = MaterialTheme.colorScheme.primary)
                 }
-                IconButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.hint()
-                }) {
+                val hintInteractionSource = remember { MutableInteractionSource() }
+                IconButton(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.hint()
+                    },
+                    interactionSource = hintInteractionSource,
+                    modifier = Modifier.animateTapFeedback(hintInteractionSource)
+                ) {
                     Icon(Icons.Filled.HourglassEmpty, contentDescription = "Hint", tint = MaterialTheme.colorScheme.primary)
                 }
-                IconButton(onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    viewModel.clearAllPlayerMarks()
-                }) {
+                val clearInteractionSource = remember { MutableInteractionSource() }
+                IconButton(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        viewModel.clearAllPlayerMarks()
+                    },
+                    interactionSource = clearInteractionSource,
+                    modifier = Modifier.animateTapFeedback(clearInteractionSource)
+                ) {
                     Icon(Icons.Filled.RestartAlt, contentDescription = "Clear All", tint = MaterialTheme.colorScheme.primary)
                 }
             }

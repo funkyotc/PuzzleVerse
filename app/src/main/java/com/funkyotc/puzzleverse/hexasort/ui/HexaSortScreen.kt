@@ -61,6 +61,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
@@ -224,6 +227,7 @@ fun HexaSortScreen(
         val offsetY = (cH - gridHeight) / 2 + R
 
         if (gs.moves == 0 || activeTiles.isEmpty() || isShufflingUI) {
+            val isInitial = activeTiles.isEmpty() && !isShufflingUI
             activeTiles.clear()
             disappearingTiles.clear()
             for (r in 0 until rows) {
@@ -235,13 +239,20 @@ fun HexaSortScreen(
                             row = r,
                             col = c,
                             offsetY = Animatable(0f),
-                            scale = Animatable(if (isShufflingUI) 0f else 1f),
-                            alpha = Animatable(if (isShufflingUI) 0f else 1f)
+                            scale = Animatable(if (isShufflingUI || isInitial) 0f else 1f),
+                            alpha = Animatable(if (isShufflingUI || isInitial) 0f else 1f)
                         )
                         if (isShufflingUI) {
                             coroutineScope.launch {
                                 launch { activeTiles[r to c]?.scale?.animateTo(1f, tween(250)) }
                                 launch { activeTiles[r to c]?.alpha?.animateTo(1f, tween(250)) }
+                            }
+                        } else if (isInitial) {
+                            val delayVal = (r * cols + c) * 30L
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(delayVal)
+                                launch { activeTiles[r to c]?.scale?.animateTo(1f, PuzzleVerseAnimationSpecs.fastMovementSpec()) }
+                                launch { activeTiles[r to c]?.alpha?.animateTo(1f, PuzzleVerseAnimationSpecs.fastTweenSpec(180)) }
                             }
                         }
                     }
@@ -501,15 +512,19 @@ fun HexaSortScreen(
                     Text(text = timeFormatted, fontSize = 16.sp)
                 }
 
+                val shuffleInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = onShuffleClick,
                     enabled = gs.shufflesRemaining > 0 && !isShufflingUI && !gs.isWon && !gs.isGameOver && gs.flashingCells.isEmpty(),
+                    interactionSource = shuffleInteractionSource,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFFF9100),
                         contentColor = Color.White,
                         disabledContainerColor = Color.LightGray
                     ),
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .animateTapFeedback(shuffleInteractionSource)
                 ) {
                     Icon(Icons.Default.Shuffle, contentDescription = "Shuffle")
                     Spacer(modifier = Modifier.width(8.dp))

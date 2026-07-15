@@ -128,7 +128,7 @@ class ChessViewModel(
     private fun attemptMove(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
         val fromSq = squareFromRowCol(fromRow, fromCol)
         val toSq = squareFromRowCol(toRow, toCol)
-        val moveNotation = fromSq.value() + toSq.value()
+        val moveNotation = (fromSq.name + toSq.name).lowercase()
         val st = _state.value
         val p = puzzle ?: return
 
@@ -188,8 +188,8 @@ class ChessViewModel(
         viewModelScope.launch {
             delay(500) // small delay for animation / human feel
             
-            val fromSq = Square.fromValue(moveNotation.substring(0, 2))
-            val toSq = Square.fromValue(moveNotation.substring(2, 4))
+            val fromSq = Square.fromValue(moveNotation.substring(0, 2).uppercase())
+            val toSq = Square.fromValue(moveNotation.substring(2, 4).uppercase())
             val move = Move(fromSq, toSq)
             
             val fromPos = rowColFromSquare(fromSq)

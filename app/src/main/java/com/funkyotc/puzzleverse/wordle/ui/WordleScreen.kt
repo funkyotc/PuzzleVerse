@@ -35,10 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import com.funkyotc.puzzleverse.wordle.data.WordleStatsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
 val CorrectColor = Color(0xFF4DB6AC) // Aesthetic Teal/Green
 val PresentColor = Color(0xFFFFB74D) // Aesthetic Amber/Orange
@@ -121,16 +119,26 @@ fun WordleScreen(
             actionIconContentColor = TextColor
         ),
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showHintDialog = true
-            }) {
+            val hintInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = true
+                },
+                modifier = Modifier.animateTapFeedback(hintInteractionSource),
+                interactionSource = hintInteractionSource
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = "Hint")
             }
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showStatsDialog = true
-            }) {
+            val statsInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showStatsDialog = true
+                },
+                modifier = Modifier.animateTapFeedback(statsInteractionSource),
+                interactionSource = statsInteractionSource
+            ) {
                 Icon(Icons.Filled.BarChart, contentDescription = "Stats")
             }
         }
@@ -160,7 +168,7 @@ fun WordleScreen(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).animateEntrance()
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
                     state.guesses.forEach { guess ->
@@ -233,6 +241,7 @@ fun WordleTile(letter: WordleLetter) {
     Box(
         modifier = Modifier
             .size(56.dp)
+            .animatePiecePlacement(trigger = Pair(letter.char, letter.state))
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
             .border(2.dp, borderColor, RoundedCornerShape(8.dp)),
@@ -301,16 +310,22 @@ fun KeyboardKey(char: Char, state: LetterState, onClick: () -> Unit) {
     }
 
     val soundManager = LocalSoundManager.current
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .height(54.dp)
             .width(32.dp)
+            .animateTapFeedback(interactionSource)
             .clip(RoundedCornerShape(4.dp))
             .background(bgColor)
-            .clickable {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                onClick()
-            },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    onClick()
+                }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -325,16 +340,22 @@ fun KeyboardKey(char: Char, state: LetterState, onClick: () -> Unit) {
 @Composable
 fun KeyboardActionKey(text: String, onClick: () -> Unit) {
     val soundManager = LocalSoundManager.current
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .height(54.dp)
             .padding(horizontal = 2.dp)
+            .animateTapFeedback(interactionSource)
             .clip(RoundedCornerShape(4.dp))
             .background(Color(0xFF37474F))
-            .clickable {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                onClick()
-            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    onClick()
+                }
+            )
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {

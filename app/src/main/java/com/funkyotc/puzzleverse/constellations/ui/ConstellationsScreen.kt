@@ -30,10 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -218,10 +215,11 @@ fun ConstellationsScreen(
                 val regionColors = rememberRegionColors(p.regions.keys)
                 var gridSize by remember { mutableStateOf(IntSize.Zero) }
 
-                Box(
+                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
+                        .animateEntrance(trigger = p)
                         .onGloballyPositioned { coordinates ->
                             gridSize = coordinates.size
                         }
@@ -275,12 +273,14 @@ fun ConstellationsScreen(
                                             CellState.STAR -> Icon(
                                                 Icons.Filled.Star,
                                                 contentDescription = "Star",
-                                                tint = if (cell.isError) Color.Red else Color.Black
+                                                tint = if (cell.isError) Color.Red else Color.Black,
+                                                modifier = Modifier.animatePiecePlacement(trigger = cell.state)
                                             )
                                             CellState.CROSS -> Icon(
                                                 Icons.Filled.Close,
                                                 contentDescription = "Cross",
-                                                tint = if (cell.isAuto) Color.DarkGray else Color(0xFFD32F2F)
+                                                tint = if (cell.isAuto) Color.DarkGray else Color(0xFFD32F2F),
+                                                modifier = Modifier.animatePiecePlacement(trigger = cell.state)
                                             )
                                             CellState.EMPTY -> {}
                                         }

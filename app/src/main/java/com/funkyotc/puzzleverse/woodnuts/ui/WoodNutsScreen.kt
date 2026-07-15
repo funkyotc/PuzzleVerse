@@ -54,10 +54,8 @@ import com.funkyotc.puzzleverse.woodnuts.data.Plank
 import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModel
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModelFactory
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlin.math.sqrt
 
 private val PLANK_PALETTE = listOf(
@@ -149,10 +147,15 @@ fun WoodNutsScreen(
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                viewModel.startNewGame()
-            }) {
+            val refreshInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    viewModel.startNewGame()
+                },
+                modifier = Modifier.animateTapFeedback(refreshInteractionSource),
+                interactionSource = refreshInteractionSource
+            ) {
                 Icon(Icons.Filled.Refresh, contentDescription = "Restart")
             }
         }
@@ -210,10 +213,7 @@ fun WoodNutsScreen(
                     val plankAngles = state.planks.map { plank ->
                         val animatedAngle by androidx.compose.animation.core.animateFloatAsState(
                             targetValue = plank.angle,
-                            animationSpec = androidx.compose.animation.core.spring(
-                                dampingRatio = 0.6f,
-                                stiffness = 300f
-                            ),
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "plankAngle"
                         )
                         plank.id to animatedAngle
@@ -234,6 +234,7 @@ fun WoodNutsScreen(
                     Canvas(
                         modifier = Modifier
                             .size(gridW, gridH)
+                            .animateEntrance(trigger = state.level.id)
                             .background(Color(0xFF2E2E2E))
                             .pointerInput(state.bolts) {
                                 detectTapGestures { offset ->

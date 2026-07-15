@@ -46,10 +46,8 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.watersort.data.WaterSortPregenerated
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModel
 import com.funkyotc.puzzleverse.watersort.viewmodel.WaterSortViewModelFactory
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -157,10 +155,15 @@ fun WaterSortScreen(
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showNewGameDialog = true
-            }) {
+            val refreshInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showNewGameDialog = true
+                },
+                modifier = Modifier.animateTapFeedback(refreshInteractionSource),
+                interactionSource = refreshInteractionSource
+            ) {
                 Icon(Icons.Filled.Refresh, contentDescription = "Restart")
             }
         }
@@ -222,7 +225,8 @@ fun WaterSortScreen(
                                     isSelected = state.selectedIndex == index,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 6.dp),
+                                        .padding(horizontal = 6.dp)
+                                        .animateEntrance(delayMillis = index * 40, trigger = state.level),
                                     onClick = {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                         viewModel.selectBottle(index)
@@ -279,16 +283,22 @@ private fun BottleView(
     val borderGlowColor = Color(0xFF4CAF50).copy(alpha = pulseAlpha)
     val bgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
 
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .aspectRatio(0.65f)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
+            .animateTapFeedback(interactionSource)
             .graphicsLayer(
                 scaleX = if (isSelected) scale else 1f,
                 scaleY = if (isSelected) scale else 1f
             )
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize().padding(3.dp)) {

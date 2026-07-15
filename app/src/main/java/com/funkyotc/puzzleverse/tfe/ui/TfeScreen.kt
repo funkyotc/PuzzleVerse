@@ -38,6 +38,9 @@ import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
 import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,6 +136,7 @@ fun TfeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
+                    .animateEntrance()
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFFBBADA0))
                     .padding(8.dp)
@@ -191,8 +195,8 @@ fun AnimatedTile(tile: Tile, tileSize: Dp, margin: Dp) {
     val targetX = (tileSize + margin) * tile.col
     val targetY = (tileSize + margin) * tile.row
 
-    val x by animateDpAsState(targetValue = targetX, animationSpec = tween(durationMillis = 150), label = "x")
-    val y by animateDpAsState(targetValue = targetY, animationSpec = tween(durationMillis = 150), label = "y")
+    val x by animateDpAsState(targetValue = targetX, animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(), label = "x")
+    val y by animateDpAsState(targetValue = targetY, animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(), label = "y")
     
     var visibleScale by remember { mutableStateOf(if (tile.isNew) 0.1f else 1f) }
     

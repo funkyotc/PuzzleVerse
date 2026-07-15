@@ -40,10 +40,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -184,10 +182,15 @@ fun SudokuScreen(
         onHowToClick = { showHowToDialog = true },
         onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showHintDialog = true
-            }) {
+            val hintInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = true
+                },
+                modifier = Modifier.animateTapFeedback(hintInteractionSource),
+                interactionSource = hintInteractionSource
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = "Hint")
             }
         }
@@ -224,7 +227,7 @@ fun SudokuScreen(
                         SudokuBoard(
                             board = board,
                             selectedCell = selectedCell,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().animateEntrance(trigger = board),
                             boardSize = boardSize,
                             onCellSelected = sudokuViewModel::onCellSelected
                         )
@@ -296,7 +299,7 @@ fun SudokuScreen(
                         SudokuBoard(
                             board = board,
                             selectedCell = selectedCell,
-                            modifier = Modifier.size(boardSize),
+                            modifier = Modifier.size(boardSize).animateEntrance(trigger = board),
                             boardSize = boardSize,
                             onCellSelected = sudokuViewModel::onCellSelected
                         )
@@ -422,12 +425,17 @@ fun RowScope.SudokuCellView(
     }
 
     val soundManager = LocalSoundManager.current
+    val cellInteractionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .aspectRatio(1f)
             .weight(1f)
             .background(backgroundColor)
-            .clickable {
+            .animateTapFeedback(cellInteractionSource)
+            .clickable(
+                interactionSource = cellInteractionSource,
+                indication = null
+            ) {
                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                 onCellSelected(cell.row, cell.col)
             },
@@ -443,7 +451,8 @@ fun RowScope.SudokuCellView(
             }
             Text(
                 text = cell.number.toString(),
-                style = textStyle
+                style = textStyle,
+                modifier = Modifier.animatePiecePlacement(trigger = cell.number)
             )
         } else {
             PencilMarks(marks = cell.pencilMarks, fontSize = pencilFontSize)
@@ -506,6 +515,9 @@ fun ActionRow(
     val buttonSize = if (isCompact) 36.dp else 48.dp
 
     val soundManager = LocalSoundManager.current
+    val undoInteractionSource = remember { MutableInteractionSource() }
+    val pencilInteractionSource = remember { MutableInteractionSource() }
+    val eraseInteractionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier.padding(vertical = paddingVal),
         horizontalArrangement = Arrangement.spacedBy(spacingVal),
@@ -516,7 +528,8 @@ fun ActionRow(
                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                 onUndo()
             },
-            modifier = Modifier.size(buttonSize)
+            modifier = Modifier.size(buttonSize).animateTapFeedback(undoInteractionSource),
+            interactionSource = undoInteractionSource
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.Undo, 
@@ -529,7 +542,7 @@ fun ActionRow(
                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                 onPencilToggle()
             },
-            modifier = Modifier.size(buttonSize),
+            modifier = Modifier.size(buttonSize).animateTapFeedback(pencilInteractionSource),
             colors = if (isPencilOn) {
                 IconButtonDefaults.iconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -537,7 +550,8 @@ fun ActionRow(
                 )
             } else {
                 IconButtonDefaults.iconButtonColors()
-            }
+            },
+            interactionSource = pencilInteractionSource
         ) {
             Icon(
                 Icons.Filled.Create, 
@@ -550,7 +564,8 @@ fun ActionRow(
                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                 onErase()
             },
-            modifier = Modifier.size(buttonSize)
+            modifier = Modifier.size(buttonSize).animateTapFeedback(eraseInteractionSource),
+            interactionSource = eraseInteractionSource
         ) {
             Icon(
                 Icons.Filled.Delete, 
@@ -636,14 +651,21 @@ fun RowScope.NumberButton(
     val buttonPadding = if (isCompact) 2.dp else 4.dp
 
     val soundManager = LocalSoundManager.current
+    val numberInteractionSource = remember { MutableInteractionSource() }
     Surface(
         modifier = Modifier
             .padding(buttonPadding)
             .clip(CircleShape)
-            .clickable(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                onClick()
-            }, enabled = !isCompleted)
+            .animateTapFeedback(numberInteractionSource)
+            .clickable(
+                interactionSource = numberInteractionSource,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                enabled = !isCompleted,
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    onClick()
+                }
+            )
             .weight(1f)
             .aspectRatio(1f),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f * alpha)

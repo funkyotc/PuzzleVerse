@@ -29,6 +29,10 @@ import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.animatePiecePlacement
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
@@ -264,14 +268,25 @@ fun NonogramScreen(
                                                 .weight(1f)
                                                 .fillMaxHeight()
                                                 .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                                                .background(
-                                                    if (cellState == CellState.FILLED) MaterialTheme.colorScheme.onSurface
-                                                    else MaterialTheme.colorScheme.surface
-                                                ),
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .animateEntrance(delayMillis = (r * state.cols + c) * 10),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            if (cellState == CellState.CROSSED) {
-                                                Text("X", color = MaterialTheme.colorScheme.error, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                            if (cellState == CellState.FILLED) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(MaterialTheme.colorScheme.onSurface)
+                                                        .animatePiecePlacement(trigger = cellState)
+                                                )
+                                            } else if (cellState == CellState.CROSSED) {
+                                                Text(
+                                                    text = "X",
+                                                    color = MaterialTheme.colorScheme.error,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.animatePiecePlacement(trigger = cellState)
+                                                )
                                             }
                                         }
                                     }
@@ -287,27 +302,33 @@ fun NonogramScreen(
 
         // Interaction Mode Toggle (for mobile)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            val fillInteractionSource = remember { MutableInteractionSource() }
             Button(
                 onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     isFillMode = true
                 },
+                interactionSource = fillInteractionSource,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = if (isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                ),
+                modifier = Modifier.animateTapFeedback(fillInteractionSource)
             ) {
                 Text("Fill")
             }
+            val crossInteractionSource = remember { MutableInteractionSource() }
             Button(
                 onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                     isFillMode = false
                 },
+                interactionSource = crossInteractionSource,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (!isFillMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = if (!isFillMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                ),
+                modifier = Modifier.animateTapFeedback(crossInteractionSource)
             ) {
                 Text("Cross (X)")
             }

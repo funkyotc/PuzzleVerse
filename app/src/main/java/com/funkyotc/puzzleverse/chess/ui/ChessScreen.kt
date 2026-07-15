@@ -52,11 +52,9 @@ import com.funkyotc.puzzleverse.chess.data.PieceType
 import com.funkyotc.puzzleverse.chess.viewmodel.ChessViewModel
 import com.funkyotc.puzzleverse.chess.viewmodel.ChessViewModelFactory
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.*
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
@@ -216,6 +214,7 @@ fun ChessScreen(
                                     val isSelected = state.selectedRow == row && state.selectedCol == col
                                     val isLegalMove = legalMoves.any { it.first == row && it.second == col }
 
+                                    val interactionSource = remember(row, col) { MutableInteractionSource() }
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
@@ -225,10 +224,14 @@ fun ChessScreen(
                                                 if (isSelected) Modifier.background(selectedColor)
                                                 else Modifier
                                             )
-                                            .clickable {
+                                            .clickable(
+                                                interactionSource = interactionSource,
+                                                indication = null
+                                            ) {
                                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                                 viewModel.onSquareClicked(row, col)
-                                            },
+                                            }
+                                            .animateTapFeedback(interactionSource),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (isLegalMove) {
@@ -249,12 +252,12 @@ fun ChessScreen(
                     state.pieces.forEach { piece ->
                         val animatedOffsetX by animateDpAsState(
                             targetValue = squareSize * piece.col,
-                            animationSpec = tween(durationMillis = 300),
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "pieceX_${piece.id}"
                         )
                         val animatedOffsetY by animateDpAsState(
                             targetValue = squareSize * piece.row,
-                            animationSpec = tween(durationMillis = 300),
+                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                             label = "pieceY_${piece.id}"
                         )
 
@@ -277,6 +280,7 @@ fun ChessScreen(
                                     .zIndex(if (piece.row == state.selectedRow && piece.col == state.selectedCol) 10f else 1f)
                                     .alpha(alpha)
                                     .scale(scale)
+                                    .animatePiecePlacement(trigger = piece.id)
                             ) {
                                 Image(
                                     painter = painterResource(id = getDrawableResId(piece)),

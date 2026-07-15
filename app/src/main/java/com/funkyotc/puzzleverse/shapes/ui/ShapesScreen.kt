@@ -65,6 +65,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,32 +204,43 @@ fun ShapesScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val rotateLInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         selectedPieceId?.let { vm.rotatePiece(it, -45f) }
                     },
-                    enabled = selectedPieceId != null
+                    enabled = selectedPieceId != null,
+                    interactionSource = rotateLInteractionSource,
+                    modifier = Modifier.animateTapFeedback(rotateLInteractionSource)
                 ) {
                     Text("Rotate L")
                 }
                 Spacer(modifier = Modifier.width(16.dp))
+                val rotateRInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         selectedPieceId?.let { vm.rotatePiece(it, 45f) }
                     },
-                    enabled = selectedPieceId != null
+                    enabled = selectedPieceId != null,
+                    interactionSource = rotateRInteractionSource,
+                    modifier = Modifier.animateTapFeedback(rotateRInteractionSource)
                 ) {
                     Text("Rotate R")
                 }
             }
         },
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showHintDialog = true
-            }) {
+            val hintInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = true
+                },
+                interactionSource = hintInteractionSource,
+                modifier = Modifier.animateTapFeedback(hintInteractionSource)
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = "Hint")
             }
         }
@@ -241,7 +256,7 @@ fun ShapesScreen(
                 val pieceAnimations = puzzleState.pieces.associate { piece ->
                     val animatedRotation by animateFloatAsState(
                         targetValue = piece.rotation,
-                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
                         label = "rotation_anim_${piece.id}"
                     )
                     piece.id to animatedRotation
@@ -264,6 +279,7 @@ fun ShapesScreen(
 
                 Canvas(modifier = Modifier
                     .fillMaxSize()
+                    .animateEntrance(trigger = puzzleId)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { actualOffset ->

@@ -7,6 +7,8 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -118,8 +120,22 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
     AnimatedNavHost(
         navController = navController, 
         startDestination = "home",
-        enterTransition = { fadeIn(animationSpec = tween(300)) },
-        exitTransition = { fadeOut(animationSpec = tween(300)) }
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(220)) +
+                    fadeIn(animationSpec = tween(220))
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -300 }, animationSpec = tween(220)) +
+                    fadeOut(animationSpec = tween(220))
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -300 }, animationSpec = tween(220)) +
+                    fadeIn(animationSpec = tween(220))
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { 300 }, animationSpec = tween(220)) +
+                    fadeOut(animationSpec = tween(220))
+        }
     ) {
         composable("home") { 
             onInitialLoad()

@@ -36,10 +36,7 @@ import com.funkyotc.puzzleverse.blockpuzzle.viewmodel.BlockPuzzleViewModelFactor
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.*
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -169,6 +166,9 @@ fun BlockPuzzleScreen(
                                             .fillMaxHeight()
                                             .border(1.dp, Color.Gray)
                                             .background(cellBgColor)
+                                            .then(
+                                                if (cell == BoxType.FILLED) Modifier.animatePiecePlacement(trigger = cell) else Modifier
+                                            )
                                     )
                                 }
                             }
@@ -254,6 +254,7 @@ fun DraggableShape(
             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
             .scale(scale)
             .graphicsLayer(alpha = alpha)
+            .animateEntrance(delayMillis = shapeIndex * 80, trigger = shape)
             .pointerInput(gridWidth) {
                 detectDragGestures(
                     onDragStart = { 
