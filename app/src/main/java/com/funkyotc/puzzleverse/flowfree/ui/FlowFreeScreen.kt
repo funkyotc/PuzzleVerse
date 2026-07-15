@@ -203,6 +203,7 @@ fun FlowFreeScreen(
                         .fillMaxWidth()
                         .aspectRatio(state.cols.toFloat() / state.rows.toFloat())
                         .background(Color.Black)
+                        .animateEntrance(trigger = state.dots)
                         .onGloballyPositioned { coordinates ->
                             gridWidth = coordinates.size.width.toFloat()
                             gridHeight = coordinates.size.height.toFloat()

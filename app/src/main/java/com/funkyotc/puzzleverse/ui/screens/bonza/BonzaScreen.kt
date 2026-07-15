@@ -70,6 +70,10 @@ import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import androidx.compose.runtime.LaunchedEffect
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,15 +186,25 @@ fun BonzaScreen(
         onHowToClick = { showHowToDialog = true },
         onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
         actions = {
-            IconButton(onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                showHintDialog = true
-            }) {
+            val hintInteractionSource = remember { MutableInteractionSource() }
+            IconButton(
+                onClick = {
+                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    showHintDialog = true
+                },
+                interactionSource = hintInteractionSource,
+                modifier = Modifier.animateTapFeedback(hintInteractionSource)
+            ) {
                 Icon(Icons.Filled.Search, contentDescription = "Hint")
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .animateEntrance(trigger = puzzle.theme)
+        ) {
             BonzaBoard(
                 puzzle = puzzle,
                 viewModel = bonzaViewModel
@@ -327,7 +341,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                 // Position animation (snapping)
                 val animatedPos by animateOffsetAsState(
                     targetValue = fragment.currentPosition,
-                    animationSpec = if (isDragged) snap() else spring(stiffness = Spring.StiffnessMediumLow),
+                    animationSpec = if (isDragged) snap() else PuzzleVerseAnimationSpecs.fastMovementSpec(),
                     label = "position_anim_${fragment.id}"
                 )
                 
