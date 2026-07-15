@@ -4,7 +4,8 @@ data class Bolt(
     val id: String,
     val row: Int,
     val col: Int,
-    val removed: Boolean = false
+    val removed: Boolean = false,
+    val isUnscrewing: Boolean = false
 )
 
 data class Plank(
@@ -14,7 +15,8 @@ data class Plank(
     val endRow: Int,
     val endCol: Int,
     val boltIds: List<String>,
-    val removed: Boolean = false
+    val removed: Boolean = false,
+    val angle: Float = 0f
 )
 
 data class WoodNutsLevel(

@@ -270,7 +270,7 @@ class ChessViewModel(
     private fun squareFromRowCol(row: Int, col: Int): Square {
         val file = 'a' + col
         val rank = '8' - row
-        return Square.fromValue("$file$rank")
+        return Square.fromValue("$file$rank".uppercase())
     }
 
     private fun rowColFromSquare(square: Square): Pair<Int, Int>? {

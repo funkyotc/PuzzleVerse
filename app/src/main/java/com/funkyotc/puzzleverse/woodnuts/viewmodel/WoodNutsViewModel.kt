@@ -2,11 +2,14 @@ package com.funkyotc.puzzleverse.woodnuts.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.woodnuts.data.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import com.funkyotc.puzzleverse.core.todayEpochDay
 
 class WoodNutsViewModel(
@@ -67,11 +70,32 @@ class WoodNutsViewModel(
         val currentState = _state.value ?: return
         if (currentState.isWon) return
 
-        val boltIndex = currentState.bolts.indexOfFirst { it.id == boltId && !it.removed }
+        val boltIndex = currentState.bolts.indexOfFirst { it.id == boltId && !it.removed && !it.isUnscrewing }
+        if (boltIndex == -1) return
+
+        val unscrewingBolts = currentState.bolts.toMutableList()
+        unscrewingBolts[boltIndex] = unscrewingBolts[boltIndex].copy(isUnscrewing = true)
+
+        _state.value = currentState.copy(
+            bolts = unscrewingBolts,
+            moves = currentState.moves + 1
+        )
+
+        viewModelScope.launch {
+            delay(350)
+            finishRemoveBolt(boltId)
+        }
+    }
+
+    private fun finishRemoveBolt(boltId: String) {
+        val currentState = _state.value ?: return
+        if (currentState.isWon) return
+
+        val boltIndex = currentState.bolts.indexOfFirst { it.id == boltId }
         if (boltIndex == -1) return
 
         val updatedBolts = currentState.bolts.toMutableList()
-        updatedBolts[boltIndex] = updatedBolts[boltIndex].copy(removed = true)
+        updatedBolts[boltIndex] = updatedBolts[boltIndex].copy(removed = true, isUnscrewing = false)
 
         var updatedPlanks = currentState.planks.toMutableList()
         var lastRemoved: String? = null
@@ -83,13 +107,29 @@ class WoodNutsViewModel(
             for (i in updatedPlanks.indices) {
                 val plank = updatedPlanks[i]
                 if (plank.removed) continue
-                val hasSupport = plank.boltIds.any { id ->
-                    updatedBolts.find { it.id == id }?.removed != true
+                
+                val remainingBolts = plank.boltIds.mapNotNull { id -> 
+                    updatedBolts.find { it.id == id && !it.removed }
                 }
-                if (!hasSupport) {
+                
+                if (remainingBolts.isEmpty()) {
                     newPlanks[i] = plank.copy(removed = true)
                     lastRemoved = plank.id
                     changed = true
+                } else if (remainingBolts.size == 1) {
+                    val pivot = remainingBolts.first()
+                    val centerCol = (plank.startCol + plank.endCol) / 2.0f
+                    val centerRow = (plank.startRow + plank.endRow) / 2.0f
+                    val dx = centerCol - pivot.col
+                    val dy = centerRow - pivot.row
+                    if (dx != 0f || dy != 0f) {
+                        val initialAngle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                        val rotation = 90f - initialAngle
+                        if (plank.angle != rotation) {
+                            newPlanks[i] = plank.copy(angle = rotation)
+                            changed = true
+                        }
+                    }
                 }
             }
             updatedPlanks = newPlanks
@@ -111,11 +151,9 @@ class WoodNutsViewModel(
             }
         }
 
-        _state.value = WoodNutsState(
-            level = currentState.level,
+        _state.value = currentState.copy(
             bolts = updatedBolts,
             planks = updatedPlanks,
-            moves = currentState.moves + 1,
             isWon = isWon,
             lastRemovedPlankId = lastRemoved,
             lastRemovedBoltId = boltId

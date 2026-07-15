@@ -193,24 +193,31 @@ fun WoodNutsScreen(
                     val plankPad = cellPx * 0.08f
                     val strokePx = with(density) { 2.dp.toPx() }
 
-                    // State for bolt unscrew animation
-                    val boltAnimProgress = remember { mutableStateMapOf<String, Float>() }
                     // State for plank falling animation
                     val fallAnimProgress = remember { mutableStateMapOf<String, Float>() }
 
                     val scope = rememberCoroutineScope()
 
-                    // Trigger bolt unscrew animation on new removal
-                    LaunchedEffect(state.lastRemovedBoltId) {
-                        state.lastRemovedBoltId?.let { id ->
-                            if (id !in boltAnimProgress) {
-                                boltAnimProgress[id] = 0f
-                                val anim = Animatable(0f)
-                                anim.animateTo(1f, animationSpec = tween(BOLT_UNSCREW_DURATION))
-                                boltAnimProgress[id] = 1f
-                            }
-                        }
-                    }
+                    val boltAngles = state.bolts.map { bolt ->
+                        val animatedAngle by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = if (bolt.isUnscrewing) 1f else 0f,
+                            animationSpec = tween(BOLT_UNSCREW_DURATION),
+                            label = "boltUnscrew"
+                        )
+                        bolt.id to animatedAngle
+                    }.toMap()
+
+                    val plankAngles = state.planks.map { plank ->
+                        val animatedAngle by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = plank.angle,
+                            animationSpec = androidx.compose.animation.core.spring(
+                                dampingRatio = 0.6f,
+                                stiffness = 300f
+                            ),
+                            label = "plankAngle"
+                        )
+                        plank.id to animatedAngle
+                    }.toMap()
 
                     // Trigger plank falling animation on new removal
                     LaunchedEffect(state.lastRemovedPlankId) {
@@ -230,10 +237,14 @@ fun WoodNutsScreen(
                             .background(Color(0xFF2E2E2E))
                             .pointerInput(state.bolts) {
                                 detectTapGestures { offset ->
-                                    val col = (offset.x / cellPx).toInt()
-                                    val row = (offset.y / cellPx).toInt()
-                                    val bolt = state.bolts.find {
-                                        it.row == row && it.col == col && !it.removed
+                                    val touchRadius = cellPx * 0.45f
+                                    val bolt = state.bolts.find { b ->
+                                        if (b.removed || b.isUnscrewing) return@find false
+                                        val cx = b.col * cellPx
+                                        val cy = b.row * cellPx
+                                        val dx = offset.x - cx
+                                        val dy = offset.y - cy
+                                        sqrt(dx * dx + dy * dy) <= touchRadius
                                     }
                                     if (bolt != null) {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK, 0.8f)
@@ -257,15 +268,11 @@ fun WoodNutsScreen(
 
                             val remainingBolts = plank.boltIds
                                 .mapNotNull { id -> state.bolts.find { it.id == id } }
-                                .filter { !it.removed }
+                                .filter { !it.removed && !it.isUnscrewing }
 
-                            val allPresent = remainingBolts.size == plank.boltIds.size
+                            val currentAngle = plankAngles[plank.id] ?: 0f
 
-                            if (allPresent) {
-                                drawFlatPlank(plank, color, cellPx, plankPad, plankCorner, strokePx)
-                            } else {
-                                drawTiltedPlank(plank, remainingBolts, color, cellPx, plankPad, plankCorner, strokePx)
-                            }
+                            drawRotatedPlank(plank, remainingBolts, color, cellPx, plankPad, plankCorner, strokePx, currentAngle)
                         }
 
                         // === PASS 2: Draw falling planks (on top) ===
@@ -280,15 +287,18 @@ fun WoodNutsScreen(
 
                         // === PASS 3: Draw bolts ===
                         for (bolt in state.bolts) {
-                            val unscrewProgress = boltAnimProgress[bolt.id]
-                            if (bolt.removed && unscrewProgress == null) continue
+                            if (bolt.removed) continue
+                            val unscrewProgress = boltAngles[bolt.id] ?: 0f
 
                             val cx = bolt.col * cellPx
                             val cy = bolt.row * cellPx
 
-                            if (bolt.removed && unscrewProgress != null) {
+                            // Drop shadow for bolt
+                            drawCircle(Color.Black.copy(alpha = 0.5f), boltRadius, Offset(cx + strokePx * 1.5f, cy + strokePx * 1.5f))
+
+                            if (unscrewProgress > 0f) {
                                 drawUnscrewingBolt(cx, cy, boltRadius, unscrewProgress)
-                            } else if (!bolt.removed) {
+                            } else {
                                 drawNormalBolt(cx, cy, boltRadius)
                             }
                         }
@@ -306,60 +316,42 @@ fun WoodNutsScreen(
     }
 }
 
-private fun DrawScope.drawFlatPlank(
-    plank: Plank,
-    color: Color,
-    cellPx: Float,
-    pad: Float,
-    corner: Float,
-    stroke: Float
-) {
-    val left = plank.startCol * cellPx + pad
-    val top = plank.startRow * cellPx + pad
-    val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
-    val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
-
-    drawRoundRect(color, Offset(left, top), Size(w, h), CornerRadius(corner, corner))
-    drawRoundRect(color.copy(alpha = 0.3f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke))
-}
-
-private fun DrawScope.drawTiltedPlank(
+private fun DrawScope.drawRotatedPlank(
     plank: Plank,
     remainingBolts: List<Bolt>,
     color: Color,
     cellPx: Float,
     pad: Float,
     corner: Float,
-    stroke: Float
+    stroke: Float,
+    angle: Float
 ) {
-    // Support center (average of remaining bolt positions) in pixels
-    val sx = remainingBolts.map { it.col.toFloat() * cellPx }.average().toFloat()
-    val sy = remainingBolts.map { it.row.toFloat() * cellPx }.average().toFloat()
-    val pivot = Offset(sx, sy)
+    val pivot = if (remainingBolts.isNotEmpty()) {
+        val sx = remainingBolts.map { it.col.toFloat() * cellPx }.average().toFloat()
+        val sy = remainingBolts.map { it.row.toFloat() * cellPx }.average().toFloat()
+        Offset(sx, sy)
+    } else {
+        val left = plank.startCol * cellPx + pad
+        val top = plank.startRow * cellPx + pad
+        val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
+        val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
+        Offset(left + w / 2f, top + h / 2f)
+    }
 
-    // Plank center in grid coords, then pixels
-    val pcCol = plank.startCol + (plank.endCol - plank.startCol + 1) / 2f
-    val pcRow = plank.startRow + (plank.endRow - plank.startRow + 1) / 2f
-    val dx = pcCol.toDouble() - remainingBolts.map { it.col }.average()
-    val dy = pcRow.toDouble() - remainingBolts.map { it.row }.average()
-    val dist = sqrt(dx * dx + dy * dy)
-
-    // Max possible distance for this plank (half-diagonal)
-    val maxDistCol = (plank.endCol - plank.startCol + 1) / 2.0
-    val maxDistRow = (plank.endRow - plank.startRow + 1) / 2.0
-    val maxDist = sqrt(maxDistCol * maxDistCol + maxDistRow * maxDistRow)
-
-    val offsetRatio = (dist / maxDist).toFloat().coerceIn(0f, 1f)
-    val tiltAngle = offsetRatio * MAX_TILT_DEGREES
-
-    rotate(tiltAngle, pivot) {
+    rotate(angle, pivot) {
         val left = plank.startCol * cellPx + pad
         val top = plank.startRow * cellPx + pad
         val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
         val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
 
+        // Drop shadow
+        drawRoundRect(Color.Black.copy(alpha = 0.5f), Offset(left + stroke * 2, top + stroke * 2), Size(w, h), CornerRadius(corner, corner))
+        // Base body
         drawRoundRect(color, Offset(left, top), Size(w, h), CornerRadius(corner, corner))
-        drawRoundRect(color.copy(alpha = 0.25f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke))
+        // Bevel highlight (top/left)
+        drawRoundRect(Color.White.copy(alpha = 0.25f), Offset(left + stroke, top + stroke), Size(w - stroke * 2, h - stroke * 2), CornerRadius(corner, corner), style = Stroke(stroke))
+        // Inner shadow/outline
+        drawRoundRect(Color.Black.copy(alpha = 0.3f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke * 2))
     }
 }
 
@@ -389,12 +381,11 @@ private fun DrawScope.drawFallingPlank(
 
     rotate(spin, Offset(centerX, centerY + fallDistance)) {
         val transl = top + fallDistance
-        drawRoundRect(
-            color.copy(alpha = alpha),
-            Offset(left, transl),
-            Size(w, h),
-            CornerRadius(corner, corner)
-        )
+        
+        drawRoundRect(Color.Black.copy(alpha = alpha * 0.5f), Offset(left + stroke * 2, transl + stroke * 2), Size(w, h), CornerRadius(corner, corner))
+        drawRoundRect(color.copy(alpha = alpha), Offset(left, transl), Size(w, h), CornerRadius(corner, corner))
+        drawRoundRect(Color.White.copy(alpha = alpha * 0.25f), Offset(left + stroke, transl + stroke), Size(w - stroke * 2, h - stroke * 2), CornerRadius(corner, corner), style = Stroke(stroke))
+        drawRoundRect(Color.Black.copy(alpha = alpha * 0.3f), Offset(left, transl), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke * 2))
     }
 }
 
