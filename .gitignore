@@ -29,3 +29,6 @@ scripts/output-old
 *.keystore
 build-sign-key
 keystore-password.txt
+.aider*
+build_log.txt
+compile_out.txt
