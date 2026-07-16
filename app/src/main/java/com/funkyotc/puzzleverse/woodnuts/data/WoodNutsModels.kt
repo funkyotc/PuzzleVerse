@@ -1,5 +1,11 @@
 package com.funkyotc.puzzleverse.woodnuts.data
 
+data class PhysicsTransform(
+    val x: Float,
+    val y: Float,
+    val angle: Float
+)
+
 data class Bolt(
     val id: String,
     val row: Int,
@@ -16,7 +22,9 @@ data class Plank(
     val endCol: Int,
     val boltIds: List<String>,
     val removed: Boolean = false,
-    val angle: Float = 0f
+    val angle: Float = 0f,
+    val depthLayer: Int = 0,
+    val transform: PhysicsTransform? = null
 )
 
 data class WoodNutsLevel(

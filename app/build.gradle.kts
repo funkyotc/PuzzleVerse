@@ -86,6 +86,9 @@ dependencies {
     // Chesslib
     implementation(libs.chesslib)
 
+    // Physics
+    implementation(libs.dyn4j)
+
     // Splash Screen
     implementation(libs.androidx.core.splashscreen)
 

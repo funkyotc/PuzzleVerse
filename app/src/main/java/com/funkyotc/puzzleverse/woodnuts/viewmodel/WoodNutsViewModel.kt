@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.woodnuts.data.*
+import com.funkyotc.puzzleverse.woodnuts.physics.WoodNutsPhysicsEngine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import kotlinx.coroutines.isActive
 
 class WoodNutsViewModel(
     private val streakRepository: StreakRepository? = null,
@@ -21,8 +23,11 @@ class WoodNutsViewModel(
     private val _state = MutableStateFlow<WoodNutsState?>(null)
     val state: StateFlow<WoodNutsState?> = _state.asStateFlow()
 
+    private val physicsEngine = WoodNutsPhysicsEngine()
+
     init {
         startNewGame()
+        startPhysicsLoop()
     }
 
     fun startNewGame() {
@@ -59,11 +64,70 @@ class WoodNutsViewModel(
             planks = selectedLevel.planks
         )
 
+        // Assign random depth layers to planks so they collide in layers
+        val assignedPlanks = selectedLevel.planks.mapIndexed { index, p -> 
+            p.copy(depthLayer = index % 14)
+        }
+
         _state.value = WoodNutsState(
             level = level,
             bolts = selectedLevel.bolts.map { it.copy() },
-            planks = selectedLevel.planks.map { it.copy() }
+            planks = assignedPlanks
         )
+
+        physicsEngine.initWorld(level, assignedPlanks, selectedLevel.bolts)
+    }
+
+    private fun startPhysicsLoop() {
+        viewModelScope.launch {
+            while (isActive) {
+                delay(16) // ~60 FPS
+                val currentState = _state.value ?: continue
+                if (currentState.isWon) continue
+
+                val transforms = physicsEngine.step(1.0 / 60.0)
+                var updated = false
+                
+                val newPlanks = currentState.planks.map { plank ->
+                    val trans = transforms[plank.id]
+                    if (trans != null && trans != plank.transform) {
+                        updated = true
+                        plank.copy(transform = trans)
+                    } else plank
+                }.toMutableList()
+
+                var newlyWon = false
+                for (i in newPlanks.indices) {
+                    val p = newPlanks[i]
+                    if (!p.removed && physicsEngine.isPlankOutOfBounds(p.id, currentState.level.rows + 3f)) {
+                        newPlanks[i] = p.copy(removed = true)
+                        physicsEngine.removePlank(p.id)
+                        updated = true
+                    }
+                }
+
+                if (updated) {
+                    val isWon = newPlanks.all { it.removed }
+                    if (isWon && !currentState.isWon) {
+                        newlyWon = true
+                        if (mode == "daily") {
+                            val today = todayEpochDay()
+                            streakRepository?.let { repo ->
+                                val streak = repo.getStreak("woodnuts")
+                                if (streak.lastCompletedEpochDay != today) {
+                                    val newStreak = streak.copy(
+                                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                                        lastCompletedEpochDay = today
+                                    )
+                                    repo.saveStreak(newStreak)
+                                }
+                            }
+                        }
+                    }
+                    _state.value = currentState.copy(planks = newPlanks, isWon = isWon)
+                }
+            }
+        }
     }
 
     fun removeBolt(boltId: String) {
@@ -97,65 +161,10 @@ class WoodNutsViewModel(
         val updatedBolts = currentState.bolts.toMutableList()
         updatedBolts[boltIndex] = updatedBolts[boltIndex].copy(removed = true, isUnscrewing = false)
 
-        var updatedPlanks = currentState.planks.toMutableList()
-        var lastRemoved: String? = null
-
-        var changed = true
-        while (changed) {
-            changed = false
-            val newPlanks = updatedPlanks.toMutableList()
-            for (i in updatedPlanks.indices) {
-                val plank = updatedPlanks[i]
-                if (plank.removed) continue
-                
-                val remainingBolts = plank.boltIds.mapNotNull { id -> 
-                    updatedBolts.find { it.id == id && !it.removed }
-                }
-                
-                if (remainingBolts.isEmpty()) {
-                    newPlanks[i] = plank.copy(removed = true)
-                    lastRemoved = plank.id
-                    changed = true
-                } else if (remainingBolts.size == 1) {
-                    val pivot = remainingBolts.first()
-                    val centerCol = (plank.startCol + plank.endCol) / 2.0f
-                    val centerRow = (plank.startRow + plank.endRow) / 2.0f
-                    val dx = centerCol - pivot.col
-                    val dy = centerRow - pivot.row
-                    if (dx != 0f || dy != 0f) {
-                        val initialAngle = Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                        val rotation = 90f - initialAngle
-                        if (plank.angle != rotation) {
-                            newPlanks[i] = plank.copy(angle = rotation)
-                            changed = true
-                        }
-                    }
-                }
-            }
-            updatedPlanks = newPlanks
-        }
-
-        val isWon = updatedPlanks.all { it.removed }
-
-        if (isWon && mode == "daily") {
-            val today = todayEpochDay()
-            streakRepository?.let { repo ->
-                val streak = repo.getStreak("woodnuts")
-                if (streak.lastCompletedEpochDay != today) {
-                    val newStreak = streak.copy(
-                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                        lastCompletedEpochDay = today
-                    )
-                    repo.saveStreak(newStreak)
-                }
-            }
-        }
+        physicsEngine.removeBolt(boltId)
 
         _state.value = currentState.copy(
             bolts = updatedBolts,
-            planks = updatedPlanks,
-            isWon = isWon,
-            lastRemovedPlankId = lastRemoved,
             lastRemovedBoltId = boltId
         )
     }

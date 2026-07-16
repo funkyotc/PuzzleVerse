@@ -65,7 +65,6 @@ private val PLANK_PALETTE = listOf(
     Color(0xFF8B6F5E), Color(0xFFA0897C), Color(0xFFB8A69B)
 )
 
-private const val MAX_TILT_DEGREES = 18f
 private const val BOLT_UNSCREW_DURATION = 350
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -196,11 +195,6 @@ fun WoodNutsScreen(
                     val plankPad = cellPx * 0.08f
                     val strokePx = with(density) { 2.dp.toPx() }
 
-                    // State for plank falling animation
-                    val fallAnimProgress = remember { mutableStateMapOf<String, Float>() }
-
-                    val scope = rememberCoroutineScope()
-
                     val boltAngles = state.bolts.map { bolt ->
                         val animatedAngle by androidx.compose.animation.core.animateFloatAsState(
                             targetValue = if (bolt.isUnscrewing) 1f else 0f,
@@ -209,27 +203,6 @@ fun WoodNutsScreen(
                         )
                         bolt.id to animatedAngle
                     }.toMap()
-
-                    val plankAngles = state.planks.map { plank ->
-                        val animatedAngle by androidx.compose.animation.core.animateFloatAsState(
-                            targetValue = plank.angle,
-                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
-                            label = "plankAngle"
-                        )
-                        plank.id to animatedAngle
-                    }.toMap()
-
-                    // Trigger plank falling animation on new removal
-                    LaunchedEffect(state.lastRemovedPlankId) {
-                        state.lastRemovedPlankId?.let { id ->
-                            if (id !in fallAnimProgress) {
-                                fallAnimProgress[id] = 0f
-                                val anim = Animatable(0f)
-                                anim.animateTo(1f, animationSpec = tween(500))
-                                fallAnimProgress[id] = 1f
-                            }
-                        }
-                    }
 
                     Canvas(
                         modifier = Modifier
@@ -254,39 +227,18 @@ fun WoodNutsScreen(
                                 }
                             }
                     ) {
-                        // === PASS 1: Draw flat & tilted planks ===
-                        for (plank in state.planks) {
-                            if (plank.removed && fallAnimProgress.containsKey(plank.id)) {
-                                // drawn in pass 2
-                                continue
-                            }
-                            if (plank.removed && !fallAnimProgress.containsKey(plank.id)) {
-                                continue
-                            }
+                        // === PASS 1: Draw planks in depth order ===
+                        val sortedPlanks = state.planks.sortedBy { it.depthLayer }
+                        for (plank in sortedPlanks) {
+                            if (plank.removed) continue
 
                             val colorIndex = state.planks.indexOf(plank) % PLANK_PALETTE.size
                             val color = PLANK_PALETTE[colorIndex]
 
-                            val remainingBolts = plank.boltIds
-                                .mapNotNull { id -> state.bolts.find { it.id == id } }
-                                .filter { !it.removed && !it.isUnscrewing }
-
-                            val currentAngle = plankAngles[plank.id] ?: 0f
-
-                            drawRotatedPlank(plank, remainingBolts, color, cellPx, plankPad, plankCorner, strokePx, currentAngle)
+                            drawPhysicsPlank(plank, color, cellPx, plankPad, plankCorner, strokePx)
                         }
 
-                        // === PASS 2: Draw falling planks (on top) ===
-                        for (plank in state.planks) {
-                            if (!plank.removed) continue
-                            val progress = fallAnimProgress[plank.id] ?: continue
-                            if (progress >= 1f) continue
-
-                            val colorIndex = state.planks.indexOf(plank) % PLANK_PALETTE.size
-                            drawFallingPlank(plank, PLANK_PALETTE[colorIndex], cellPx, plankPad, plankCorner, strokePx, progress)
-                        }
-
-                        // === PASS 3: Draw bolts ===
+                        // === PASS 2: Draw bolts ===
                         for (bolt in state.bolts) {
                             if (bolt.removed) continue
                             val unscrewProgress = boltAngles[bolt.id] ?: 0f
@@ -317,34 +269,36 @@ fun WoodNutsScreen(
     }
 }
 
-private fun DrawScope.drawRotatedPlank(
+private fun DrawScope.drawPhysicsPlank(
     plank: Plank,
-    remainingBolts: List<Bolt>,
     color: Color,
     cellPx: Float,
     pad: Float,
     corner: Float,
-    stroke: Float,
-    angle: Float
+    stroke: Float
 ) {
-    val pivot = if (remainingBolts.isNotEmpty()) {
-        val sx = remainingBolts.map { it.col.toFloat() * cellPx }.average().toFloat()
-        val sy = remainingBolts.map { it.row.toFloat() * cellPx }.average().toFloat()
-        Offset(sx, sy)
+    val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
+    val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
+
+    val cx: Float
+    val cy: Float
+    val angle: Float
+
+    if (plank.transform != null) {
+        cx = plank.transform.x * cellPx
+        cy = plank.transform.y * cellPx
+        angle = plank.transform.angle
     } else {
-        val left = plank.startCol * cellPx + pad
-        val top = plank.startRow * cellPx + pad
-        val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
-        val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
-        Offset(left + w / 2f, top + h / 2f)
+        // Fallback before first physics step
+        cx = plank.startCol * cellPx + (plank.endCol - plank.startCol + 1) * cellPx / 2f
+        cy = plank.startRow * cellPx + (plank.endRow - plank.startRow + 1) * cellPx / 2f
+        angle = plank.angle
     }
+    
+    val left = cx - w / 2f
+    val top = cy - h / 2f
 
-    rotate(angle, pivot) {
-        val left = plank.startCol * cellPx + pad
-        val top = plank.startRow * cellPx + pad
-        val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
-        val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
-
+    rotate(angle, Offset(cx, cy)) {
         // Drop shadow
         drawRoundRect(Color.Black.copy(alpha = 0.5f), Offset(left + stroke * 2, top + stroke * 2), Size(w, h), CornerRadius(corner, corner))
         // Base body
@@ -353,40 +307,6 @@ private fun DrawScope.drawRotatedPlank(
         drawRoundRect(Color.White.copy(alpha = 0.25f), Offset(left + stroke, top + stroke), Size(w - stroke * 2, h - stroke * 2), CornerRadius(corner, corner), style = Stroke(stroke))
         // Inner shadow/outline
         drawRoundRect(Color.Black.copy(alpha = 0.3f), Offset(left, top), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke * 2))
-    }
-}
-
-private fun DrawScope.drawFallingPlank(
-    plank: Plank,
-    color: Color,
-    cellPx: Float,
-    pad: Float,
-    corner: Float,
-    stroke: Float,
-    progress: Float
-) {
-    val alpha = 1f - progress
-    val fallDistance = cellPx * 3f * progress
-
-    // Random-ish spin based on plank id
-    val spinDir = if (plank.id.hashCode() % 2 == 0) 1f else -1f
-    val spin = spinDir * progress * 35f
-
-    val left = plank.startCol * cellPx + pad
-    val top = plank.startRow * cellPx + pad
-    val w = (plank.endCol - plank.startCol + 1) * cellPx - pad * 2
-    val h = (plank.endRow - plank.startRow + 1) * cellPx - pad * 2
-
-    val centerX = left + w / 2f
-    val centerY = top + h / 2f
-
-    rotate(spin, Offset(centerX, centerY + fallDistance)) {
-        val transl = top + fallDistance
-        
-        drawRoundRect(Color.Black.copy(alpha = alpha * 0.5f), Offset(left + stroke * 2, transl + stroke * 2), Size(w, h), CornerRadius(corner, corner))
-        drawRoundRect(color.copy(alpha = alpha), Offset(left, transl), Size(w, h), CornerRadius(corner, corner))
-        drawRoundRect(Color.White.copy(alpha = alpha * 0.25f), Offset(left + stroke, transl + stroke), Size(w - stroke * 2, h - stroke * 2), CornerRadius(corner, corner), style = Stroke(stroke))
-        drawRoundRect(Color.Black.copy(alpha = alpha * 0.3f), Offset(left, transl), Size(w, h), CornerRadius(corner, corner), style = Stroke(stroke * 2))
     }
 }
 
