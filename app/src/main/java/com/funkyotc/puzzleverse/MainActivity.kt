@@ -481,8 +481,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         }
         composable("woodnuts/puzzles") {
             PuzzleBrowserScreen(
-                title = "Wood Nuts Puzzles",
-                gameName = "Wood Nuts",
+                title = "Wood Screws Puzzles",
+                gameName = "Wood Screws",
                 navController = navController,
                 puzzlesByDifficulty = WoodNutsPregenerated.PUZZLES_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),

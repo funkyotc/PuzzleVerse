@@ -85,7 +85,7 @@ fun WoodNutsScreen(
     var showVictoryDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val completionRepo = remember { PuzzleCompletionRepository(context, "Wood Nuts") }
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Wood Screws") }
 
     val state = stateOpt ?: return
 
@@ -142,7 +142,7 @@ fun WoodNutsScreen(
     }
 
     StandardGameLayout(
-        title = "Wood Nuts & Bolts",
+        title = "Wood Screws",
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {
