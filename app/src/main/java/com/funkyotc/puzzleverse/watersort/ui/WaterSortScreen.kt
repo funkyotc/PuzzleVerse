@@ -251,6 +251,23 @@ private fun BottleView(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val layerColors = remember { mutableStateListOf<Int?>().apply {
+        repeat(height) { add(null) }
+        bottle.colors.forEachIndexed { i, c -> this[i] = c }
+    } }
+    
+    LaunchedEffect(bottle.colors) {
+        bottle.colors.forEachIndexed { i, c -> layerColors[i] = c }
+    }
+
+    val layerHeights = (0 until height).map { i ->
+        androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (i < bottle.colors.size) 1f else 0f,
+            animationSpec = tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            label = "layerHeight_$i"
+        ).value
+    }
+
     val transition = rememberInfiniteTransition(label = "selection")
     val pulseAlpha by transition.animateFloat(
         initialValue = 0.4f,
@@ -314,8 +331,6 @@ private fun BottleView(
             val corner = bodyWidth * 0.12f
             val neckCorner = neckWidth * 0.25f
 
-            val colors = bottle.colors
-            val emptySegments = height - colors.size
             val segmentHeight = bodyHeight / height
 
             if (isSelected) {
@@ -344,19 +359,30 @@ private fun BottleView(
                 )
             }
 
-            for (i in colors.indices.reversed()) {
-                val colorIndex = colors[i]
-                val baseColor = if (colorIndex in WATER_COLORS.indices) {
-                    WATER_COLORS[colorIndex]
-                } else {
-                    Color.Gray
-                }
+            var currentY = bodyTop + bodyHeight
+            val topVisibleIndex = layerHeights.indexOfLast { it > 0.001f }
+            
+            for (i in 0 until height) {
+                val fillRatio = layerHeights[i]
+                if (fillRatio <= 0.001f) continue
 
-                val segTop = bodyTop + (height - 1 - i) * segmentHeight
-                val isTopSegment = i == colors.lastIndex
-                val isBottomSegment = i == 0 && emptySegments == 0
+                val colorIndex = layerColors[i] ?: continue
+                val baseColor = if (colorIndex in WATER_COLORS.indices) WATER_COLORS[colorIndex] else Color.Gray
 
-                val segCornerRadius = if (isTopSegment || isBottomSegment) corner else 0f
+                val currentSegmentHeight = segmentHeight * fillRatio
+                val segTop = currentY - currentSegmentHeight
+                val isTopSegment = i == topVisibleIndex
+
+                val bottomRadius = if (i == 0) corner else 0f
+                val rect = androidx.compose.ui.geometry.RoundRect(
+                    left = bodyLeft,
+                    top = segTop,
+                    right = bodyLeft + bodyWidth,
+                    bottom = segTop + currentSegmentHeight,
+                    bottomLeftCornerRadius = CornerRadius(bottomRadius, bottomRadius),
+                    bottomRightCornerRadius = CornerRadius(bottomRadius, bottomRadius)
+                )
+                val segmentPath = Path().apply { addRoundRect(rect) }
 
                 val gradientBrush = Brush.verticalGradient(
                     colors = listOf(
@@ -365,14 +391,12 @@ private fun BottleView(
                         baseColor.copy(alpha = 0.9f)
                     ),
                     startY = segTop,
-                    endY = segTop + segmentHeight
+                    endY = segTop + currentSegmentHeight
                 )
 
-                drawRoundRect(
-                    brush = gradientBrush,
-                    topLeft = Offset(bodyLeft, segTop),
-                    size = Size(bodyWidth, segmentHeight),
-                    cornerRadius = CornerRadius(segCornerRadius, segCornerRadius)
+                drawPath(
+                    path = segmentPath,
+                    brush = gradientBrush
                 )
 
                 if (isTopSegment) {
@@ -402,7 +426,7 @@ private fun BottleView(
                 }
 
                 if (i > 0) {
-                    val dividerY = segTop + segmentHeight - 1f
+                    val dividerY = segTop + currentSegmentHeight - 1f
                     drawLine(
                         color = baseColor.copy(alpha = 0.3f),
                         start = Offset(bodyLeft + 4f, dividerY),
@@ -413,19 +437,30 @@ private fun BottleView(
 
                 val highlightWidth = bodyWidth * 0.12f
                 val highlightLeft = bodyLeft + bodyWidth * 0.15f
-                drawRoundRect(
+                val highlightBottomRadius = if (i == 0) corner * 0.5f else 0f
+                val highlightRect = androidx.compose.ui.geometry.RoundRect(
+                    left = highlightLeft,
+                    top = segTop,
+                    right = highlightLeft + highlightWidth,
+                    bottom = segTop + currentSegmentHeight,
+                    bottomLeftCornerRadius = CornerRadius(highlightBottomRadius, highlightBottomRadius),
+                    bottomRightCornerRadius = CornerRadius(highlightBottomRadius, highlightBottomRadius)
+                )
+                val highlightPath = Path().apply { addRoundRect(highlightRect) }
+                
+                drawPath(
+                    path = highlightPath,
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.35f),
                             Color.White.copy(alpha = 0.05f)
                         ),
                         startY = segTop,
-                        endY = segTop + segmentHeight
-                    ),
-                    topLeft = Offset(highlightLeft, segTop),
-                    size = Size(highlightWidth, segmentHeight),
-                    cornerRadius = CornerRadius(segCornerRadius * 0.5f, segCornerRadius * 0.5f)
+                        endY = segTop + currentSegmentHeight
+                    )
                 )
+                
+                currentY -= currentSegmentHeight
             }
 
             val borderBrush = if (isSelected) {
