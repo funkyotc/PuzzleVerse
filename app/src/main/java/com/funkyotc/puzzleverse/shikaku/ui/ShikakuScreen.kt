@@ -16,7 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -426,7 +426,7 @@ fun ShikakuScreen(
                     interactionSource = undoInteractionSource,
                     modifier = Modifier.animateTapFeedback(undoInteractionSource)
                 ) {
-                    Icon(Icons.Filled.Undo, contentDescription = "Undo", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = MaterialTheme.colorScheme.primary)
                 }
                 val hintInteractionSource = remember { MutableInteractionSource() }
                 IconButton(

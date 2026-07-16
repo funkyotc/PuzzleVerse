@@ -77,9 +77,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.ui.text.google.fonts)
 
-    // Accompanist
-    implementation(libs.accompanist.navigation.animation)
-
     // Gson
     implementation(libs.gson)
 

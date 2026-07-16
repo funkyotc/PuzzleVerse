@@ -178,7 +178,7 @@ class ShikakuGeneratorTest {
         val targetPath2 = "app/src/main/java/com/funkyotc/puzzleverse/shikaku/data/ShikakuPregenerated.kt"
         val targetFile = if (java.io.File(targetPath1).exists()) java.io.File(targetPath1) else java.io.File(targetPath2)
         
-        targetFile.parentFile.mkdirs()
+        targetFile.parentFile?.mkdirs()
         targetFile.writeText(sb.toString())
         println("Successfully wrote generated puzzles to ${targetFile.absolutePath}")
     }

@@ -60,7 +60,8 @@ val games = listOf(
     Game("watersort", "Water Sort"),
     Game("woodnuts", "Wood Nuts & Bolts"),
     Game("hexasort", "Hexa Sort"),
-    Game("chess", "Chess")
+    Game("chess", "Chess"),
+    Game("hashi", "Hashi")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -3,7 +3,6 @@ package com.funkyotc.puzzleverse
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -65,13 +64,14 @@ import com.funkyotc.puzzleverse.hexasort.ui.HexaSortScreen
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated
 import com.funkyotc.puzzleverse.chess.ui.ChessScreen
 import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
+import com.funkyotc.puzzleverse.hashi.ui.HashiScreen
+import com.funkyotc.puzzleverse.hashi.data.HashiPregenerated
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 val LocalSoundManager = staticCompositionLocalOf<SoundManager> { error("No SoundManager provided") }
 
-@OptIn(ExperimentalAnimationApi::class)
 class MainActivity : ComponentActivity() {
 
     private lateinit var soundManager: SoundManager
@@ -113,11 +113,10 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository: StreakRepository, onInitialLoad: () -> Unit) {
-    val navController = rememberAnimatedNavController()
-    AnimatedNavHost(
+    val navController = rememberNavController()
+    NavHost(
         navController = navController, 
         startDestination = "home",
         enterTransition = {
@@ -183,6 +182,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
                 "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -212,6 +212,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -537,6 +538,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             ChessScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("hashi/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Hashi Puzzles",
+                gameName = "Hashi",
+                navController = navController,
+                puzzlesByDifficulty = HashiPregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/hashi/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/hashi/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            HashiScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,

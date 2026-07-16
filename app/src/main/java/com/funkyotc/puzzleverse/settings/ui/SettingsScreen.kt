@@ -17,7 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -94,7 +94,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             val soundEnabled by viewModel.soundEffectsEnabled.collectAsState()
