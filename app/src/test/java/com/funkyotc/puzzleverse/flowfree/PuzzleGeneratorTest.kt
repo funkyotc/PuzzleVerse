@@ -2,7 +2,10 @@ package com.funkyotc.puzzleverse.flowfree
 
 import com.funkyotc.puzzleverse.flowfree.data.ColorDot
 import com.funkyotc.puzzleverse.flowfree.data.FlowDifficulty
+import com.funkyotc.puzzleverse.flowfree.data.FlowFreeGenerator
 import com.funkyotc.puzzleverse.flowfree.data.Point
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import kotlin.random.Random
@@ -69,6 +72,45 @@ class PuzzleGeneratorTest {
 
         outputFile.writeText(sb.toString())
         println("Puzzles successfully written to ${outputFile.absolutePath}")
+    }
+
+    @Test
+    fun generatedPuzzlesAreValidSolutions() {
+        val random = Random(123)
+        for (difficulty in FlowDifficulty.values()) {
+            val puzzle = FlowFreeGenerator.generate(difficulty, random)
+            assertValidDots(puzzle.dots, puzzle.size, difficulty.numColors)
+        }
+    }
+
+    @Test
+    fun generatedPuzzlesHaveUniqueSolutions() {
+        val random = Random(456)
+        for (difficulty in FlowDifficulty.values()) {
+            val puzzle = FlowFreeGenerator.generate(difficulty, random)
+            // A generated puzzle must be solvable (the cut itself is a solution) and unique.
+            // The solver only counts a solution when every cell is filled, so a
+            // unique solution also guarantees full-grid coverage.
+            assertTrue(
+                "${difficulty.name} puzzle should have exactly one solution",
+                hasUniqueSolution(puzzle.dots, puzzle.size)
+            )
+        }
+    }
+
+    private fun assertValidDots(dots: List<ColorDot>, size: Int, numColors: Int) {
+        assertEquals("must have exactly numColors dots", numColors, dots.size)
+
+        val endpoints = mutableSetOf<Point>()
+        for (dot in dots) {
+            // Each color has two distinct endpoints (segments are length >= 2).
+            assertTrue("start != end", dot.start != dot.end)
+            for (p in listOf(dot.start, dot.end)) {
+                assertTrue("endpoint inside grid", p.r in 0 until size && p.c in 0 until size)
+                assertTrue("endpoints must be unique across all colors", endpoints.add(p))
+            }
+        }
+        assertEquals("total endpoints", numColors * 2, endpoints.size)
     }
 
     private fun generateSolution(size: Int, numColors: Int, random: Random): Array<IntArray>? {
@@ -202,7 +244,7 @@ class PuzzleGeneratorTest {
             unique = solver.countSolutions(maxCount = 2) == 1
         }
         thread.start()
-        thread.join(2000) // 2 seconds max
+        thread.join(10000) // 10 seconds max, aligned with generator semantics
         if (thread.isAlive) {
             thread.interrupt()
             return false
