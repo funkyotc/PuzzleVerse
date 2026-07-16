@@ -13,12 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.remember
-import com.funkyotc.puzzleverse.core.ui.animateEntrance
 import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
@@ -104,7 +103,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle", "tfe") }
-                    itemsIndexed(dailyGames) { index, game ->
+                    items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                         val isDailyCompleted = streak.lastCompletedEpochDay == today
@@ -113,7 +112,6 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                             modifier = Modifier
                                 .width(160.dp)
                                 .height(90.dp)
-                                .animateEntrance(delayMillis = index * 40)
                         ) {
                             GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted, enabled = !isDailyCompleted) {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -132,7 +130,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                 )
             }
 
-            itemsIndexed(games) { index, game ->
+            items(games) { game ->
                 val streak = streakRepository.getStreak(game.id)
                 val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
@@ -140,7 +138,6 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                 Box(
                     modifier = Modifier
                         .height(90.dp)
-                        .animateEntrance(delayMillis = index * 30)
                 ) {
                     GameCard(game = game, streak = 0, isDailyCompleted = isDailyCompleted) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
