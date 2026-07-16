@@ -59,91 +59,65 @@ class ShapesViewModel(
     }
 
     private fun generatePuzzle(level: Int) {
-        if (mode == "puzzle" && puzzleId != null) {
-            val cx = 200f
-            val cy = 200f
-            val sc = 65f
-            val pregen = com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
-            if (pregen != null) {
-                val originalLevel = pregen.toShapesPuzzle()
-                val colors = listOf(
-                    Color(0xFF6B8DD6),
-                    Color(0xFF8E37D7),
-                    Color(0xFFFFB75E),
-                    Color(0xFFED8F03),
-                    Color(0xFFFF5252),
-                    Color(0xFF4CAF50),
-                    Color(0xFF00BCD4)
-                )
-
-                val scaledPieces = originalLevel.pieces.map { piece ->
-                    piece.copy(
-                        initialVertices = piece.initialVertices.map { Offset(it.x * sc, it.y * sc) },
-                        position = Offset(
-                            cx + piece.solutionPosition.x * sc,
-                            cy + piece.solutionPosition.y * sc
-                        ),
-                        solutionPosition = Offset(
-                            cx + piece.solutionPosition.x * sc,
-                            cy + piece.solutionPosition.y * sc
-                        )
-                    )
-                }
-
-                val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
-                    val row = index / 4
-                    val col = index % 4
-                    val startX = if (row == 0) 50f else 80f
-                    val x = startX + col * 80f + Random.nextFloat() * 15f
-                    val y = 460f + row * 85f + Random.nextFloat() * 15f
-                    piece.copy(
-                        position = Offset(x, y),
-                        color = colors.getOrElse(index) { Color.Gray }
-                    )
-                }
-
-                val scaledTarget = TargetShape(originalLevel.target.vertices.map {
-                    Offset(cx + it.x * sc, cy + it.y * sc)
-                })
-
-                _puzzle.value = originalLevel.copy(pieces = shuffledPieces, target = scaledTarget)
-                _isGameWon.value = false
-                return
-            }
-        }
-
-        val seed = if (mode == "daily") {
-            todayEpochDay()
-        } else {
-            Random.nextLong()
-        }
-        val random = Random(seed)
-
-        val originalLevel = com.funkyotc.puzzleverse.shapes.util.ShapesLevels.generateLevel(level, random)
-
-        val scale = 1.5f
         val cx = 200f
         val cy = 200f
+        val sc = 2.5f
 
-        val scaledPieces = originalLevel.pieces.map { piece ->
-            piece.copy(
-                initialVertices = piece.initialVertices.map { Offset(it.x * scale, it.y * scale) },
-                position = Offset(
-                    150f + random.nextFloat() * 100f,
-                    450f + random.nextFloat() * 150f
-                ),
-                solutionPosition = Offset(
-                    cx + (piece.solutionPosition.x - cx) * scale,
-                    cy + (piece.solutionPosition.y - cy) * scale
-                )
-            )
+        val pregen = if (mode == "puzzle" && puzzleId != null) {
+            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
+        } else if (mode == "daily") {
+            val idx = (todayEpochDay() % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size).toInt()
+            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
+        } else {
+            val idx = level % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size
+            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
         }
-        val scaledTarget = TargetShape(originalLevel.target.vertices.map {
-            Offset(cx + (it.x - cx) * scale, cy + (it.y - cy) * scale)
-        })
 
-        _puzzle.value = originalLevel.copy(pieces = scaledPieces, target = scaledTarget)
-        _isGameWon.value = false
+        if (pregen != null) {
+            val originalLevel = pregen.toShapesPuzzle()
+            val colors = listOf(
+                Color(0xFF6B8DD6),
+                Color(0xFF8E37D7),
+                Color(0xFFFFB75E),
+                Color(0xFFED8F03),
+                Color(0xFFFF5252),
+                Color(0xFF4CAF50),
+                Color(0xFF00BCD4)
+            )
+
+            val scaledPieces = originalLevel.pieces.map { piece ->
+                piece.copy(
+                    initialVertices = piece.initialVertices.map { Offset(it.x * sc, it.y * sc) },
+                    position = Offset(
+                        cx + piece.solutionPosition.x * sc,
+                        cy + piece.solutionPosition.y * sc
+                    ),
+                    solutionPosition = Offset(
+                        cx + piece.solutionPosition.x * sc,
+                        cy + piece.solutionPosition.y * sc
+                    )
+                )
+            }
+
+            val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
+                val row = index / 4
+                val col = index % 4
+                val startX = if (row == 0) 50f else 80f
+                val x = startX + col * 80f + Random.nextFloat() * 15f
+                val y = 460f + row * 85f + Random.nextFloat() * 15f
+                piece.copy(
+                    position = Offset(x, y),
+                    color = colors.getOrElse(index) { Color.Gray }
+                )
+            }
+
+            val scaledTarget = TargetShape(originalLevel.target.vertices.map {
+                Offset(cx + it.x * sc, cy + it.y * sc)
+            })
+
+            _puzzle.value = originalLevel.copy(pieces = shuffledPieces, target = scaledTarget)
+            _isGameWon.value = false
+        }
     }
 
     private fun persist() {
