@@ -1,137 +1,58 @@
-# Pull the Pin — Implementation Plan
+# Pull the Pin — Implementation (Reworked: continuous physics)
 
-## Game Mechanics
-- Grid board with colored balls, matching colored cups, walls, and removable pins
-- Tapping a pin removes it
-- When pins are removed, balls fall/roll into matching cups via gravity
-- Goal: each colored ball lands in its matching cup
-- All balls must be in cups to win
+## Overview
+Pull the Pin was reworked away from the grid system to a **continuous 2D physics**
+implementation backed by **dyn4j 5.0.2** (already a project dependency, also used by
+WoodNuts). Puzzles are baked Kotlin data (no runtime grid generation).
 
-## Simplified Physics (No Physics Engine)
+## Coordinate system
+Virtual world: `WORLD_W = 400f`, `WORLD_H = 700f` (portrait, y grows downward,
+bottom = floor). The UI scales the world to fit the screen.
 
-Instead of real-time physics, use **deterministic grid-based gravity simulation**:
+## Entities (`pullpin/data/PullPinModels.kt`)
+- `WallSegment(x, y, w, h)` — static wall rectangle (top-left).
+- `CupData(id, x, y, radius, color)` — colored cup on the floor; a matching-color ball
+  resting inside is captured (x,y is center). Color 1..8.
+- `PinData(id, x, y, w, h, pullDx, pullDy, removed, isPulling)` — removable blocking
+  rectangle; pulling it slides it out (pullDx/pullDy) then removes it from physics.
+- `BallSpawn(id, x, y, color, radius)` — initial ball (center). Color 0 = grey.
+- `PullPinLevel(id, difficulty, walls, cups, pins, balls)` — implements `BrowseablePuzzle`.
+- `BallRuntime(id, x, y, color, inCup, captured, outOfBounds)` — live ball state.
+- `PullPinState(level, balls, pins, moves, status, lostReason)`; `GameStatus { IDLE, RUNNING, WON, LOST }`.
 
-- Board is an N×M grid of cell types: `EMPTY`, `WALL`, `PIN`, `BALL(color)`, `CUP(color)`
-- When a PIN is removed, run a cascade: for each ball not yet in a cup, try DOWN first, then LEFT, then RIGHT, repeating until stable
-- Balls stop at cups, walls, other balls, or the grid edge
-- Cascade runs synchronously — no real-time game loop needed
-
-## Data Models (`pullpin/data/PullPinModels.kt`)
-
-```kotlin
-enum class CellType { EMPTY, WALL, PIN, BALL, CUP }
-
-data class Cell(val type: CellType, val color: Int? = null)
-
-data class PullPinLevel(
-    val id: String,
-    val difficulty: String,
-    val rows: Int,
-    val cols: Int,
-    val grid: List<List<Cell>>
-) : BrowseablePuzzle
-
-data class BallState(
-    val row: Int,
-    val col: Int,
-    val color: Int,
-    val inCup: Boolean = false
-)
-
-data class PullPinState(
-    val level: PullPinLevel,
-    val grid: List<List<Cell>>,
-    val balls: List<BallState>,
-    val removedPins: Set<String>, // "row,col" keys
-    val moves: Int = 0,
-    val isWon: Boolean = false
-)
-```
-
-## Cascade Simulation Logic
-
-`simulateCascade(grid, balls) -> Pair<List<List<Cell>>, List<BallState>>`
-
-Algorithm:
-1. For each ball not `inCup`:
-   a. Try DOWN: if cell is EMPTY, move ball down one row
-   b. If DOWN blocked, try LEFT, then RIGHT
-   c. If any move succeeds, continue from new position
-   d. Repeat until no move possible in a full pass
-   e. If ball lands on a matching CUP cell → mark `inCup = true`
-2. Repeat the outer loop until a full pass makes no changes
+## Physics (`pullpin/physics/PullPinPhysicsEngine.kt`)
+Wraps `org.dyn4j.world.World<Body>`:
+- Static `Body` rectangles for walls and (non-removed) pins (`MassType.INFINITE`).
+- Dynamic circle `Body` for each ball (`MassType.NORMAL`, gravity +900 in +y).
+- `initWorld(level)`, `removePin(id)`, `step(dt)`, `getBallTransforms()`,
+  `isBallOutOfBounds(id)`.
+Deterministic given identical step order; no random slide (replaces old
+`Random().nextBoolean()` behavior).
 
 ## ViewModel (`pullpin/viewmodel/PullPinViewModel.kt`)
-
-```kotlin
-class PullPinViewModel(
-    streakRepository: StreakRepository?,
-    mode: String?,
-    puzzleId: String?
-) : ViewModel() {
-    private val _state = MutableStateFlow<PullPinState?>(null)
-    val state: StateFlow<PullPinState?> = _state.asStateFlow()
-
-    fun removePin(row: Int, col: Int)
-    fun startNewGame()
-}
-```
-
-- `removePin` → marks pin as removed in grid, runs cascade, checks win
-- `startNewGame` → picks level by mode (daily/standard/puzzle)
-- Win → streak save (daily) + `addWin()` + `markCompleted()` (puzzle)
+- `viewModelScope` loop (~60 FPS) steps the engine, syncs ball positions, merges
+  grey→colored balls on contact, detects cup capture / wrong-color / grey-in-cup /
+  out-of-bounds, win and settle-to-IDLE. Mirrors `WoodNutsViewModel`.
+- `removePin(id)` → slide-out animation (220ms) → `engine.removePin`.
+- Daily streak (`"pullpin"`), puzzle completion (`PuzzleCompletionRepository("PullPin")`),
+  mode routing (standard/daily/puzzle/easy..expert).
 
 ## UI (`pullpin/ui/PullPinScreen.kt`)
+`StandardGameLayout` + `Canvas` rendering the world scaled to screen. Draws walls,
+cups, balls, and animated pull-out pins. Tap a pin to remove it. Keeps how-to/win/lose
+dialogs, color legend, and stats row.
 
-- Grid rendered with Compose (scaled to fit screen width)
-- Color legend:
-  - BALL → colored circle with label
-  - CUP → outlined rounded rect with same color
-  - PIN → small circle with dark outline, tap target
-  - WALL → dark filled cell
-  - EMPTY → transparent
-- Tap on PIN cells to remove them
-- Animate pin removal with short fade-out (Animatable)
-- Animate ball falling with spring (offset + scale)
-- Win alert / game dialogs matching existing pattern
-- How-to-play dialog describing mechanics
-- TopAppBar with back, info, restart
+## Data (`pullpin/data/PullPinPregenerated.kt`)
+48 baked levels (12 Easy / 12 Medium / 12 Hard / 12 Expert) built programmatically with
+a solvable layout: each cup has a matching-color ball held by a pin directly above it
+(straight-down drop), dividers keep balls in their column; Hard/Expert add a grey ball
+above each (colored on contact). `ALL_LEVELS` + `PUZZLES_BY_DIFFICULTY`.
 
-## Pre-generated Data (`pullpin/data/PullPinPregenerated.kt`)
+## Generator (`scripts/generate_pullpin.py`)
+Python generator + solver (straight-down solvability check) that emits per-level JSON
+and a baked Kotlin file. Output is reproducible via seeded RNG. The baked data in
+`PullPinPregenerated.kt` was produced/verified from this layout.
 
-- 10+ levels across Easy (5×5, 1-2 balls, few pins, open layout), Medium (6×6, 2-3 balls, more walls), Hard (7×7, 3-4 balls, complex walls), Expert (8×8)
-- Implements `BrowseablePuzzle`
-- `PUZZLES_BY_DIFFICULTY` for browser
-- Grid encoded as `List<List<Cell>>` — compact string representation in source
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `MainActivity.kt` | Add `"pullpin"` case in `when(gameId)` for `game/{gameId}/{mode}`, `game/{gameId}/{mode}/new`, and puzzle routes; add `pullpin/puzzles` browser route; add import for `PullPinScreen` |
-| `HomeScreen.kt` | Add `Game("pullpin", "Pull the Pin")` to games list |
-| `GameDetailScreen.kt` | Add `"pullpin"` case with Random Puzzle + Browse Puzzles + Daily Challenge |
-| `PuzzleBrowserScreen.kt` | Add `"pullpin"` → `"📌"` in `GameTypePreview` |
-
-## Files to Create
-
-```
-app/src/main/java/com/funkyotc/puzzleverse/pullpin/data/PullPinModels.kt
-app/src/main/java/com/funkyotc/puzzleverse/pullpin/data/PullPinPregenerated.kt
-app/src/main/java/com/funkyotc/puzzleverse/pullpin/viewmodel/PullPinViewModel.kt
-app/src/main/java/com/funkyotc/puzzleverse/pullpin/ui/PullPinScreen.kt
-```
-
-## Estimated Size
-
-~600 lines total. The cascade simulation and grid rendering are the bulk.
-
-## Key Risks
-
-- Cascade simulation must terminate (non-infinite loops) — use iteration cap
-- Some levels may have unsolvable layouts — design levels carefully
-- On mobile, small grid cells need good tap targets (min 44dp)
-
-## Daily Challenge Eligibility
-
-Yes — Pull the Pin should have daily challenges.
+## Modes / Routes (unchanged)
+`game/pullpin/{mode}`, `game/pullpin/{mode}/new`, `pullpin/puzzles`,
+`game/pullpin/puzzle/{id}`. Streak key `"pullpin"`, completion key `"PullPin"`.

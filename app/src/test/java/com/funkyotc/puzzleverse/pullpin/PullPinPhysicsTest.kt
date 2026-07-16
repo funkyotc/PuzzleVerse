@@ -1,10 +1,11 @@
 package com.funkyotc.puzzleverse.pullpin
 
-import com.funkyotc.puzzleverse.pullpin.data.BallState
-import com.funkyotc.puzzleverse.pullpin.data.Cell
-import com.funkyotc.puzzleverse.pullpin.data.CellType
-import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModel
-import org.junit.Assert.assertEquals
+import com.funkyotc.puzzleverse.pullpin.data.BallSpawn
+import com.funkyotc.puzzleverse.pullpin.data.CupData
+import com.funkyotc.puzzleverse.pullpin.data.PinData
+import com.funkyotc.puzzleverse.pullpin.data.PullPinLevel
+import com.funkyotc.puzzleverse.pullpin.data.WallSegment
+import com.funkyotc.puzzleverse.pullpin.physics.PullPinPhysicsEngine
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -12,89 +13,84 @@ import org.junit.Test
 
 class PullPinPhysicsTest {
 
-    private fun createViewModel(): PullPinViewModel {
-        return PullPinViewModel(
-            streakRepository = null,
-            mode = "easy",
-            puzzleId = "pullpin_easy_001"
+    private fun stepN(engine: PullPinPhysicsEngine, n: Int) {
+        repeat(n) { engine.step(1.0 / 60.0) }
+    }
+
+    private fun fallingSetup(): PullPinLevel {
+        return PullPinLevel(
+            id = "test_falling",
+            difficulty = "easy",
+            walls = listOf(WallSegment(0f, 680f, 400f, 20f)),
+            cups = emptyList(),
+            pins = listOf(PinData("p", 160f, 618f, 80f, 10f, 1f, 0f, false, false)),
+            balls = listOf(BallSpawn("b", 200f, 600f, 1, 16f))
         )
     }
 
     @Test
-    fun testVerticalFalling() {
-        val vm = createViewModel()
+    fun testBallFallsWhenPinRemoved() {
+        val engine = PullPinPhysicsEngine()
+        engine.initWorld(fallingSetup())
 
-        // 3x3 grid:
-        // . 1 .
-        // . . .
-        // . a .
-        val grid = listOf(
-            listOf(Cell(CellType.EMPTY), Cell(CellType.BALL, 1), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.EMPTY), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.CUP, 1), Cell(CellType.EMPTY))
-        )
-        val balls = listOf(BallState(row = 0, col = 1, color = 1))
+        stepN(engine, 60)
+        val yBefore = engine.getBallTransforms()["b"]!!.second
+        assertTrue("Ball should rest near pin (y ~600) before removal", yBefore in 590f..610f)
 
-        // Step 1: Ball should fall down to row 1
-        val result1 = vm.stepPhysics(grid, balls)
-        assertTrue(result1.moved)
-        assertEquals(1, result1.balls[0].row)
-        assertEquals(1, result1.balls[0].col)
-        assertFalse(result1.balls[0].inCup)
-
-        // Step 2: Ball should fall from row 1 to row 2 (enters cup)
-        val result2 = vm.stepPhysics(result1.grid, result1.balls)
-        assertTrue(result2.moved)
-        assertEquals(2, result2.balls[0].row)
-        assertTrue(result2.balls[0].inCup)
+        engine.removePin("p")
+        stepN(engine, 60)
+        val yAfter = engine.getBallTransforms()["b"]!!.second
+        assertTrue("Ball should have fallen after pin removal (y > 600)", yAfter > 600f)
     }
 
     @Test
-    fun testDiagonalSliding() {
-        val vm = createViewModel()
-
-        // 3x3 grid:
-        // . 1 .
-        // . W .
-        // . . .
-        // Wall at (1, 1) should force ball to slide left or right.
-        val grid = listOf(
-            listOf(Cell(CellType.EMPTY), Cell(CellType.BALL, 1), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.WALL), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.EMPTY), Cell(CellType.EMPTY))
+    fun testWallsBlockBall() {
+        val engine = PullPinPhysicsEngine()
+        val level = PullPinLevel(
+            id = "test_wall",
+            difficulty = "easy",
+            walls = listOf(WallSegment(100f, 650f, 200f, 30f)),
+            cups = emptyList(),
+            pins = emptyList(),
+            balls = listOf(BallSpawn("b", 200f, 600f, 1, 16f))
         )
-        val balls = listOf(BallState(row = 0, col = 1, color = 1))
+        engine.initWorld(level)
 
-        val result = vm.stepPhysics(grid, balls)
-        assertTrue(result.moved)
-        assertEquals(1, result.balls[0].row)
-        // Col should have slid to either 0 or 2
-        val finalCol = result.balls[0].col
-        assertTrue(finalCol == 0 || finalCol == 2)
+        stepN(engine, 60)
+        val y = engine.getBallTransforms()["b"]!!.second
+        assertTrue("Ball should rest on wall (y < 650)", y < 650f)
     }
 
     @Test
-    fun testColorPropagation() {
-        val vm = createViewModel()
+    fun testRemovePinOpensPath() {
+        val engine = PullPinPhysicsEngine()
+        engine.initWorld(fallingSetup())
 
-        // Grid:
-        // . 1 .
-        // . 0 .
-        // . . .
-        // Ball 1 (red) is next to Ball 2 (grey).
-        val grid = listOf(
-            listOf(Cell(CellType.EMPTY), Cell(CellType.BALL, 1), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.BALL, 0), Cell(CellType.EMPTY)),
-            listOf(Cell(CellType.EMPTY), Cell(CellType.EMPTY), Cell(CellType.EMPTY))
-        )
-        val balls = listOf(
-            BallState(row = 0, col = 1, color = 1),
-            BallState(row = 1, col = 1, color = 0)
-        )
+        assertFalse("Ball should not be out of bounds initially", engine.isBallOutOfBounds("b"))
 
-        val result = vm.propagateColors(grid, balls)
-        assertTrue(result.changed)
-        assertEquals(1, result.balls[0].color) // Red
-        assertEquals(1, result.balls[1].color) // Grey ball becomes colored (red)
+        engine.removePin("p")
+        stepN(engine, 30)
+
+        val transforms = engine.getBallTransforms()
+        val pos = transforms["b"]
+        assertNotNull("Ball transform should be present", pos)
+        assertTrue("Ball should have moved (y > 600) after removing pin", pos!!.second > 600f)
+    }
+
+    @Test
+    fun testBallOutOfBoundsDetection() {
+        val engine = PullPinPhysicsEngine()
+        val level = PullPinLevel(
+            id = "test_oob",
+            difficulty = "easy",
+            walls = emptyList(),
+            cups = emptyList(),
+            pins = emptyList(),
+            balls = listOf(BallSpawn("b", 200f, 300f, 1, 16f))
+        )
+        engine.initWorld(level)
+
+        stepN(engine, 400)
+        assertTrue("Ball should be detected out of bounds after falling past world", engine.isBallOutOfBounds("b"))
     }
 }
