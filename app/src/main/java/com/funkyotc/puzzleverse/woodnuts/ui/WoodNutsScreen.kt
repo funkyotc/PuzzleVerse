@@ -214,8 +214,8 @@ fun WoodNutsScreen(
                                     val touchRadius = cellPx * 0.45f
                                     val bolt = state.bolts.find { b ->
                                         if (b.removed || b.isUnscrewing) return@find false
-                                        val cx = b.col * cellPx
-                                        val cy = b.row * cellPx
+                                        val cx = (b.col + 0.5f) * cellPx
+                                        val cy = (b.row + 0.5f) * cellPx
                                         val dx = offset.x - cx
                                         val dy = offset.y - cy
                                         sqrt(dx * dx + dy * dy) <= touchRadius
@@ -243,8 +243,8 @@ fun WoodNutsScreen(
                             if (bolt.removed) continue
                             val unscrewProgress = boltAngles[bolt.id] ?: 0f
 
-                            val cx = bolt.col * cellPx
-                            val cy = bolt.row * cellPx
+                            val cx = (bolt.col + 0.5f) * cellPx
+                            val cy = (bolt.row + 0.5f) * cellPx
 
                             // Drop shadow for bolt
                             drawCircle(Color.Black.copy(alpha = 0.5f), boltRadius, Offset(cx + strokePx * 1.5f, cy + strokePx * 1.5f))

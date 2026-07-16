@@ -66,6 +66,7 @@ import com.funkyotc.puzzleverse.chess.ui.ChessScreen
 import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
 import com.funkyotc.puzzleverse.hashi.ui.HashiScreen
 import com.funkyotc.puzzleverse.hashi.data.HashiPregenerated
+import com.funkyotc.puzzleverse.arrowescape.ui.ArrowEscapeScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -113,6 +114,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository: StreakRepository, onInitialLoad: () -> Unit) {
     val navController = rememberNavController()
@@ -183,6 +185,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
                 "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,

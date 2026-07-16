@@ -43,7 +43,7 @@ class WoodNutsPhysicsEngine {
             fixture.restitution = 0.2
             
             body.addFixture(fixture)
-            body.translate(bolt.col.toDouble(), bolt.row.toDouble())
+            body.translate(bolt.col.toDouble() + 0.5, bolt.row.toDouble() + 0.5)
             body.setMass(MassType.INFINITE)
             world.addBody(body)
             boltBodies[bolt.id] = body
