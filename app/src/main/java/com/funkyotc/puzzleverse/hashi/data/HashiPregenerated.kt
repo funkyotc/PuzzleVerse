@@ -11,6 +11,15 @@ object HashiPregenerated {
                 Island(0, 0, 2), Island(6, 0, 2),
                 Island(0, 6, 2), Island(6, 6, 2)
             )
+        ),
+        HashiPuzzle(
+            id = "easy_2",
+            width = 7,
+            height = 7,
+            islands = listOf(
+                Island(1, 1, 2), Island(5, 1, 2),
+                Island(1, 5, 2), Island(5, 5, 2)
+            )
         )
     )
 
@@ -24,6 +33,15 @@ object HashiPregenerated {
                 Island(4, 0, 4), Island(4, 4, 6), Island(4, 9, 3),
                 Island(9, 0, 3), Island(9, 4, 4), Island(9, 9, 2)
             )
+        ),
+        HashiPuzzle(
+            id = "medium_2",
+            width = 10,
+            height = 10,
+            islands = listOf(
+                Island(1, 1, 2), Island(1, 8, 3), Island(8, 1, 3), Island(8, 8, 2),
+                Island(4, 4, 4), Island(4, 8, 3), Island(8, 4, 3)
+            )
         )
     )
 
@@ -35,6 +53,16 @@ object HashiPregenerated {
             islands = listOf(
                 Island(0, 0, 2), Island(14, 0, 2),
                 Island(0, 14, 2), Island(14, 14, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hard_2",
+            width = 15,
+            height = 15,
+            islands = listOf(
+                Island(1, 1, 3), Island(1, 13, 3),
+                Island(13, 1, 3), Island(13, 13, 3),
+                Island(7, 7, 4)
             )
         )
     )
