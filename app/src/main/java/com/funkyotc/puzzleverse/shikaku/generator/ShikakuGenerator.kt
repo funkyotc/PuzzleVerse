@@ -31,8 +31,19 @@ class ShikakuGenerator(private val seed: Long) {
         val bound = maxRectangles.toInt() + 1 - minRectangles
         val targetRectangles = if (bound > 0) random.nextInt(bound) + minRectangles else minRectangles
 
-        val rectangles = generateRectangles(gridSize, gridSize, maxArea, targetRectangles)
-        val cells = createCells(gridSize, gridSize, rectangles)
+        var cells: List<ShikakuCell>
+        var attempts = 0
+        while (true) {
+            val rectangles = generateRectangles(gridSize, gridSize, maxArea, targetRectangles)
+            cells = createCells(gridSize, gridSize, rectangles)
+            if (hasUniqueSolution(gridSize, cells)) {
+                break
+            }
+            attempts++
+            if (attempts > 500) {
+                break // Fallback to avoid infinite loop
+            }
+        }
 
         return ShikakuBoard(
             cells = cells,
@@ -185,5 +196,91 @@ class ShikakuGenerator(private val seed: Long) {
         }
 
         return cells
+    }
+
+    private data class ClueInfo(val r: Int, val c: Int, val area: Int)
+    private data class Rect(val r: Int, val c: Int, val w: Int, val h: Int) {
+        fun contains(r2: Int, c2: Int) = r2 in r until r + h && c2 in c until c + w
+    }
+
+    private fun hasUniqueSolution(gridSize: Int, cells: List<ShikakuCell>): Boolean {
+        val clues = cells.filter { it.clue != null }.map { ClueInfo(it.row, it.col, it.clue!!) }
+        
+        val candidateMap = mutableListOf<List<Rect>>()
+        for (clue in clues) {
+            val candidates = mutableListOf<Rect>()
+            for (w in 1..clue.area) {
+                if (clue.area % w == 0) {
+                    val h = clue.area / w
+                    val minR = maxOf(0, clue.r - h + 1)
+                    val maxR = minOf(gridSize - h, clue.r)
+                    val minC = maxOf(0, clue.c - w + 1)
+                    val maxC = minOf(gridSize - w, clue.c)
+                    
+                    for (tr in minR..maxR) {
+                        for (tc in minC..maxC) {
+                            val rect = Rect(tr, tc, w, h)
+                            var valid = true
+                            for (other in clues) {
+                                if (other != clue && rect.contains(other.r, other.c)) {
+                                    valid = false
+                                    break
+                                }
+                            }
+                            if (valid) candidates.add(rect)
+                        }
+                    }
+                }
+            }
+            if (candidates.isEmpty()) return false
+            candidateMap.add(candidates)
+        }
+        
+        // Sort by fewest candidates first for speed
+        val sortedIndices = clues.indices.sortedBy { candidateMap[it].size }
+        val sortedCandidates = sortedIndices.map { candidateMap[it] }
+        
+        val covered = BooleanArray(gridSize * gridSize)
+        
+        fun solve(clueIndex: Int): Int {
+            if (clueIndex == clues.size) return 1
+            
+            var solutions = 0
+            val candidates = sortedCandidates[clueIndex]
+            
+            for (rect in candidates) {
+                var canPlace = true
+                for (r in rect.r until rect.r + rect.h) {
+                    for (c in rect.c until rect.c + rect.w) {
+                        if (covered[r * gridSize + c]) {
+                            canPlace = false
+                            break
+                        }
+                    }
+                    if (!canPlace) break
+                }
+                
+                if (canPlace) {
+                    for (r in rect.r until rect.r + rect.h) {
+                        for (c in rect.c until rect.c + rect.w) {
+                            covered[r * gridSize + c] = true
+                        }
+                    }
+                    
+                    solutions += solve(clueIndex + 1)
+                    
+                    for (r in rect.r until rect.r + rect.h) {
+                        for (c in rect.c until rect.c + rect.w) {
+                            covered[r * gridSize + c] = false
+                        }
+                    }
+                    
+                    if (solutions > 1) return 2
+                }
+            }
+            return solutions
+        }
+        
+        return solve(0) == 1
     }
 }

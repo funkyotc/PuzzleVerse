@@ -5,7 +5,7 @@ import com.funkyotc.puzzleverse.sudoku.data.SudokuCell
 import kotlin.random.Random
 
 class SudokuGenerator {
-    private var grid = Array(9) { IntArray(9) }
+    var grid = Array(9) { IntArray(9) }
     private val numbers = (1..9).toList()
 
     fun generate(seed: Long = Random.nextLong(), difficulty: Int = 45): SudokuBoard {
@@ -26,8 +26,14 @@ class SudokuGenerator {
             val col = cellIndex % 9
 
             if (grid[row][col] != 0) {
+                val backup = grid[row][col]
                 grid[row][col] = 0
-                removed++
+                
+                if (solveCount() == 1) {
+                    removed++
+                } else {
+                    grid[row][col] = backup
+                }
             }
         }
 
@@ -42,7 +48,7 @@ class SudokuGenerator {
         return SudokuBoard(cells)
     }
 
-    private fun solve(random: Random): Boolean {
+    fun solve(random: Random): Boolean {
         for (row in 0..8) {
             for (col in 0..8) {
                 if (grid[row][col] == 0) {
@@ -61,6 +67,26 @@ class SudokuGenerator {
             }
         }
         return true
+    }
+
+    private fun solveCount(countSoFar: Int = 0): Int {
+        var count = countSoFar
+        for (row in 0..8) {
+            for (col in 0..8) {
+                if (grid[row][col] == 0) {
+                    for (num in 1..9) {
+                        if (isSafe(row, col, num)) {
+                            grid[row][col] = num
+                            count = solveCount(count)
+                            grid[row][col] = 0
+                            if (count > 1) return count
+                        }
+                    }
+                    return count
+                }
+            }
+        }
+        return count + 1
     }
 
     private fun isSafe(row: Int, col: Int, num: Int): Boolean {
