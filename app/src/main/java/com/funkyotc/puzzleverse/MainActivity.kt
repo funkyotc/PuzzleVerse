@@ -39,7 +39,6 @@ import com.funkyotc.puzzleverse.wordle.ui.WordleScreen
 import com.funkyotc.puzzleverse.tfe.ui.TfeScreen
 import com.funkyotc.puzzleverse.minesweeper.ui.MinesweeperScreen
 import com.funkyotc.puzzleverse.nonogram.ui.NonogramScreen
-import com.funkyotc.puzzleverse.blockpuzzle.ui.BlockPuzzleScreen
 import com.funkyotc.puzzleverse.kakuro.ui.KakuroScreen
 import com.funkyotc.puzzleverse.flowfree.ui.FlowFreeScreen
 import com.funkyotc.puzzleverse.shikaku.ui.ShikakuScreen
@@ -174,7 +173,6 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "blockpuzzle" -> BlockPuzzleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "shikaku" -> ShikakuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
@@ -346,7 +344,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 title = "Kakuro Puzzles",
                 gameName = "Kakuro",
                 navController = navController,
-                puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY,
+                puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY.mapValues { it.value.map { p -> p as com.funkyotc.puzzleverse.core.data.BrowseablePuzzle } },
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/kakuro/puzzle/${puzzle.id}") }
             )

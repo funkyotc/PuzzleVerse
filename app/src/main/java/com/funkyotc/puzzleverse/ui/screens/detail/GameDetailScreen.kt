@@ -272,7 +272,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val today = com.funkyotc.puzzleverse.core.todayEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-            if (gameId !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle")) {
+            if (gameId !in listOf("flowfree", "kakuro", "nonogram")) {
                 Spacer(modifier = Modifier.height(16.dp))
                 MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)

@@ -51,7 +51,6 @@ val games = listOf(
     Game("tfe", "2048"),
     Game("minesweeper", "Minesweeper"),
     Game("nonogram", "Nonogram"),
-    Game("blockpuzzle", "Block Puzzle"),
     Game("kakuro", "Kakuro"),
     Game("flowfree", "Flow Free"),
     Game("shikaku", "Shikaku"),
@@ -104,7 +103,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "blockpuzzle", "tfe") }
+                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "tfe") }
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = com.funkyotc.puzzleverse.core.todayEpochDay()
