@@ -672,7 +672,7 @@ private fun computeHexSize(rows: Int, cols: Int, canvasW: Float, canvasH: Float)
     if (rows == 0 || cols == 0 || canvasW <= 0 || canvasH <= 0) return 40f to 34.64f
     val rWidthMax = canvasW / ((cols + 0.5f) * sqrt(3.0f))
     val rHeightMax = canvasH / (1.5f * rows + 0.5f)
-    val r = minOf(rWidthMax, rHeightMax, 40f)
+    val r = minOf(rWidthMax, rHeightMax) * 0.95f
     val hexW = r * sqrt(3.0f)
     return hexW to (1.5f * r)
 }
