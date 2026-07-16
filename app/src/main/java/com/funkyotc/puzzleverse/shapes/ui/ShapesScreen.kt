@@ -266,16 +266,20 @@ fun ShapesScreen(
                 val actualWidth = with(density) { maxWidth.toPx() }
                 val actualHeight = with(density) { maxHeight.toPx() }
 
-                // The standard virtual size of our shape board
-                val virtualWidth = 400f
-                val virtualHeight = 700f
+                // Bounding box of the actual visible content (target, pieces tray)
+                val contentMinX = 15f
+                val contentMaxX = 385f
+                val contentMinY = 100f
+                val contentMaxY = 685f
+                val contentWidth = contentMaxX - contentMinX
+                val contentHeight = contentMaxY - contentMinY
 
-                val scaleX = actualWidth / virtualWidth
-                val scaleY = actualHeight / virtualHeight
-                val scale = minOf(scaleX, scaleY)
+                val scaleX = actualWidth / contentWidth
+                val scaleY = actualHeight / contentHeight
+                val scale = minOf(scaleX, scaleY) * 0.95f
 
-                val offsetX = (actualWidth - virtualWidth * scale) / 2f
-                val offsetY = (actualHeight - virtualHeight * scale) / 2f
+                val offsetX = (actualWidth - contentWidth * scale) / 2f - contentMinX * scale
+                val offsetY = (actualHeight - contentHeight * scale) / 2f - contentMinY * scale
 
                 Canvas(modifier = Modifier
                     .fillMaxSize()
