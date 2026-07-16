@@ -644,7 +644,7 @@ fun CubeShooterScreen(
                     val anim = remember { Animatable(0f) }
                     LaunchedEffect(Unit) {
                         anim.snapTo(0f)
-                        anim.animateTo(1f, animationSpec = tween(durationMillis = 300))
+                        anim.animateTo(1f, animationSpec = tween(durationMillis = 200))
                         viewModel.completeTransition(t.id)
                     }
                     val progress = anim.value
@@ -673,7 +673,7 @@ fun CubeShooterScreen(
                     val anim = remember { Animatable(0f) }
                     LaunchedEffect(Unit) {
                         anim.snapTo(0f)
-                        anim.animateTo(1f, animationSpec = tween(durationMillis = 300))
+                        anim.animateTo(1f, animationSpec = tween(durationMillis = 200))
                         viewModel.completeReturn(r.id)
                     }
                     val progress = anim.value
