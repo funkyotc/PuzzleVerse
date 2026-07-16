@@ -112,32 +112,52 @@ object NonogramPuzzleLibrary {
     fun getRandomPuzzle(size: Int = 10): List<List<Boolean>> {
         val random = kotlin.random.Random.Default
         
-        // 1. If size is 10, try choosing a solvable preset!
-        if (size == 10) {
-            val shuffledPresets = PRESET_PUZZLES.shuffled()
+        // 1. Try choosing a solvable preset that matches the requested size
+        val matchingPresets = PRESET_PUZZLES.filter { preset -> 
+            preset.size == size && (preset.isEmpty() || preset[0].size == size)
+        }
+        
+        if (matchingPresets.isNotEmpty()) {
+            val shuffledPresets = matchingPresets.shuffled()
             for (preset in shuffledPresets) {
-                if (NonogramSolver.isSolvableWithoutGuessing(preset)) {
-                    return preset
+                try {
+                    if (NonogramSolver.isSolvableWithoutGuessing(preset)) {
+                        return preset
+                    }
+                } catch (e: Exception) {
+                    // Ignore exceptions during validation and continue
                 }
             }
         }
         
-        // 2. Otherwise (or as fallback), procedurally generate a guaranteed logically solvable grid!
+        // 2. Procedurally generate a guaranteed logically solvable grid
+        // Use a time limit to prevent ANRs or infinite loops
+        val startTime = System.currentTimeMillis()
         var attempts = 0
-        while (attempts < 2000) {
+        while (attempts < 2000 && (System.currentTimeMillis() - startTime) < 500) {
             val density = random.nextFloat() * 0.1f + 0.45f // Target 45% - 55% cell density
             val grid = List(size) {
                 List(size) {
                     random.nextFloat() < density
                 }
             }
-            if (NonogramSolver.isSolvableWithoutGuessing(grid)) {
-                return grid
+            try {
+                if (NonogramSolver.isSolvableWithoutGuessing(grid)) {
+                    return grid
+                }
+            } catch (e: Exception) {
+                // Ignore exceptions and try another grid
             }
             attempts++
         }
         
-        // Final ultimate fallback: first preset
-        return PRESET_PUZZLES.first()
+        // Final ultimate fallback: return the first matching preset, or a completely empty valid grid
+        return if (matchingPresets.isNotEmpty()) {
+            matchingPresets.first()
+        } else if (PRESET_PUZZLES.isNotEmpty() && size == 10) {
+            PRESET_PUZZLES.first()
+        } else {
+            List(size) { List(size) { false } } // Guaranteed valid empty grid
+        }
     }
 }
