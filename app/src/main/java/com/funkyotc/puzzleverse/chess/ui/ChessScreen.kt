@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -250,45 +251,47 @@ fun ChessScreen(
 
                     // Draw Animated Pieces
                     state.pieces.forEach { piece ->
-                        val animatedOffsetX by animateDpAsState(
-                            targetValue = squareSize * piece.col,
-                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
-                            label = "pieceX_${piece.id}"
-                        )
-                        val animatedOffsetY by animateDpAsState(
-                            targetValue = squareSize * piece.row,
-                            animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
-                            label = "pieceY_${piece.id}"
-                        )
+                        key(piece.id) {
+                            val animatedOffsetX by animateDpAsState(
+                                targetValue = squareSize * piece.col,
+                                animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
+                                label = "pieceX_${piece.id}"
+                            )
+                            val animatedOffsetY by animateDpAsState(
+                                targetValue = squareSize * piece.row,
+                                animationSpec = PuzzleVerseAnimationSpecs.fastMovementSpec(),
+                                label = "pieceY_${piece.id}"
+                            )
 
-                        val alpha by androidx.compose.animation.core.animateFloatAsState(
-                            targetValue = if (piece.isCaptured) 0f else 1f,
-                            animationSpec = tween(durationMillis = 200),
-                            label = "pieceAlpha_${piece.id}"
-                        )
+                            val alpha by androidx.compose.animation.core.animateFloatAsState(
+                                targetValue = if (piece.isCaptured) 0f else 1f,
+                                animationSpec = tween(durationMillis = 200),
+                                label = "pieceAlpha_${piece.id}"
+                            )
                         val scale by androidx.compose.animation.core.animateFloatAsState(
                             targetValue = if (piece.isCaptured) 0f else 1f,
                             animationSpec = tween(durationMillis = 200),
                             label = "pieceScale_${piece.id}"
                         )
 
-                        if (alpha > 0f) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = animatedOffsetX, y = animatedOffsetY)
-                                    .size(squareSize)
-                                    .zIndex(if (piece.row == state.selectedRow && piece.col == state.selectedCol) 10f else 1f)
-                                    .alpha(alpha)
-                                    .scale(scale)
-                                    .animatePiecePlacement(trigger = piece.id)
-                            ) {
-                                Image(
-                                    painter = painterResource(id = getDrawableResId(piece)),
-                                    contentDescription = "${piece.color} ${piece.type}",
+                            if (alpha > 0f) {
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(4.dp)
-                                )
+                                        .offset(x = animatedOffsetX, y = animatedOffsetY)
+                                        .size(squareSize)
+                                        .zIndex(if (piece.row == state.selectedRow && piece.col == state.selectedCol) 10f else 1f)
+                                        .alpha(alpha)
+                                        .scale(scale)
+                                        .animatePiecePlacement(trigger = piece.id)
+                                ) {
+                                    Image(
+                                        painter = painterResource(id = getDrawableResId(piece)),
+                                        contentDescription = "${piece.color} ${piece.type}",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(4.dp)
+                                    )
+                                }
                             }
                         }
                     }
