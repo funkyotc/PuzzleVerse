@@ -397,19 +397,9 @@ private fun BottleView(
                     )
                     val segmentPath = Path().apply { addRoundRect(rect) }
 
-                val gradientBrush = Brush.verticalGradient(
-                    colors = listOf(
-                        baseColor.copy(alpha = 0.85f),
-                        baseColor,
-                        baseColor.copy(alpha = 0.9f)
-                    ),
-                    startY = segTop,
-                    endY = segTop + currentSegmentHeight
-                )
-
                 drawPath(
                     path = segmentPath,
-                    brush = gradientBrush
+                    brush = SolidColor(baseColor)
                 )
 
                 if (isTopSegment) {
@@ -461,17 +451,15 @@ private fun BottleView(
                 )
                 val highlightPath = Path().apply { addRoundRect(highlightRect) }
                 
-                drawPath(
-                    path = highlightPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.05f)
-                        ),
-                        startY = segTop,
-                        endY = segTop + currentSegmentHeight
-                    )
-                )
+drawPath(
+                  path = highlightPath,
+                  brush = SolidColor(Color.White.copy(alpha = 0.2f))
+            )
+            
+            drawPath(
+                  path = wavePath,
+                  brush = SolidColor(baseColor)
+            )
                 
                 currentY -= currentSegmentHeight
                 }
