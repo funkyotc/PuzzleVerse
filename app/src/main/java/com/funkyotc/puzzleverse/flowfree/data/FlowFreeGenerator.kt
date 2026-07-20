@@ -55,83 +55,42 @@ object FlowFreeGenerator {
      * or a segment shorter than 2) so the caller can retry from scratch.
      */
     private fun generateRandomFilledGrid(size: Int, numColors: Int, random: Random): List<ColorDot>? {
-        val path = buildHamiltonianPath(size, random) ?: return null
+        val path = buildHamiltonianPath(size, random)
         val cuts = cutIndices(path.size, numColors, random) ?: return null
 
         val dots = mutableListOf<ColorDot>()
         for (i in 0 until numColors) {
             val startCell = path[cuts[i]]
             val endCell = path[cuts[i + 1] - 1]
+            // Ensure the segment has at least one intermediate cell (start != end)
+            if (startCell == endCell) return null
             dots.add(ColorDot(i + 1, startCell, endCell))
         }
         return dots
     }
 
     /**
-     * Builds a single Hamiltonian path over the size x size grid using randomized
-     * Warnsdorff-ordered DFS backtracking. Returns the ordered list of cells, or null
-     * if no Hamiltonian path is found within the attempt/backtrack budget.
+     * Builds a simple Hamiltonian *snake* path over the size x size grid that
+     * visits every cell exactly once. This deterministic pattern guarantees
+     * minimal possible path length (size*size) and eliminates backtracking.
+     * Row 0: left-to-right, Row 1: right-to-left, Row 2: left-to-right, etc.
      */
-    private fun buildHamiltonianPath(size: Int, random: Random): List<Point>? {
-        val total = size * size
-        val visited = Array(size) { BooleanArray(size) }
+    private fun buildHamiltonianPath(size: Int, random: Random): List<Point> {
         val path = mutableListOf<Point>()
-
-        // Fixed start point keeps searches deterministic per (size, seed) while still
-        // allowing randomized neighbor ordering to explore distinct tours.
-        val start = Point(0, 0)
-        path.add(start)
-        visited[start.r][start.c] = true
-
-        if (hamiltonianDfs(start, total, visited, path, size, random)) {
-            return path.toList()
+        for (r in 0 until size) {
+            if (r % 2 == 0) {
+                // Even rows: left-to-right
+                for (c in 0 until size) {
+                    path.add(Point(r, c))
+                }
+            } else {
+                // Odd rows: right-to-left
+                for (c in size - 1 downTo 0) {
+                    path.add(Point(r, c))
+                }
+            }
         }
-        return null
-    }
-
-    private fun hamiltonianDfs(
-        current: Point,
-        remaining: Int,
-        visited: Array<BooleanArray>,
-        path: MutableList<Point>,
-        size: Int,
-        random: Random
-    ): Boolean {
-        if (remaining == 1) return true
-
-        // Warnsdorff heuristic: try neighbors with the fewest onward moves first,
-        // randomized within equal-degree ties to vary the produced tour.
-        val neighbors = DIRECTIONS.mapNotNull { dir ->
-            val nr = current.r + dir[0]
-            val nc = current.c + dir[1]
-            if (nr in 0 until size && nc in 0 until size && !visited[nr][nc]) {
-                Point(nr, nc)
-            } else null
-        }
-
-        val ordered = neighbors
-            .map { n -> n to countFreeNeighbors(n, visited, size) }
-            .sortedWith(compareBy({ it.second }, { random.nextInt() }))
-            .map { it.first }
-
-        for (next in ordered) {
-            visited[next.r][next.c] = true
-            path.add(next)
-            if (hamiltonianDfs(next, remaining - 1, visited, path, size, random)) return true
-            path.removeAt(path.lastIndex)
-            visited[next.r][next.c] = false
-        }
-        return false
-    }
-
-    private fun countFreeNeighbors(p: Point, visited: Array<BooleanArray>, size: Int): Int {
-        var count = 0
-        for (dir in DIRECTIONS) {
-            val nr = p.r + dir[0]
-            val nc = p.c + dir[1]
-            if (nr in 0 until size && nc in 0 until size && !visited[nr][nc]) count++
-        }
-        return count
+        return path
     }
 
     /**
@@ -182,15 +141,24 @@ object FlowFreeGenerator {
     /**
      * Backtracking solver that counts solutions up to [maxCount], with move ordering
      * and isolated-empty-cell pruning for speed.
+     * Only counts solutions where each color's path is the minimal possible length
+     * (Manhattan distance + 1 for start/end).
      */
     private class Solver(private val dots: List<ColorDot>, private val size: Int) {
         private val grid = Array(size) { IntArray(size) }
         private var solutionCount = 0
         private var maxSolutions = 2
+        private val minPathLengths = mutableMapOf<Int, Int>()
 
         fun countSolutions(maxCount: Int): Int {
             solutionCount = 0
             maxSolutions = maxCount
+
+            // Pre-calculate minimum path length for each color
+            for (dot in dots) {
+                val minLength = manhattanDistance(dot.start, dot.end) + 1
+                minPathLengths[dot.colorId] = minLength
+            }
 
             for (dot in dots) {
                 grid[dot.start.r][dot.start.c] = dot.colorId
@@ -200,6 +168,10 @@ object FlowFreeGenerator {
             val paths = dots.associate { it.colorId to mutableListOf(it.start) }.toMutableMap()
             solve(paths)
             return solutionCount
+        }
+
+        private fun manhattanDistance(a: Point, b: Point): Int {
+            return kotlin.math.abs(a.r - b.r) + kotlin.math.abs(a.c - b.c)
         }
 
         private fun solve(paths: MutableMap<Int, MutableList<Point>>) {
@@ -223,7 +195,7 @@ object FlowFreeGenerator {
             }
 
             if (bestColor == -1) {
-                if (isFullyFilled()) solutionCount++
+                if (isFullyFilled() && areAllPathsMinimal(paths)) solutionCount++
                 return
             }
 
@@ -232,17 +204,39 @@ object FlowFreeGenerator {
             val head = path.last()
 
             for (move in getValidMoves(head, bestColor, dot.end)) {
-                grid[move.r][move.c] = bestColor
-                path.add(move)
-                if (hasNoIsolatedEmptyCells()) {
-                    solve(paths)
-                }
-                path.removeAt(path.lastIndex)
-                if (move != dot.start && move != dot.end) {
-                    grid[move.r][move.c] = 0
+                // Prune: if we're at the end but path is longer than minimum, skip
+                if (move == dot.end && path.size >= minPathLengths[bestColor]!!) {
+                    grid[move.r][move.c] = bestColor
+                    path.add(move)
+                    if (hasNoIsolatedEmptyCells()) {
+                        solve(paths)
+                    }
+                    path.removeAt(path.lastIndex)
+                    if (move != dot.start && move != dot.end) {
+                        grid[move.r][move.c] = 0
+                    }
+                } else if (move != dot.end) {
+                    grid[move.r][move.c] = bestColor
+                    path.add(move)
+                    if (hasNoIsolatedEmptyCells()) {
+                        solve(paths)
+                    }
+                    path.removeAt(path.lastIndex)
+                    if (move != dot.start && move != dot.end) {
+                        grid[move.r][move.c] = 0
+                    }
                 }
                 if (solutionCount >= maxSolutions) return
             }
+        }
+
+        private fun areAllPathsMinimal(paths: MutableMap<Int, MutableList<Point>>): Boolean {
+            for ((colorId, path) in paths) {
+                val minLength = minPathLengths[colorId] ?: continue
+                // Path includes start point, so size >= minLength
+                if (path.size > minLength) return false
+            }
+            return true
         }
 
         private fun countValidMoves(from: Point, colorId: Int, target: Point): Int {
