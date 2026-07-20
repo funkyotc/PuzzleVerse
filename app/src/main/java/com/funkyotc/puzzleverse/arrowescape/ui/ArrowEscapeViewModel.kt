@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.withFrameMillis
 
 class ArrowEscapeViewModel(
     private val streakRepository: StreakRepository,
@@ -105,13 +104,19 @@ class ArrowEscapeViewModel(
                 
                 // Animate stepping out (frame-synced at display refresh rate)
                 var moving = true
+                var lastFrame = System.currentTimeMillis()
                 while (isActive && moving) {
-                    withFrameMillis {
-                        moving = state.moveArrow(arrowId)
-                        _uiState.value = _uiState.value.copy(
-                            arrows = state.arrows.values.toList()
-                        )
-                    }
+                    val nowFrame = System.currentTimeMillis()
+                    // dt unused here but kept for parity
+                    val dt = if (lastFrame == 0L) 1.0 / 60.0 else ((nowFrame - lastFrame) / 1000.0).coerceAtMost(1.0 / 60.0)
+                    lastFrame = nowFrame
+
+                    moving = state.moveArrow(arrowId)
+                    _uiState.value = _uiState.value.copy(
+                        arrows = state.arrows.values.toList()
+                    )
+
+                    kotlinx.coroutines.delay(16)
                 }
                 
                 saveStateToHistory()

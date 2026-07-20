@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.funkyotc.puzzleverse.core.todayEpochDay
 import kotlinx.coroutines.isActive
-import androidx.compose.runtime.withFrameMillis
 
 class WoodNutsViewModel(
     private val streakRepository: StreakRepository? = null,
@@ -83,56 +82,57 @@ class WoodNutsViewModel(
         viewModelScope.launch {
             var lastFrame = System.currentTimeMillis()
             while (isActive) {
-                withFrameMillis { now ->
-                    val dt = if (lastFrame == 0L) 1.0 / 60.0
-                             else ((now - lastFrame) / 1000.0).coerceAtMost(1.0 / 60.0)
-                    lastFrame = now
+                val now = System.currentTimeMillis()
+                val dt = if (lastFrame == 0L) 1.0 / 60.0
+                         else ((now - lastFrame) / 1000.0).coerceAtMost(1.0 / 60.0)
+                lastFrame = now
 
-                    val currentState = _state.value ?: return@withFrameMillis
-                    if (currentState.isWon) return@withFrameMillis
+                val currentState = _state.value ?: run { delay(16); continue }
+                if (currentState.isWon) { delay(16); continue }
 
-                    val transforms = physicsEngine.step(dt)
-                    var updated = false
+                val transforms = physicsEngine.step(dt)
+                var updated = false
 
-                    val newPlanks = currentState.planks.map { plank ->
-                        val trans = transforms[plank.id]
-                        if (trans != null && trans != plank.transform) {
-                            updated = true
-                            plank.copy(transform = trans)
-                        } else plank
-                    }.toMutableList()
+                val newPlanks = currentState.planks.map { plank ->
+                    val trans = transforms[plank.id]
+                    if (trans != null && trans != plank.transform) {
+                        updated = true
+                        plank.copy(transform = trans)
+                    } else plank
+                }.toMutableList()
 
-                    var newlyWon = false
-                    for (i in newPlanks.indices) {
-                        val p = newPlanks[i]
-                        if (!p.removed && physicsEngine.isPlankOutOfBounds(p.id, currentState.level.rows + 3f)) {
-                            newPlanks[i] = p.copy(removed = true)
-                            physicsEngine.removePlank(p.id)
-                            updated = true
-                        }
+                var newlyWon = false
+                for (i in newPlanks.indices) {
+                    val p = newPlanks[i]
+                    if (!p.removed && physicsEngine.isPlankOutOfBounds(p.id, currentState.level.rows + 3f)) {
+                        newPlanks[i] = p.copy(removed = true)
+                        physicsEngine.removePlank(p.id)
+                        updated = true
                     }
+                }
 
-                    if (updated) {
-                        val isWon = newPlanks.all { it.removed }
-                        if (isWon && !currentState.isWon) {
-                            newlyWon = true
-                            if (mode == "daily") {
-                                val today = todayEpochDay()
-                                streakRepository?.let { repo ->
-                                    val streak = repo.getStreak("woodnuts")
-                                    if (streak.lastCompletedEpochDay != today) {
-                                        val newStreak = streak.copy(
-                                            count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                                            lastCompletedEpochDay = today
-                                        )
-                                        repo.saveStreak(newStreak)
-                                    }
+                if (updated) {
+                    val isWon = newPlanks.all { it.removed }
+                    if (isWon && !currentState.isWon) {
+                        newlyWon = true
+                        if (mode == "daily") {
+                            val today = todayEpochDay()
+                            streakRepository?.let { repo ->
+                                val streak = repo.getStreak("woodnuts")
+                                if (streak.lastCompletedEpochDay != today) {
+                                    val newStreak = streak.copy(
+                                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                                        lastCompletedEpochDay = today
+                                    )
+                                    repo.saveStreak(newStreak)
                                 }
                             }
                         }
-                        _state.value = currentState.copy(planks = newPlanks, isWon = isWon)
                     }
+                    _state.value = currentState.copy(planks = newPlanks, isWon = isWon)
                 }
+
+                delay(16)
             }
         }
     }
