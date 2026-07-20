@@ -197,9 +197,11 @@ fun WaterSortScreen(
 
             val bottles = state.bottles
             val cols = when {
-                bottles.size <= 4 -> bottles.size
+                bottles.size <= 3 -> bottles.size
                 bottles.size <= 6 -> 3
-                else -> 4
+                bottles.size <= 9 -> 4
+                bottles.size <= 12 -> 5
+                else -> 6
             }
             val rows = (bottles.size + cols - 1) / cols
             val scrollState = rememberScrollState()
@@ -227,7 +229,7 @@ fun WaterSortScreen(
                                     isSelected = state.selectedIndex == index,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 6.dp)
+                                        .padding(horizontal = if (cols >= 5) 2.dp else 6.dp)
                                         .animateEntrance(delayMillis = index * 40, trigger = state.level),
                                     onClick = {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)

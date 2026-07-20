@@ -131,9 +131,10 @@ class WaterSortViewModel(
     }
 
     private fun checkWin(bottles: List<Bottle>, numColors: Int, height: Int): Boolean {
-        val filledBottles = bottles.filter { it.colors.size == height }
-        if (filledBottles.size < numColors) return false
-        return filledBottles.all { it.colors.distinct().size == 1 }
+        // Every bottle must be either empty, or full (height layers) and single-colored.
+        // Solved iff exactly `numColors` bottles are full single-colored (one per color).
+        val solved = bottles.filter { it.colors.size == height && it.colors.distinct().size == 1 }
+        return solved.size == numColors
     }
 }
 

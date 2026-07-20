@@ -29,130 +29,90 @@ object WaterSortPregenerated {
         return pool?.random() ?: ALL_LEVELS.first()
     }
 
+    /**
+     * Generates levels by construction: each color gets a complete stack of [height]
+     * layers, which are then shuffled across the filled bottles. Because the reverse
+     * (un-pour) is always possible, every generated puzzle is guaranteed solvable.
+     */
     private fun generateLevels(): List<PregeneratedWaterSortLevel> {
         val levels = mutableListOf<PregeneratedWaterSortLevel>()
+        var seed = 1
 
-        levels.addAll(easyLevels())
-        levels.addAll(mediumLevels())
-        levels.addAll(hardLevels())
+        fun addBatch(difficulty: String, specs: List<Triple<Int, Int, Int>>) {
+            for ((numColors, height, emptyBottles) in specs) {
+                // Generate a few varied shuffles per spec to add variety.
+                val variants = if (difficulty == "Easy") 4 else 3
+                repeat(variants) {
+                    levels.add(
+                        makeLevel(difficulty, numColors, height, emptyBottles, seed++)
+                    )
+                }
+            }
+        }
+
+        addBatch("Easy", listOf(
+            Triple(3, 4, 1),
+            Triple(3, 4, 2),
+            Triple(4, 4, 1),
+            Triple(4, 4, 2),
+        ))
+        addBatch("Medium", listOf(
+            Triple(5, 4, 2),
+            Triple(5, 5, 2),
+            Triple(6, 4, 2),
+            Triple(6, 5, 2),
+        ))
+        addBatch("Hard", listOf(
+            Triple(7, 5, 2),
+            Triple(7, 5, 3),
+            Triple(8, 5, 2),
+            Triple(8, 5, 3),
+        ))
+        addBatch("Expert", listOf(
+            Triple(9, 5, 2),
+            Triple(9, 6, 2),
+            Triple(10, 5, 3),
+            Triple(10, 6, 3),
+        ))
+        addBatch("Nightmare", listOf(
+            Triple(11, 6, 3),
+            Triple(11, 6, 4),
+            Triple(12, 6, 3),
+            Triple(12, 6, 4),
+        ))
 
         return levels
     }
 
-    private fun easyLevels(): List<PregeneratedWaterSortLevel> {
-        return listOf(
-            PregeneratedWaterSortLevel("watersort_easy_001", "Easy", listOf(
-                listOf(0, 0, 1, 1),
-                listOf(1, 1, 0, 0),
-                listOf()
-            ), 2, 4),
-            PregeneratedWaterSortLevel("watersort_easy_002", "Easy", listOf(
-                listOf(0, 0, 0, 1),
-                listOf(1, 1, 1, 0),
-                listOf()
-            ), 2, 4),
-            PregeneratedWaterSortLevel("watersort_easy_003", "Easy", listOf(
-                listOf(0, 1, 1, 0),
-                listOf(1, 0, 0, 1),
-                listOf()
-            ), 2, 4),
-            PregeneratedWaterSortLevel("watersort_easy_004", "Easy", listOf(
-                listOf(0, 1, 0, 1),
-                listOf(1, 0, 1, 0),
-                listOf()
-            ), 2, 4),
-            PregeneratedWaterSortLevel("watersort_easy_005", "Easy", listOf(
-                listOf(0, 0, 1, 0),
-                listOf(1, 1, 0, 1),
-                listOf()
-            ), 2, 4),
-        )
-    }
+    private fun makeLevel(
+        difficulty: String,
+        numColors: Int,
+        height: Int,
+        emptyBottles: Int,
+        seed: Int
+    ): PregeneratedWaterSortLevel {
+        val id = "watersort_${difficulty.lowercase()}_${seed.toString().padStart(3, '0')}"
+        val rand = Random(seed * 2654435761L)
 
-    private fun mediumLevels(): List<PregeneratedWaterSortLevel> {
-        return listOf(
-            PregeneratedWaterSortLevel("watersort_medium_001", "Medium", listOf(
-                listOf(0, 0, 1, 2),
-                listOf(1, 1, 2, 0),
-                listOf(2, 2, 0, 1),
-                listOf(),
-                listOf()
-            ), 3, 4),
-            PregeneratedWaterSortLevel("watersort_medium_002", "Medium", listOf(
-                listOf(0, 1, 2, 0),
-                listOf(1, 2, 0, 1),
-                listOf(2, 0, 1, 2),
-                listOf(),
-                listOf()
-            ), 3, 4),
-            PregeneratedWaterSortLevel("watersort_medium_003", "Medium", listOf(
-                listOf(0, 0, 2, 1),
-                listOf(1, 1, 0, 2),
-                listOf(2, 2, 1, 0),
-                listOf(),
-                listOf()
-            ), 3, 4),
-            PregeneratedWaterSortLevel("watersort_medium_004", "Medium", listOf(
-                listOf(0, 2, 1, 0),
-                listOf(1, 0, 2, 1),
-                listOf(2, 1, 0, 2),
-                listOf(),
-                listOf()
-            ), 3, 4),
-            PregeneratedWaterSortLevel("watersort_medium_005", "Medium", listOf(
-                listOf(0, 1, 1, 0),
-                listOf(1, 2, 2, 1),
-                listOf(2, 0, 0, 2),
-                listOf(),
-                listOf()
-            ), 3, 4),
-        )
-    }
+        // Build the pool of all layers: each color appears exactly `height` times.
+        val pool = mutableListOf<Int>()
+        repeat(numColors) { color ->
+            repeat(height) { pool.add(color) }
+        }
+        // A Fisher-Yates-ish shuffle via Kotlin's shuffled for determinism.
+        val shuffled = pool.shuffled(rand)
 
-    private fun hardLevels(): List<PregeneratedWaterSortLevel> {
-        return listOf(
-            PregeneratedWaterSortLevel("watersort_hard_001", "Hard", listOf(
-                listOf(0, 0, 1, 2, 3),
-                listOf(1, 1, 2, 3, 0),
-                listOf(2, 2, 3, 0, 1),
-                listOf(3, 3, 0, 1, 2),
-                listOf(),
-                listOf()
-            ), 4, 5),
-            PregeneratedWaterSortLevel("watersort_hard_002", "Hard", listOf(
-                listOf(0, 1, 2, 3, 0),
-                listOf(1, 2, 3, 0, 1),
-                listOf(2, 3, 0, 1, 2),
-                listOf(3, 0, 1, 2, 3),
-                listOf(),
-                listOf()
-            ), 4, 5),
-            PregeneratedWaterSortLevel("watersort_hard_003", "Hard", listOf(
-                listOf(0, 3, 2, 1, 0),
-                listOf(1, 0, 3, 2, 1),
-                listOf(2, 1, 0, 3, 2),
-                listOf(3, 2, 1, 0, 3),
-                listOf(),
-                listOf()
-            ), 4, 5),
-            PregeneratedWaterSortLevel("watersort_hard_004", "Hard", listOf(
-                listOf(0, 1, 2, 3, 4),
-                listOf(1, 2, 3, 4, 0),
-                listOf(2, 3, 4, 0, 1),
-                listOf(3, 4, 0, 1, 2),
-                listOf(4, 0, 1, 2, 3),
-                listOf(),
-                listOf()
-            ), 5, 5),
-            PregeneratedWaterSortLevel("watersort_hard_005", "Hard", listOf(
-                listOf(0, 4, 3, 2, 1),
-                listOf(1, 0, 4, 3, 2),
-                listOf(2, 1, 0, 4, 3),
-                listOf(3, 2, 1, 0, 4),
-                listOf(4, 3, 2, 1, 0),
-                listOf(),
-                listOf()
-            ), 5, 5),
-        )
+        // Distribute the shuffled layers into the filled bottles.
+        val filledCount = numColors
+        val bottles = mutableListOf<List<Int>>()
+        var cursor = 0
+        repeat(filledCount) {
+            val slice = shuffled.subList(cursor, cursor + height)
+            cursor += height
+            bottles.add(slice.toList())
+        }
+        repeat(emptyBottles) { bottles.add(emptyList()) }
+
+        return PregeneratedWaterSortLevel(id, difficulty, bottles, numColors, height)
     }
 }

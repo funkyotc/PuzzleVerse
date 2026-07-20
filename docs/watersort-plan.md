@@ -71,9 +71,18 @@ class WaterSortViewModel(
 - TopAppBar with back, info (how-to-play), restart buttons
 
 ## Pre-generated Data (`watersort/data/WaterSortPregenerated.kt`)
-
-- 15+ levels across Easy (2 colors, 1 empty, bottle height 4), Medium (3 colors, 1-2 empty, height 4), Hard (4-5 colors, 2 empty, height 5)
-- Each bottle: list of color IDs (0..N), sequential fills that are then shuffled
+- Generator-based: builds levels by shuffling complete single-color stacks → every
+  puzzle is guaranteed solvable (each color appears exactly `height` times).
+- Deterministic seeds so levels are stable across devices/runs (important for Daily/Browse).
+- Tiers (overhauled):
+  | Tier | Colors | Jars (filled+empty) | Height | Variants |
+  |------|--------|----------------------|--------|----------|
+  | Easy | 3–4 | 4–6 | 4 | ~16 |
+  | Medium | 5–6 | 6–8 | 4–5 | ~12 |
+  | Hard | 7–8 | 9–11 | 5 | ~12 |
+  | Expert | 9–10 | 11–13 | 5–6 | ~12 |
+  | Nightmare | 11–12 | 14–16 | 6 | ~12 |
+  (~64 levels total)
 - Implements `BrowseablePuzzle` interface for `PuzzleBrowserScreen`
 - `PUZZLES_BY_DIFFICULTY: Map<String, List<Level>>` for browser tabs
 
