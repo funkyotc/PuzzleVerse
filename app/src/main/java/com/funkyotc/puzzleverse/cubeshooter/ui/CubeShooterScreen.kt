@@ -39,7 +39,7 @@ import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModel
 import com.funkyotc.puzzleverse.cubeshooter.viewmodel.CubeShooterViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import kotlinx.coroutines.android.awaitFrame
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
@@ -100,12 +100,13 @@ fun CubeShooterScreen(
         if (!state.isWon && !state.isGameOver) {
             var lastTime = System.currentTimeMillis()
             while (true) {
-                awaitFrame()
-                val now = System.currentTimeMillis()
-                val dtMs = now - lastTime
-                lastTime = now
-                if (dtMs > 0) {
-                    viewModel.tick(dtMs)
+                withFrameMillis {
+                    val now = System.currentTimeMillis()
+                    val dtMs = now - lastTime
+                    lastTime = now
+                    if (dtMs > 0) {
+                        viewModel.tick(dtMs)
+                    }
                 }
             }
         }

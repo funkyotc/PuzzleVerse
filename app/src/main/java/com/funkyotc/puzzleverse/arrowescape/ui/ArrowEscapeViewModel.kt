@@ -7,11 +7,12 @@ import com.funkyotc.puzzleverse.arrowescape.model.Arrow
 import com.funkyotc.puzzleverse.arrowescape.model.GridState
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.withFrameMillis
 
 class ArrowEscapeViewModel(
     private val streakRepository: StreakRepository,
@@ -65,7 +66,7 @@ class ArrowEscapeViewModel(
 
     fun undo() {
         if (history.size > 1) {
-            history.removeLast() // current state
+            history.removeAt(history.lastIndex) // current state
             val previousArrows = history.last()
             
             gridState = GridState(_uiState.value.gridWidth, _uiState.value.gridHeight, previousArrows)
@@ -102,14 +103,15 @@ class ArrowEscapeViewModel(
             viewModelScope.launch {
                 onMove()
                 
-                // Animate stepping out
+                // Animate stepping out (frame-synced at display refresh rate)
                 var moving = true
-                while (moving) {
-                    moving = state.moveArrow(arrowId)
-                    _uiState.value = _uiState.value.copy(
-                        arrows = state.arrows.values.toList()
-                    )
-                    delay(30) // Fast animation
+                while (isActive && moving) {
+                    withFrameMillis {
+                        moving = state.moveArrow(arrowId)
+                        _uiState.value = _uiState.value.copy(
+                            arrows = state.arrows.values.toList()
+                        )
+                    }
                 }
                 
                 saveStateToHistory()
