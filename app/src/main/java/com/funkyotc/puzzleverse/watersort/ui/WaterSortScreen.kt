@@ -417,14 +417,7 @@ private fun BottleView(
                     }
                     drawPath(
                         path = wavePath,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                baseColor.copy(alpha = 0.7f),
-                                baseColor.copy(alpha = 0.0f)
-                            ),
-                            startY = segTop - waveAmplitude,
-                            endY = segTop + waveAmplitude
-                        )
+                        brush = SolidColor(baseColor)
                     )
                 }
 
@@ -455,12 +448,7 @@ drawPath(
                   path = highlightPath,
                   brush = SolidColor(Color.White.copy(alpha = 0.2f))
             )
-            
-            drawPath(
-                  path = wavePath,
-                  brush = SolidColor(baseColor)
-            )
-                
+
                 currentY -= currentSegmentHeight
                 }
             }
