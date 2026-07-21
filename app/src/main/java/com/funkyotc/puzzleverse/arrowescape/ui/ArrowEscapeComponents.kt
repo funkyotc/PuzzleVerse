@@ -183,7 +183,7 @@ fun ArrowEscapeGrid(
                 headPath.close()
                 drawPath(
                     path = headPath,
-                    color = Color.White
+                    color = color
                 )
             }
         }

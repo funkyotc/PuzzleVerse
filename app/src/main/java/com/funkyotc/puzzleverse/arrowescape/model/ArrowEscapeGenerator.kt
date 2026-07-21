@@ -62,8 +62,8 @@ class ArrowEscapeGenerator {
             // Check if spawn point is empty
             if (grid[headY][headX] != 0) continue
 
-            // Determine length of the arrow (1 to 5 segments)
-            val length = random.nextInt(1, 6)
+            // Determine length of the arrow (3 to 12 segments for longer curling tails)
+            val length = random.nextInt(3, 13)
             
             val segments = mutableListOf<Coordinate>()
             var currentX = headX
@@ -74,8 +74,8 @@ class ArrowEscapeGenerator {
             segments.add(Coordinate(currentX, currentY))
 
             for (i in 1 until length) {
-                // Occasionally turn (but can't turn 180 degrees)
-                if (random.nextFloat() < 0.3f) {
+                // Higher turn probability for more curling (40% chance)
+                if (random.nextFloat() < 0.4f) {
                     val turnOptions = listOf(
                         Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT
                     ).filter { it != currentDir && it != currentDir.opposite }

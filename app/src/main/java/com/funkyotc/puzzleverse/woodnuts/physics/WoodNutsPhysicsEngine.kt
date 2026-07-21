@@ -4,6 +4,7 @@ import com.funkyotc.puzzleverse.woodnuts.data.Bolt
 import com.funkyotc.puzzleverse.woodnuts.data.PhysicsTransform
 import com.funkyotc.puzzleverse.woodnuts.data.Plank
 import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsLevel
+import com.funkyotc.puzzleverse.woodnuts.data.clampBoltCellToPlanks
 import org.dyn4j.dynamics.Body
 import org.dyn4j.dynamics.BodyFixture
 import org.dyn4j.dynamics.joint.RevoluteJoint
@@ -41,9 +42,12 @@ class WoodNutsPhysicsEngine {
             fixture.filter = CategoryFilter(category, mask)
             fixture.friction = 0.3
             fixture.restitution = 0.2
-            
+
             body.addFixture(fixture)
-            body.translate(bolt.col.toDouble() + 0.5, bolt.row.toDouble() + 0.5)
+            // Clamp the authored grid-line coord into the plank cell span so edge
+            // bolts (e.g. col == cols) render at the inner cell, matching the UI.
+            val (clampedCol, clampedRow) = clampBoltCellToPlanks(bolt, planks)
+            body.translate(clampedCol.toDouble() + 0.5, clampedRow.toDouble() + 0.5)
             body.setMass(MassType.INFINITE)
             world.addBody(body)
             boltBodies[bolt.id] = body

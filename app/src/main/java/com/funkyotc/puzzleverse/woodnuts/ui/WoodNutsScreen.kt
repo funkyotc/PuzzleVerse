@@ -52,6 +52,7 @@ import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.woodnuts.data.Bolt
 import com.funkyotc.puzzleverse.woodnuts.data.Plank
 import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
+import com.funkyotc.puzzleverse.woodnuts.data.clampBoltCellToPlanks
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModel
 import com.funkyotc.puzzleverse.woodnuts.viewmodel.WoodNutsViewModelFactory
 import com.funkyotc.puzzleverse.core.ui.*
@@ -204,6 +205,12 @@ fun WoodNutsScreen(
                         bolt.id to animatedAngle
                     }.toMap()
 
+                    // Clamp bolt grid-line coords into their plank cell span so edge
+                    // bolts line up with the plank instead of the adjacent empty cell.
+                    val boltCells = state.bolts.associate { bolt ->
+                        bolt.id to clampBoltCellToPlanks(bolt, state.planks)
+                    }
+
                     Canvas(
                         modifier = Modifier
                             .size(gridW, gridH)
@@ -214,8 +221,9 @@ fun WoodNutsScreen(
                                     val touchRadius = cellPx * 0.45f
                                     val bolt = state.bolts.find { b ->
                                         if (b.removed || b.isUnscrewing) return@find false
-                                        val cx = (b.col + 0.5f) * cellPx
-                                        val cy = (b.row + 0.5f) * cellPx
+                                        val (cc, cr) = boltCells[b.id] ?: (b.col.toFloat() to b.row.toFloat())
+                                        val cx = (cc + 0.5f) * cellPx
+                                        val cy = (cr + 0.5f) * cellPx
                                         val dx = offset.x - cx
                                         val dy = offset.y - cy
                                         sqrt(dx * dx + dy * dy) <= touchRadius
@@ -243,8 +251,9 @@ fun WoodNutsScreen(
                             if (bolt.removed) continue
                             val unscrewProgress = boltAngles[bolt.id] ?: 0f
 
-                            val cx = (bolt.col + 0.5f) * cellPx
-                            val cy = (bolt.row + 0.5f) * cellPx
+                            val (cellCol, cellRow) = boltCells[bolt.id] ?: (bolt.col.toFloat() to bolt.row.toFloat())
+                            val cx = (cellCol + 0.5f) * cellPx
+                            val cy = (cellRow + 0.5f) * cellPx
 
                             // Drop shadow for bolt
                             drawCircle(Color.Black.copy(alpha = 0.5f), boltRadius, Offset(cx + strokePx * 1.5f, cy + strokePx * 1.5f))

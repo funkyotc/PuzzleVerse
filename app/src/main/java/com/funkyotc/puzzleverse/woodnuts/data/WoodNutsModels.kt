@@ -27,6 +27,26 @@ data class Plank(
     val transform: PhysicsTransform? = null
 )
 
+/**
+ * Bolts are authored at grid-line coordinates (0..cols / 0..rows), but they are
+ * rendered at cell centres (col+0.5, row+0.5). For bolts sitting on the right or
+ * bottom edge of a plank (e.g. col == cols) the authored coordinate lands in the
+ * empty neighbouring cell, so the bolt appears off the plank edge. Clamp the
+ * authored coordinate into the cell span of the plank(s) the bolt attaches to so
+ * edge bolts render at the adjacent inner cell centre. Interior bolts are already
+ * within the span and pass through unchanged.
+ */
+fun clampBoltCellToPlanks(bolt: Bolt, planks: List<Plank>): Pair<Float, Float> {
+    val related = planks.filter { it.boltIds.contains(bolt.id) }
+    val minC = related.minOfOrNull { it.startCol }?.toFloat() ?: bolt.col.toFloat()
+    val maxC = related.maxOfOrNull { it.endCol }?.toFloat() ?: bolt.col.toFloat()
+    val minR = related.minOfOrNull { it.startRow }?.toFloat() ?: bolt.row.toFloat()
+    val maxR = related.maxOfOrNull { it.endRow }?.toFloat() ?: bolt.row.toFloat()
+    val clampedCol = bolt.col.toFloat().coerceIn(minC, maxC)
+    val clampedRow = bolt.row.toFloat().coerceIn(minR, maxR)
+    return clampedCol to clampedRow
+}
+
 data class WoodNutsLevel(
     override val id: String,
     override val difficulty: String,
