@@ -35,8 +35,8 @@ object WoodNutsPregenerated {
     private fun easy1() = PregeneratedWoodNutsLevel(
         "woodnuts_easy_001", "Easy", 3, 3,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 3),
-            Bolt("b3", 3, 0), Bolt("b4", 3, 3)
+            Bolt("b1", 0, 0), Bolt("b2", 0, 2),
+            Bolt("b3", 2, 0), Bolt("b4", 2, 2)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 0, 2, listOf("b1", "b2")),
@@ -47,8 +47,8 @@ object WoodNutsPregenerated {
     private fun easy2() = PregeneratedWoodNutsLevel(
         "woodnuts_easy_002", "Easy", 3, 3,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 3),
-            Bolt("b3", 3, 0), Bolt("b4", 3, 3),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 2),
+            Bolt("b3", 2, 0), Bolt("b4", 2, 2),
             Bolt("b5", 1, 1)
         ),
         planks = listOf(
@@ -63,7 +63,7 @@ object WoodNutsPregenerated {
         "woodnuts_easy_003", "Easy", 3, 3,
         bolts = listOf(
             Bolt("b1", 0, 0), Bolt("b2", 1, 0),
-            Bolt("b3", 0, 3), Bolt("b4", 1, 3)
+            Bolt("b3", 0, 2), Bolt("b4", 1, 2)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 0, 2, listOf("b1", "b3")),
@@ -75,8 +75,8 @@ object WoodNutsPregenerated {
         "woodnuts_easy_004", "Easy", 3, 3,
         bolts = listOf(
             Bolt("b1", 0, 0), Bolt("b2", 2, 0),
-            Bolt("b3", 0, 3), Bolt("b4", 2, 3),
-            Bolt("b5", 1, 0), Bolt("b6", 1, 3)
+            Bolt("b3", 0, 2), Bolt("b4", 2, 2),
+            Bolt("b5", 1, 0), Bolt("b6", 1, 2)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 0, 2, listOf("b1", "b3")),
@@ -88,9 +88,9 @@ object WoodNutsPregenerated {
     private fun medium1() = PregeneratedWoodNutsLevel(
         "woodnuts_medium_001", "Medium", 4, 4,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
-            Bolt("b3", 1, 0), Bolt("b4", 1, 4),
-            Bolt("b5", 4, 0), Bolt("b6", 4, 4),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 3),
+            Bolt("b3", 1, 0), Bolt("b4", 1, 3),
+            Bolt("b5", 3, 0), Bolt("b6", 3, 3),
             Bolt("b7", 2, 2)
         ),
         planks = listOf(
@@ -106,8 +106,8 @@ object WoodNutsPregenerated {
         bolts = listOf(
             Bolt("b1", 0, 0), Bolt("b2", 0, 3),
             Bolt("b3", 2, 0), Bolt("b4", 2, 3),
-            Bolt("b5", 2, 1), Bolt("b6", 2, 4),
-            Bolt("b7", 4, 1), Bolt("b8", 4, 4)
+            Bolt("b5", 2, 1), Bolt("b6", 2, 3),
+            Bolt("b7", 3, 1), Bolt("b8", 3, 3)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 1, 2, listOf("b1", "b2")),
@@ -122,9 +122,9 @@ object WoodNutsPregenerated {
     private fun medium3() = PregeneratedWoodNutsLevel(
         "woodnuts_medium_003", "Medium", 4, 4,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
-            Bolt("b3", 2, 0), Bolt("b4", 2, 4),
-            Bolt("b5", 4, 0), Bolt("b6", 4, 4),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 3),
+            Bolt("b3", 2, 0), Bolt("b4", 2, 3),
+            Bolt("b5", 3, 0), Bolt("b6", 3, 3),
             Bolt("b7", 1, 2), Bolt("b8", 3, 2)
         ),
         planks = listOf(
@@ -141,9 +141,9 @@ object WoodNutsPregenerated {
     private fun medium4() = PregeneratedWoodNutsLevel(
         "woodnuts_medium_004", "Medium", 4, 4,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
-            Bolt("b3", 4, 0), Bolt("b4", 4, 4),
-            Bolt("b5", 2, 0), Bolt("b6", 2, 4),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 3),
+            Bolt("b3", 3, 0), Bolt("b4", 3, 3),
+            Bolt("b5", 2, 0), Bolt("b6", 2, 3),
             Bolt("b7", 1, 1), Bolt("b8", 3, 3)
         ),
         planks = listOf(
@@ -158,10 +158,10 @@ object WoodNutsPregenerated {
     private fun hard1() = PregeneratedWoodNutsLevel(
         "woodnuts_hard_001", "Hard", 5, 5,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 5),
-            Bolt("b3", 5, 0), Bolt("b4", 5, 5),
-            Bolt("b5", 2, 0), Bolt("b6", 2, 5),
-            Bolt("b7", 0, 2), Bolt("b8", 5, 2),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
+            Bolt("b3", 4, 0), Bolt("b4", 4, 4),
+            Bolt("b5", 2, 0), Bolt("b6", 2, 4),
+            Bolt("b7", 0, 2), Bolt("b8", 4, 2),
             Bolt("b9", 1, 1), Bolt("b10", 3, 3),
             Bolt("b11", 1, 4), Bolt("b12", 4, 1)
         ),
@@ -180,12 +180,12 @@ object WoodNutsPregenerated {
     private fun hard2() = PregeneratedWoodNutsLevel(
         "woodnuts_hard_002", "Hard", 5, 5,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 5),
-            Bolt("b3", 2, 0), Bolt("b4", 2, 5),
-            Bolt("b5", 5, 0), Bolt("b6", 5, 5),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
+            Bolt("b3", 2, 0), Bolt("b4", 2, 4),
+            Bolt("b5", 4, 0), Bolt("b6", 4, 4),
             Bolt("b7", 3, 1), Bolt("b8", 4, 4),
             Bolt("b9", 1, 2), Bolt("b10", 3, 3),
-            Bolt("b11", 0, 3), Bolt("b12", 5, 2)
+            Bolt("b11", 0, 3), Bolt("b12", 4, 2)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 1, 2, listOf("b1", "b9")),
@@ -204,13 +204,13 @@ object WoodNutsPregenerated {
     private fun hard3() = PregeneratedWoodNutsLevel(
         "woodnuts_hard_003", "Hard", 5, 5,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 5),
-            Bolt("b3", 5, 0), Bolt("b4", 5, 5),
-            Bolt("b5", 2, 0), Bolt("b6", 2, 5),
-            Bolt("b7", 0, 2), Bolt("b8", 5, 2),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
+            Bolt("b3", 4, 0), Bolt("b4", 4, 4),
+            Bolt("b5", 2, 0), Bolt("b6", 2, 4),
+            Bolt("b7", 0, 2), Bolt("b8", 4, 2),
             Bolt("b9", 1, 1), Bolt("b10", 4, 4),
             Bolt("b11", 1, 4), Bolt("b12", 4, 1),
-            Bolt("b13", 3, 0), Bolt("b14", 3, 5)
+            Bolt("b13", 3, 0), Bolt("b14", 3, 4)
         ),
         planks = listOf(
             Plank("p1", 0, 0, 0, 1, listOf("b1")),
@@ -230,13 +230,13 @@ object WoodNutsPregenerated {
     private fun hard4() = PregeneratedWoodNutsLevel(
         "woodnuts_hard_004", "Hard", 5, 5,
         bolts = listOf(
-            Bolt("b1", 0, 0), Bolt("b2", 0, 5),
-            Bolt("b3", 5, 0), Bolt("b4", 5, 5),
-            Bolt("b5", 2, 0), Bolt("b6", 2, 5),
-            Bolt("b7", 0, 2), Bolt("b8", 5, 2),
+            Bolt("b1", 0, 0), Bolt("b2", 0, 4),
+            Bolt("b3", 4, 0), Bolt("b4", 4, 4),
+            Bolt("b5", 2, 0), Bolt("b6", 2, 4),
+            Bolt("b7", 0, 2), Bolt("b8", 4, 2),
             Bolt("b9", 1, 1), Bolt("b10", 4, 4),
             Bolt("b11", 1, 4), Bolt("b12", 4, 1),
-            Bolt("b13", 3, 0), Bolt("b14", 3, 5),
+            Bolt("b13", 3, 0), Bolt("b14", 3, 4),
             Bolt("b15", 2, 2), Bolt("b16", 2, 3)
         ),
         planks = listOf(
