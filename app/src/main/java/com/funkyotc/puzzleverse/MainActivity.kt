@@ -299,7 +299,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 title = "Flow Puzzles",
                 gameName = "Flow",
                 navController = navController,
-                puzzlesByDifficulty = FlowFreePregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
+                puzzlesByDifficulty = FlowFreePregenerated.PUZZLES_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/flowfree/puzzle/${puzzle.id}") }
             )

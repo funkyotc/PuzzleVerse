@@ -9,7 +9,7 @@ class ArrowEscapeGenerator {
      * Starts with an empty grid, spawns arrows, and pushes them backward.
      */
     fun generate(width: Int, height: Int, density: Float, random: Random = Random): List<Arrow> {
-        val grid = Array(height) { IntArray(width) { 0 } }
+        val grid = Array(height) { IntArray(width) }
         val arrows = mutableListOf<Arrow>()
         var nextId = 1
         

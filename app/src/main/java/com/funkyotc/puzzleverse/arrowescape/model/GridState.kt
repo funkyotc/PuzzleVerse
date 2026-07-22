@@ -5,7 +5,7 @@ class GridState(
     val height: Int,
     initialArrows: List<Arrow>
 ) {
-    private val grid = Array(height) { IntArray(width) { 0 } }
+    private val grid = Array(height) { IntArray(width) }
     val arrows = initialArrows.associateBy { it.id }.toMutableMap()
 
     init {

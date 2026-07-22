@@ -16,7 +16,7 @@ import com.funkyotc.puzzleverse.core.todayEpochDay
 import kotlin.random.Random
 
 class ShapesViewModel(
-    private val context: Context,
+    context: Context,
     private val mode: String?,
     private val puzzleId: String? = null
 ) : ViewModel() {
@@ -28,7 +28,7 @@ class ShapesViewModel(
     val isGameWon: StateFlow<Boolean> = _isGameWon.asStateFlow()
 
     private var currentLevel = 0
-    private val repository = ShapesRepository(context)
+    private val repository = ShapesRepository(context.applicationContext)
 
     init {
         val saved = repository.loadPieces(mode, puzzleId)
