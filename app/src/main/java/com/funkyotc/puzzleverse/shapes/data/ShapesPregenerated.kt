@@ -181,62 +181,29 @@ object ShapesPregenerated {
     }
 
     // Standard 0-overlap layout A (Classic Square layout)
-    private val LAYOUT_SQUARE = listOf(
+    private val LAYOUT_A = listOf(
+        PieceConfig(Offset(-25f, 0f), 270f),
         PieceConfig(Offset(0f, -25f), 0f),
-        PieceConfig(Offset(25f, 0f), 90f),
-        PieceConfig(Offset(-25f, 25f), 0f),
-        PieceConfig(Offset(-25f, 37.5f), 0f),
-        PieceConfig(Offset(0f, 25f), 0f),
-        PieceConfig(Offset(-25f, -12.5f), 0f),
-        PieceConfig(Offset(25f, 37.5f), 0f)
+        PieceConfig(Offset(-25f, 25f), 180f),
+        PieceConfig(Offset(12.5f, 25f), 90f),
+        PieceConfig(Offset(25f, 0f), 0f),
+        PieceConfig(Offset(25f, 37.5f), 0f, flipped = true),
+        PieceConfig(Offset(37.5f, -25f), 270f)
     )
 
     // Standard 0-overlap layout B (Grand Triangle layout)
-    private val LAYOUT_TRIANGLE = listOf(
-        PieceConfig(Offset(0f, 25f), 0f),
+    private val LAYOUT_B = listOf(
         PieceConfig(Offset(-50f, 25f), 180f),
-        PieceConfig(Offset(-12.5f, 0f), 45f),
+        PieceConfig(Offset(-25f, 0f), 90f),
+        PieceConfig(Offset(0f, -12.5f), 135f),
         PieceConfig(Offset(25f, 37.5f), 0f),
         PieceConfig(Offset(50f, 25f), 0f),
-        PieceConfig(Offset(12.5f, -25f), 0f),
+        PieceConfig(Offset(12.5f, 25f), 90f),
         PieceConfig(Offset(75f, 37.5f), 0f)
     )
 
-    // Standard 0-overlap layout C (Cozy Cottage layout)
-    private val LAYOUT_COTTAGE = listOf(
-        PieceConfig(Offset(0f, 0f), 0f),
-        PieceConfig(Offset(0f, -50f), 180f),
-        PieceConfig(Offset(-12.5f, 50f), 45f),
-        PieceConfig(Offset(-37.5f, 0f), 90f),
-        PieceConfig(Offset(25f, 25f), 0f),
-        PieceConfig(Offset(-37.5f, 25f), 90f),
-        PieceConfig(Offset(37.5f, 0f), 270f)
-    )
-
-    // Standard 0-overlap layout D (Twin Rectangle layout)
-    private val LAYOUT_RECTANGLE = listOf(
-        PieceConfig(Offset(-50f, 0f), 0f),
-        PieceConfig(Offset(50f, 0f), 0f),
-        PieceConfig(Offset(75f, 0f), 180f),
-        PieceConfig(Offset(-25f, 12.5f), 0f),
-        PieceConfig(Offset(0f, 0f), 0f),
-        PieceConfig(Offset(-75f, 12.5f), 0f),
-        PieceConfig(Offset(25f, 12.5f), 0f)
-    )
-
-    // Standard 0-overlap layout E (Wide Parallelogram layout)
-    private val LAYOUT_PARALLELOGRAM = listOf(
-        PieceConfig(Offset(-25f, -12.5f), 0f),
-        PieceConfig(Offset(-50f, 12.5f), 180f),
-        PieceConfig(Offset(50f, -12.5f), 0f),
-        PieceConfig(Offset(-62.5f, -12.5f), 90f),
-        PieceConfig(Offset(0f, 12.5f), 0f),
-        PieceConfig(Offset(-87.5f, 0f), 90f),
-        PieceConfig(Offset(12.5f, -12.5f), 270f)
-    )
-
-    // Standard 0-overlap layout F (Meditating Monk layout)
-    private val LAYOUT_MONK = listOf(
+    // Standard 0-overlap layout C (Monk / Swan figure)
+    private val LAYOUT_C = listOf(
         PieceConfig(Offset(0f, 25f), 0f),
         PieceConfig(Offset(0f, -25f), 180f),
         PieceConfig(Offset(0f, 50f), 180f),
@@ -246,70 +213,103 @@ object ShapesPregenerated {
         PieceConfig(Offset(-37.5f, 25f), 90f)
     )
 
+    // Standard 0-overlap layout D (Twin Rectangle layout)
+    private val LAYOUT_D = listOf(
+        PieceConfig(Offset(-50f, 0f), 0f),
+        PieceConfig(Offset(0f, 0f), 180f),
+        PieceConfig(Offset(-75f, 0f), 270f),
+        PieceConfig(Offset(25f, -12.5f), 180f),
+        PieceConfig(Offset(50f, 0f), 0f),
+        PieceConfig(Offset(75f, -12.5f), 0f),
+        PieceConfig(Offset(75f, 12.5f), 0f)
+    )
+
+    // Standard 0-overlap layout E (Wide Parallelogram layout)
+    private val LAYOUT_E = listOf(
+        PieceConfig(Offset(-25f, -12.5f), 0f),
+        PieceConfig(Offset(-50f, 12.5f), 180f),
+        PieceConfig(Offset(50f, -12.5f), 0f),
+        PieceConfig(Offset(-62.5f, -12.5f), 90f),
+        PieceConfig(Offset(0f, 12.5f), 0f),
+        PieceConfig(Offset(-87.5f, 0f), 90f),
+        PieceConfig(Offset(12.5f, -12.5f), 270f)
+    )
+
+    // Standard 0-overlap layout F (Strip layout)
+    private val LAYOUT_F = listOf(
+        PieceConfig(Offset(-62.5f, -62.5f), 0f),
+        PieceConfig(Offset(-62.5f, -12.5f), 0f),
+        PieceConfig(Offset(-62.5f, 12.5f), 180f),
+        PieceConfig(Offset(-62.5f, 50f), 0f),
+        PieceConfig(Offset(-25f, 50f), 0f),
+        PieceConfig(Offset(-37.5f, -50f), 0f, flipped = true),
+        PieceConfig(Offset(-25f, -12.5f), 270f)
+    )
+
     val ALL_PUZZLES: List<PregeneratedShape> by lazy {
         listOf(
             // 1. Classic Square
             createPregeneratedShape("Shapes_Easy_puzzle_000", "Easy", "Classic Square",
                 listOf(Offset(-50f, -50f), Offset(50f, -50f), Offset(50f, 50f), Offset(-50f, 50f)),
-                LAYOUT_SQUARE[0], LAYOUT_SQUARE[1], LAYOUT_SQUARE[2], LAYOUT_SQUARE[3], LAYOUT_SQUARE[4], LAYOUT_SQUARE[5], LAYOUT_SQUARE[6]
+                LAYOUT_A[0], LAYOUT_A[1], LAYOUT_A[2], LAYOUT_A[3], LAYOUT_A[4], LAYOUT_A[5], LAYOUT_A[6]
             ),
             // 2. Grand Triangle
             createPregeneratedShape("Shapes_Easy_puzzle_001", "Easy", "Grand Triangle",
                 listOf(Offset(-100f, 50f), Offset(0f, -50f), Offset(100f, 50f)),
-                LAYOUT_TRIANGLE[0], LAYOUT_TRIANGLE[1], LAYOUT_TRIANGLE[2], LAYOUT_TRIANGLE[3], LAYOUT_TRIANGLE[4], LAYOUT_TRIANGLE[5], LAYOUT_TRIANGLE[6]
+                LAYOUT_B[0], LAYOUT_B[1], LAYOUT_B[2], LAYOUT_B[3], LAYOUT_B[4], LAYOUT_B[5], LAYOUT_B[6]
             ),
             // 3. Cozy Cottage
             createPregeneratedShape("Shapes_Easy_puzzle_002", "Easy", "Cozy Cottage", null,
-                LAYOUT_COTTAGE[0], LAYOUT_COTTAGE[1], LAYOUT_COTTAGE[2], LAYOUT_COTTAGE[3], LAYOUT_COTTAGE[4], LAYOUT_COTTAGE[5], LAYOUT_COTTAGE[6]
+                LAYOUT_F[0], LAYOUT_F[1], LAYOUT_F[2], LAYOUT_F[3], LAYOUT_F[4], LAYOUT_F[5], LAYOUT_F[6]
             ),
             // 4. Sailboat
             createPregeneratedShape("Shapes_Easy_puzzle_003", "Easy", "Sailboat", null,
-                LAYOUT_SQUARE[0], LAYOUT_SQUARE[1], LAYOUT_SQUARE[2], LAYOUT_SQUARE[3], LAYOUT_SQUARE[4], LAYOUT_SQUARE[5], LAYOUT_SQUARE[6]
+                LAYOUT_A[0], LAYOUT_A[1], LAYOUT_A[2], LAYOUT_A[3], LAYOUT_A[4], LAYOUT_A[5], LAYOUT_A[6]
             ),
             // 5. Graceful Swan
             createPregeneratedShape("Shapes_Easy_puzzle_004", "Easy", "Graceful Swan", null,
-                LAYOUT_MONK[0], LAYOUT_MONK[1], LAYOUT_MONK[2], LAYOUT_MONK[3], LAYOUT_MONK[4], LAYOUT_MONK[5], LAYOUT_MONK[6]
+                LAYOUT_C[0], LAYOUT_C[1], LAYOUT_C[2], LAYOUT_C[3], LAYOUT_C[4], LAYOUT_C[5], LAYOUT_C[6]
             ),
             // 6. Clever Cat
             createPregeneratedShape("Shapes_Easy_puzzle_005", "Easy", "Clever Cat", null,
-                LAYOUT_COTTAGE[0], LAYOUT_COTTAGE[1], LAYOUT_COTTAGE[2], LAYOUT_COTTAGE[3], LAYOUT_COTTAGE[4], LAYOUT_COTTAGE[5], LAYOUT_COTTAGE[6]
+                LAYOUT_F[0], LAYOUT_F[1], LAYOUT_F[2], LAYOUT_F[3], LAYOUT_F[4], LAYOUT_F[5], LAYOUT_F[6]
             ),
             // 7. Space Rocket
             createPregeneratedShape("Shapes_Easy_puzzle_006", "Easy", "Space Rocket", null,
-                LAYOUT_TRIANGLE[0], LAYOUT_TRIANGLE[1], LAYOUT_TRIANGLE[2], LAYOUT_TRIANGLE[3], LAYOUT_TRIANGLE[4], LAYOUT_TRIANGLE[5], LAYOUT_TRIANGLE[6]
+                LAYOUT_B[0], LAYOUT_B[1], LAYOUT_B[2], LAYOUT_B[3], LAYOUT_B[4], LAYOUT_B[5], LAYOUT_B[6]
             ),
             // 8. Bright Candle
             createPregeneratedShape("Shapes_Hard_puzzle_007", "Hard", "Bright Candle", null,
-                LAYOUT_MONK[0], LAYOUT_MONK[1], LAYOUT_MONK[2], LAYOUT_MONK[3], LAYOUT_MONK[4], LAYOUT_MONK[5], LAYOUT_MONK[6]
+                LAYOUT_C[0], LAYOUT_C[1], LAYOUT_C[2], LAYOUT_C[3], LAYOUT_C[4], LAYOUT_C[5], LAYOUT_C[6]
             ),
             // 9. Twin Rectangle
             createPregeneratedShape("Shapes_Hard_puzzle_008", "Hard", "Twin Rectangle",
                 listOf(Offset(-100f, -25f), Offset(100f, -25f), Offset(100f, 25f), Offset(-100f, 25f)),
-                LAYOUT_RECTANGLE[0], LAYOUT_RECTANGLE[1], LAYOUT_RECTANGLE[2], LAYOUT_RECTANGLE[3], LAYOUT_RECTANGLE[4], LAYOUT_RECTANGLE[5], LAYOUT_RECTANGLE[6]
+                LAYOUT_D[0], LAYOUT_D[1], LAYOUT_D[2], LAYOUT_D[3], LAYOUT_D[4], LAYOUT_D[5], LAYOUT_D[6]
             ),
             // 10. Wide Parallelogram
             createPregeneratedShape("Shapes_Hard_puzzle_009", "Hard", "Wide Parallelogram", null,
-                LAYOUT_PARALLELOGRAM[0], LAYOUT_PARALLELOGRAM[1], LAYOUT_PARALLELOGRAM[2], LAYOUT_PARALLELOGRAM[3], LAYOUT_PARALLELOGRAM[4], LAYOUT_PARALLELOGRAM[5], LAYOUT_PARALLELOGRAM[6]
+                LAYOUT_E[0], LAYOUT_E[1], LAYOUT_E[2], LAYOUT_E[3], LAYOUT_E[4], LAYOUT_E[5], LAYOUT_E[6]
             ),
             // 11. Evergreen Fir
             createPregeneratedShape("Shapes_Hard_puzzle_010", "Hard", "Evergreen Fir", null,
-                LAYOUT_TRIANGLE[0], LAYOUT_TRIANGLE[1], LAYOUT_TRIANGLE[2], LAYOUT_TRIANGLE[3], LAYOUT_TRIANGLE[4], LAYOUT_TRIANGLE[5], LAYOUT_TRIANGLE[6]
+                LAYOUT_B[0], LAYOUT_B[1], LAYOUT_B[2], LAYOUT_B[3], LAYOUT_B[4], LAYOUT_B[5], LAYOUT_B[6]
             ),
             // 12. Pointing Arrow
             createPregeneratedShape("Shapes_Hard_puzzle_011", "Hard", "Pointing Arrow", null,
-                LAYOUT_COTTAGE[0], LAYOUT_COTTAGE[1], LAYOUT_COTTAGE[2], LAYOUT_COTTAGE[3], LAYOUT_COTTAGE[4], LAYOUT_COTTAGE[5], LAYOUT_COTTAGE[6]
+                LAYOUT_F[0], LAYOUT_F[1], LAYOUT_F[2], LAYOUT_F[3], LAYOUT_F[4], LAYOUT_F[5], LAYOUT_F[6]
             ),
             // 13. Meditating Monk
             createPregeneratedShape("Shapes_Hard_puzzle_012", "Hard", "Meditating Monk", null,
-                LAYOUT_MONK[0], LAYOUT_MONK[1], LAYOUT_MONK[2], LAYOUT_MONK[3], LAYOUT_MONK[4], LAYOUT_MONK[5], LAYOUT_MONK[6]
+                LAYOUT_C[0], LAYOUT_C[1], LAYOUT_C[2], LAYOUT_C[3], LAYOUT_C[4], LAYOUT_C[5], LAYOUT_C[6]
             ),
             // 14. Swimming Fish
             createPregeneratedShape("Shapes_Hard_puzzle_013", "Hard", "Swimming Fish", null,
-                LAYOUT_PARALLELOGRAM[0], LAYOUT_PARALLELOGRAM[1], LAYOUT_PARALLELOGRAM[2], LAYOUT_PARALLELOGRAM[3], LAYOUT_PARALLELOGRAM[4], LAYOUT_PARALLELOGRAM[5], LAYOUT_PARALLELOGRAM[6]
+                LAYOUT_E[0], LAYOUT_E[1], LAYOUT_E[2], LAYOUT_E[3], LAYOUT_E[4], LAYOUT_E[5], LAYOUT_E[6]
             ),
             // 15. Arch Bridge
             createPregeneratedShape("Shapes_Hard_puzzle_014", "Hard", "Arch Bridge", null,
-                LAYOUT_RECTANGLE[0], LAYOUT_RECTANGLE[1], LAYOUT_RECTANGLE[2], LAYOUT_RECTANGLE[3], LAYOUT_RECTANGLE[4], LAYOUT_RECTANGLE[5], LAYOUT_RECTANGLE[6]
+                LAYOUT_D[0], LAYOUT_D[1], LAYOUT_D[2], LAYOUT_D[3], LAYOUT_D[4], LAYOUT_D[5], LAYOUT_D[6]
             )
         )
     }
