@@ -10,12 +10,10 @@ object GeometryUtils {
      * Checks if a point is inside a polygon (Ray Casting algorithm).
      */
     fun isPointInPolygon(point: Offset, vertices: List<Offset>): Boolean {
-        // First check if the point is extremely close to any vertex (for snapped pieces)
         for (v in vertices) {
             if (kotlin.math.hypot(point.x - v.x, point.y - v.y) < 1f) return true
         }
 
-        // Check if the point lies on any segment
         for (i in vertices.indices) {
             val p1 = vertices[i]
             val p2 = vertices[(i + 1) % vertices.size]
@@ -46,68 +44,63 @@ object GeometryUtils {
 
     /**
      * Checks if two polygons intersect (Separating Axis Theorem).
-     * This is a simplified check that works for convex polygons.
-     * For concave polygons (like some tangram sets might form combined), we might need to triangulate or checking edges.
-     * Note: Tangram pieces are convex (triangles, squares, parallelograms).
+     * Returns true ONLY if polygons strictly overlap in area by more than tolerance.
      */
     fun doPolygonsIntersect(polygon1: List<Offset>, polygon2: List<Offset>): Boolean {
         val polygons = listOf(polygon1, polygon2)
+        val epsilon = 0.5f
+
         for (i in polygons.indices) {
             val polygon = polygons[i]
             for (j in polygon.indices) {
                 val p1 = polygon[j]
                 val p2 = polygon[(j + 1) % polygon.size]
-                val normal = Offset(p2.y - p1.y, p1.x - p2.x)
+                val len = kotlin.math.hypot(p2.x - p1.x, p2.y - p1.y)
+                if (len == 0f) continue
+
+                // Normalized normal vector
+                val nx = (p2.y - p1.y) / len
+                val ny = (p1.x - p2.x) / len
 
                 var minA = Float.MAX_VALUE
-                var maxA = Float.MIN_VALUE
+                var maxA = -Float.MAX_VALUE
                 for (p in polygon1) {
-                    val projected = p.x * normal.x + p.y * normal.y
+                    val projected = p.x * nx + p.y * ny
                     if (projected < minA) minA = projected
                     if (projected > maxA) maxA = projected
                 }
 
                 var minB = Float.MAX_VALUE
-                var maxB = Float.MIN_VALUE
+                var maxB = -Float.MAX_VALUE
                 for (p in polygon2) {
-                    val projected = p.x * normal.x + p.y * normal.y
+                    val projected = p.x * nx + p.y * ny
                     if (projected < minB) minB = projected
                     if (projected > maxB) maxB = projected
                 }
 
-                if (maxA <= minB + 1.0f || maxB <= minA + 1.0f) return false
+                // If projections are separated by epsilon, they do NOT intersect
+                if (maxA <= minB + epsilon || maxB <= minA + epsilon) return false
             }
         }
         return true
     }
 
     /**
-     * Checks if polygon1 is completely inside polygon2.
+     * Checks if inner polygon is completely inside outer polygon.
      */
     fun isPolygonInside(inner: List<Offset>, outer: List<Offset>): Boolean {
-        // 1. Check if all vertices of inner are inside outer
         for (vertex in inner) {
             if (!isPointInPolygon(vertex, outer)) return false
         }
-        // 2. Check for intersections (edges crossing) to prevent cases where vertices are inside but edges cross out
-        // (Only needed for concave outer polygons; if convex, vertex check is sufficient)
-        // Since the target silhouette might be concave, we strictly need edge intersection checks too.
-        // However, if all vertices are inside, can it cross out? Yes, in concave shapes.
-        // Simple check: check midpoints of edges? Or full segment intersection.
-        
-        // Full segment intersection check
         for (i in inner.indices) {
             val p1 = inner[i]
             val p2 = inner[(i + 1) % inner.size]
-            
             for (j in outer.indices) {
                 val q1 = outer[j]
                 val q2 = outer[(j + 1) % outer.size]
-                
                 if (doSegmentsIntersect(p1, p2, q1, q2)) return false
             }
         }
-        
         return true
     }
 
@@ -121,8 +114,8 @@ object GeometryUtils {
         val cp3 = crossProduct(q1, q2, p1)
         val cp4 = crossProduct(q1, q2, p2)
 
-        val cross1 = (cp1 > 0f && cp2 < 0f) || (cp1 < 0f && cp2 > 0f)
-        val cross2 = (cp3 > 0f && cp4 < 0f) || (cp3 < 0f && cp4 > 0f)
+        val cross1 = (cp1 > 0.1f && cp2 < -0.1f) || (cp1 < -0.1f && cp2 > 0.1f)
+        val cross2 = (cp3 > 0.1f && cp4 < -0.1f) || (cp3 < -0.1f && cp4 > 0.1f)
 
         return cross1 && cross2
     }
@@ -139,39 +132,12 @@ object GeometryUtils {
         val sin = sin(rad).toFloat()
 
         return vertices.map { vertex ->
-            // 1. Flip around local (0, 0)
-            val fx = if (isFlipped) -vertex.x else vertex.x
-            val fy = vertex.y
+            val fx = if (isFlipped) -vertex.x * scale else vertex.x * scale
+            val fy = vertex.y * scale
             
-            // 2. Rotate around local (0, 0)
             val rx = fx * cos - fy * sin
             val ry = fx * sin + fy * cos
             
-            // 3. Translate to world position
-            Offset(rx + translation.x, ry + translation.y)
-        }
-    }
-
-    fun transformPolygonAnimated(
-        vertices: List<Offset>,
-        translation: Offset,
-        rotationDegrees: Float,
-        scaleX: Float
-    ): List<Offset> {
-        val rad = Math.toRadians(rotationDegrees.toDouble())
-        val cos = cos(rad).toFloat()
-        val sin = sin(rad).toFloat()
-
-        return vertices.map { vertex ->
-            // 1. Flip (scale X) around local (0, 0)
-            val fx = vertex.x * scaleX
-            val fy = vertex.y
-            
-            // 2. Rotate around local (0, 0)
-            val rx = fx * cos - fy * sin
-            val ry = fx * sin + fy * cos
-            
-            // 3. Translate to world position
             Offset(rx + translation.x, ry + translation.y)
         }
     }
