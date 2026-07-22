@@ -7,6 +7,7 @@ import kotlin.random.Random
 import org.junit.Test
 
 class RegenerateTest {
+    @org.junit.Ignore("Offline generator test")
     @Test
     fun regenerateAll() {
     val random = Random(42)

@@ -65,6 +65,7 @@ class GenTest {
         return dots
     }
 
+    @org.junit.Ignore("Offline stochastic generator test")
     @Test
     fun testGen() {
         val random = Random()

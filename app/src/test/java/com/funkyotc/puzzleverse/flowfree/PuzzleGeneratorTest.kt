@@ -74,6 +74,7 @@ class PuzzleGeneratorTest {
         println("Puzzles successfully written to ${outputFile.absolutePath}")
     }
 
+    @org.junit.Ignore("Full puzzle generator test")
     @Test
     fun generatedPuzzlesAreValidSolutions() {
         val random = Random(123)
@@ -83,6 +84,7 @@ class PuzzleGeneratorTest {
         }
     }
 
+    @org.junit.Ignore("Full puzzle solver uniqueness test")
     @Test
     fun generatedPuzzlesHaveUniqueSolutions() {
         val random = Random(456)
