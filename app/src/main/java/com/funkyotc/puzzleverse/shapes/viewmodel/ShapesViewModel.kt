@@ -61,7 +61,7 @@ class ShapesViewModel(
     private fun generatePuzzle(level: Int) {
         val cx = 200f
         val cy = 200f
-        val sc = 2.5f
+        val sc = 2.0f
 
         val pregen = if (mode == "puzzle" && puzzleId != null) {
             com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
@@ -69,21 +69,12 @@ class ShapesViewModel(
             val idx = (todayEpochDay() % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size).toInt()
             com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
         } else {
-            val idx = level % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size
+            val idx = kotlin.math.abs(level) % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size
             com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
         }
 
         if (pregen != null) {
             val originalLevel = pregen.toShapesPuzzle()
-            val colors = listOf(
-                Color(0xFF6B8DD6),
-                Color(0xFF8E37D7),
-                Color(0xFFFFB75E),
-                Color(0xFFED8F03),
-                Color(0xFFFF5252),
-                Color(0xFF4CAF50),
-                Color(0xFF00BCD4)
-            )
 
             val scaledPieces = originalLevel.pieces.map { piece ->
                 piece.copy(
@@ -99,15 +90,16 @@ class ShapesViewModel(
                 )
             }
 
+            // Layout unplaced pieces cleanly in 2 rows in the bottom tray area (Y = 475..640)
             val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
                 val row = index / 4
                 val col = index % 4
-                val startX = if (row == 0) 50f else 80f
-                val x = startX + col * 80f + Random.nextFloat() * 15f
-                val y = 460f + row * 85f + Random.nextFloat() * 15f
+                val x = 65f + col * 85f + Random.nextFloat() * 10f
+                val y = 475f + row * 90f + Random.nextFloat() * 10f
+                val randomRot = (Random.nextInt(8) * 45f)
                 piece.copy(
                     position = Offset(x, y),
-                    color = colors.getOrElse(index) { Color.Gray }
+                    rotation = randomRot
                 )
             }
 
@@ -152,7 +144,7 @@ class ShapesViewModel(
             val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
 
             var bestSnapDelta = Offset.Zero
-            var minDistance = 30f
+            var minDistance = 25f
 
             val targetVertices = currentPuzzle.target.vertices
             val otherPiecesVertices = currentPuzzle.pieces.filter { it.id != pieceId }.flatMap { it.currentVertices }
@@ -166,6 +158,15 @@ class ShapesViewModel(
                         bestSnapDelta = Offset(snapPoint.x - vertex.x, snapPoint.y - vertex.y)
                     }
                 }
+            }
+
+            // Direct snap to solution position if close and correctly rotated
+            val distToSolution = kotlin.math.hypot(tentativePiece.position.x - tentativePiece.solutionPosition.x, tentativePiece.position.y - tentativePiece.solutionPosition.y)
+            val normRot = (tentativePiece.rotation % 360f + 360f) % 360f
+            val normSolRot = (tentativePiece.solutionRotation % 360f + 360f) % 360f
+            val rotDiff = kotlin.math.abs(normRot - normSolRot) % 360f
+            if (distToSolution < 25f && (rotDiff < 15f || rotDiff > 345f)) {
+                bestSnapDelta = Offset(tentativePiece.solutionPosition.x - tentativePiece.position.x, tentativePiece.solutionPosition.y - tentativePiece.position.y)
             }
 
             val finalPosition = Offset(tentativePiece.position.x + bestSnapDelta.x, tentativePiece.position.y + bestSnapDelta.y)
@@ -229,7 +230,7 @@ class ShapesViewModel(
             val normRot = (piece.rotation % 360f + 360f) % 360f
             val normSolRot = (piece.solutionRotation % 360f + 360f) % 360f
             val rotDiff = kotlin.math.abs(normRot - normSolRot) % 360f
-            dist < 10f && (rotDiff < 10f || rotDiff > 350f)
+            dist < 15f && (rotDiff < 15f || rotDiff > 345f)
         }
 
         if (allAtSolution) {

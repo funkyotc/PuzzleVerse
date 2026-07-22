@@ -13,20 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
@@ -47,9 +40,7 @@ import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
-import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.CornerRadius
@@ -59,10 +50,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -128,7 +116,7 @@ fun ShapesScreen(
 
     if (showHowToDialog) {
         GameHowToDialog(
-            instructions = "Drag and rotate the pieces so they fit perfectly into the target shape.",
+            instructions = "Drag and rotate the 7 Tangram pieces so they fit perfectly into the target silhouette without overlapping.",
             onDismiss = { showHowToDialog = false }
         )
     }
@@ -156,7 +144,7 @@ fun ShapesScreen(
         GameEndDialog(
             isWon = true,
             title = "Congratulations!",
-            message = "You solved the puzzle! All pieces fit perfectly.",
+            message = "You solved the Tangram puzzle! All 7 pieces fit perfectly.",
             mode = mode,
             onMainMenuClick = {
                 if (mode == "puzzle") {
@@ -266,20 +254,20 @@ fun ShapesScreen(
                 val actualWidth = with(density) { maxWidth.toPx() }
                 val actualHeight = with(density) { maxHeight.toPx() }
 
-                // Bounding box of the actual visible content (target, pieces tray)
-                val contentMinX = 15f
-                val contentMaxX = 385f
-                val contentMinY = 100f
-                val contentMaxY = 685f
+                // Map virtual space [0..400, 0..700] cleanly to screen bounds
+                val contentMinX = 0f
+                val contentMaxX = 400f
+                val contentMinY = 0f
+                val contentMaxY = 700f
                 val contentWidth = contentMaxX - contentMinX
                 val contentHeight = contentMaxY - contentMinY
 
                 val scaleX = actualWidth / contentWidth
                 val scaleY = actualHeight / contentHeight
-                val scale = minOf(scaleX, scaleY) * 0.95f
+                val scale = minOf(scaleX, scaleY) * 0.98f
 
-                val offsetX = (actualWidth - contentWidth * scale) / 2f - contentMinX * scale
-                val offsetY = (actualHeight - contentHeight * scale) / 2f - contentMinY * scale
+                val offsetX = (actualWidth - contentWidth * scale) / 2f
+                val offsetY = (actualHeight - contentHeight * scale) / 2f
 
                 Canvas(modifier = Modifier
                     .fillMaxSize()
@@ -361,7 +349,6 @@ fun ShapesScreen(
                     translate(offsetX, offsetY) {
                         scale(scale, pivot = Offset.Zero) {
                             // 1. Draw Blueprint Background Grid
-                            val gridSpacing = 40f
                             for (x in 0..400 step 40) {
                                 drawLine(
                                     color = Color(0x15FFFFFF),
@@ -379,7 +366,7 @@ fun ShapesScreen(
                                 )
                             }
 
-                            // 2. Draw piece dock tray at the bottom (visually holds the pieces)
+                            // 2. Draw piece dock tray at the bottom (visually holds the unplaced pieces)
                             val trayPath = Path().apply {
                                 addRoundRect(
                                     RoundRect(
@@ -401,7 +388,7 @@ fun ShapesScreen(
                                 )
                             )
 
-                            // 3. Draw Target Silhouette
+                            // 3. Draw Target Silhouette Centered in Upper Area
                             val targetPath = Path().apply {
                                 if (puzzleState.target.vertices.isNotEmpty()) {
                                     val first = puzzleState.target.vertices.first()
@@ -419,7 +406,7 @@ fun ShapesScreen(
                                     targetPath, 
                                     Color(0xFF38BDF8), // Cyan silhouette outline
                                     style = Stroke(
-                                        width = 5.0f, // Doubled for internal clipping (2.5f visible)
+                                        width = 5.0f,
                                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
                                     )
                                 )
@@ -448,7 +435,7 @@ fun ShapesScreen(
                                     }
                                 }
                                 
-                                // Draw beautiful 3D drop shadow
+                                // Draw 3D drop shadow
                                 val shadowOffset = if (isSelected) Offset(3f, 6f) else Offset(1.5f, 3f)
                                 val shadowAlpha = if (isSelected) 0.4f else 0.25f
                                 val shadowPath = Path().apply {
@@ -463,13 +450,13 @@ fun ShapesScreen(
                                 }
                                 drawPath(shadowPath, Color.Black.copy(alpha = shadowAlpha), style = Fill)
 
-                                // Draw piece fill and elegant outline
+                                // Draw piece fill and elegant border
                                 drawPath(piecePath, piece.color, style = Fill)
                                 clipPath(piecePath) {
                                     drawPath(
                                         piecePath, 
-                                        if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f), // Gold border for selected
-                                        style = Stroke(width = if (isSelected) 7.0f else 3.0f) // Doubled for internal clipping (3.5f or 1.5f visible)
+                                        if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f),
+                                        style = Stroke(width = if (isSelected) 7.0f else 3.0f)
                                     )
                                 }
                             }
