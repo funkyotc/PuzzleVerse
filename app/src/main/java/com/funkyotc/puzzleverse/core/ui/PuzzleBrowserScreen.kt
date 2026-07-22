@@ -103,8 +103,8 @@ fun PuzzleBrowserScreen(
             ) {
                 itemsIndexed(puzzles) { index, puzzle ->
                     val isCompleted = puzzle.id in completedIds
-                    // Sequential locking: unlocked if first, or if previous is completed
-                    val isLocked = index > 0 && puzzles[index - 1].id !in completedIds
+                    // All puzzles unlocked (level locking removed)
+                    val isLocked = false
                     
                     PuzzleBrowserItem(
                         puzzle = puzzle,
@@ -112,10 +112,8 @@ fun PuzzleBrowserScreen(
                         isCompleted = isCompleted,
                         isLocked = isLocked,
                         onClick = {
-                            if (!isLocked) {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                onPuzzleClick(puzzle)
-                            }
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            onPuzzleClick(puzzle)
                         }
                     )
                 }
