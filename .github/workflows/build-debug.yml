@@ -25,7 +25,7 @@ jobs:
           java-version: '11'
 
       - name: Cache Gradle packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -48,6 +48,9 @@ jobs:
           else
             echo "No DEBUG_KEYSTORE secret set — using default generated keystore"
           fi
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
 
       - name: Build Debug APK
         run: ./gradlew clean assembleDebug
