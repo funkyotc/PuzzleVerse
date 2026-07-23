@@ -1,17 +1,17 @@
 package com.funkyotc.puzzleverse.shapes.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -20,48 +20,53 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
-import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
-import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
-import com.funkyotc.puzzleverse.core.ui.GameEndDialog
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.funkyotc.puzzleverse.LocalSoundManager
+import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
+import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
+import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
+import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
+import com.funkyotc.puzzleverse.core.ui.animateEntrance
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import com.funkyotc.puzzleverse.settings.data.SettingsRepository
+import com.funkyotc.puzzleverse.shapes.model.TangramPieces
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModel
 import com.funkyotc.puzzleverse.shapes.viewmodel.ShapesViewModelFactory
-import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.animation.core.animateFloatAsState
-import com.funkyotc.puzzleverse.LocalSoundManager
-import com.funkyotc.puzzleverse.core.audio.SoundManager
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import com.funkyotc.puzzleverse.core.ui.animateEntrance
-import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
-import com.funkyotc.puzzleverse.core.ui.PuzzleVerseAnimationSpecs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShapesScreen(
-    navController: NavController, 
+    navController: NavController,
     mode: String? = "standard",
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
@@ -116,7 +121,7 @@ fun ShapesScreen(
 
     if (showHowToDialog) {
         GameHowToDialog(
-            instructions = "Drag and rotate the 7 Tangram pieces so they fit perfectly into the target silhouette without overlapping.",
+            instructions = "Drag and rotate the 7 Tangram pieces so they fit perfectly into the target silhouette without overlapping. Pieces will lock into place when correctly positioned.",
             onDismiss = { showHowToDialog = false }
         )
     }
@@ -183,7 +188,6 @@ fun ShapesScreen(
         onHowToClick = { showHowToDialog = true },
         onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null,
         bottomBar = {
-            // Controls for the selected piece
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -266,12 +270,8 @@ fun ShapesScreen(
                 val actualHeight = with(density) { maxHeight.toPx() }
 
                 // Map virtual space [0..400, 0..700] cleanly to screen bounds
-                val contentMinX = 0f
-                val contentMaxX = 400f
-                val contentMinY = 0f
-                val contentMaxY = 700f
-                val contentWidth = contentMaxX - contentMinX
-                val contentHeight = contentMaxY - contentMinY
+                val contentWidth = 400f
+                val contentHeight = 700f
 
                 val scaleX = actualWidth / contentWidth
                 val scaleY = actualHeight / contentHeight
@@ -279,6 +279,8 @@ fun ShapesScreen(
 
                 val offsetX = (actualWidth - contentWidth * scale) / 2f
                 val offsetY = (actualHeight - contentHeight * scale) / 2f
+
+                val gridScale = TangramPieces.GRID_SCALE
 
                 Canvas(modifier = Modifier
                     .fillMaxSize()
@@ -291,29 +293,34 @@ fun ShapesScreen(
                                         (actualOffset.x - offsetX) / scale,
                                         (actualOffset.y - offsetY) / scale
                                     )
+                                    val gridOffset = Offset(virtualOffset.x / gridScale, virtualOffset.y / gridScale)
+                                    
                                     val clickedPiece = puzzleVal.pieces.findLast { piece ->
-                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                        GeometryUtils.isPointInPolygon(gridOffset, piece.currentVertices)
                                     }
-                                    if (clickedPiece != null) {
+                                    if (clickedPiece != null && !clickedPiece.isLocked) {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        selectedPieceId = clickedPiece.id
+                                    } else if (clickedPiece == null) {
+                                        selectedPieceId = null
                                     }
-                                    selectedPieceId = clickedPiece?.id
                                 }
                             },
                             onDoubleTap = { actualOffset ->
                                 currentPuzzleState?.let { puzzleVal ->
-                                     val virtualOffset = Offset(
-                                         (actualOffset.x - offsetX) / scale,
-                                         (actualOffset.y - offsetY) / scale
-                                     )
-                                     val clickedPiece = puzzleVal.pieces.findLast { piece ->
-                                          GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
-                                     }
-                                     if (clickedPiece != null) {
-                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                         selectedPieceId = clickedPiece.id
-                                         vm.rotatePiece(clickedPiece.id, 45f)
-                                     }
+                                    val virtualOffset = Offset(
+                                        (actualOffset.x - offsetX) / scale,
+                                        (actualOffset.y - offsetY) / scale
+                                    )
+                                    val gridOffset = Offset(virtualOffset.x / gridScale, virtualOffset.y / gridScale)
+                                    val clickedPiece = puzzleVal.pieces.findLast { piece ->
+                                        GeometryUtils.isPointInPolygon(gridOffset, piece.currentVertices)
+                                    }
+                                    if (clickedPiece != null && !clickedPiece.isLocked) {
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        selectedPieceId = clickedPiece.id
+                                        vm.rotatePiece(clickedPiece.id, 45f)
+                                    }
                                 }
                             }
                         )
@@ -326,10 +333,11 @@ fun ShapesScreen(
                                         (actualOffset.x - offsetX) / scale,
                                         (actualOffset.y - offsetY) / scale
                                     )
+                                    val gridOffset = Offset(virtualOffset.x / gridScale, virtualOffset.y / gridScale)
                                     val clickedPiece = puzzleVal.pieces.findLast { piece ->
-                                         GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
+                                        GeometryUtils.isPointInPolygon(gridOffset, piece.currentVertices)
                                     }
-                                    if (clickedPiece != null) {
+                                    if (clickedPiece != null && !clickedPiece.isLocked) {
                                         soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                                         selectedPieceId = clickedPiece.id
                                     }
@@ -338,8 +346,9 @@ fun ShapesScreen(
                             onDrag = { change, dragAmount ->
                                 change.consume()
                                 selectedPieceId?.let { id ->
-                                    val virtualDragAmount = Offset(dragAmount.x / scale, dragAmount.y / scale)
-                                    vm.movePieceDelta(id, virtualDragAmount)
+                                    val virtualDrag = Offset(dragAmount.x / scale, dragAmount.y / scale)
+                                    val gridDrag = Offset(virtualDrag.x / gridScale, virtualDrag.y / gridScale)
+                                    vm.movePieceDelta(id, gridDrag)
                                 }
                             },
                             onDragEnd = {
@@ -391,45 +400,54 @@ fun ShapesScreen(
                             }
                             drawPath(trayPath, Color.White.copy(alpha = 0.04f), style = Fill)
                             drawPath(
-                                trayPath, 
-                                Color.White.copy(alpha = 0.12f), 
+                                trayPath,
+                                Color.White.copy(alpha = 0.12f),
                                 style = Stroke(
                                     width = 1.5f,
                                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 5f), 0f)
                                 )
                             )
 
-                            // 3. Draw Target Silhouette Centered in Upper Area
+                            // 3. Draw Target Silhouette (Concave Outline) in Upper Area
+                            val targetVertices = puzzleState.target.vertices
                             val targetPath = Path().apply {
-                                if (puzzleState.target.vertices.isNotEmpty()) {
-                                    val first = puzzleState.target.vertices.first()
-                                    moveTo(first.x, first.y)
-                                    puzzleState.target.vertices.drop(1).forEach {
-                                        lineTo(it.x, it.y)
+                                if (targetVertices.isNotEmpty()) {
+                                    val first = targetVertices.first()
+                                    moveTo(first.x * gridScale, first.y * gridScale)
+                                    targetVertices.drop(1).forEach {
+                                        lineTo(it.x * gridScale, it.y * gridScale)
                                     }
                                     close()
                                 }
                             }
-                            
+
                             drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
                             clipPath(targetPath) {
                                 drawPath(
-                                    targetPath, 
+                                    targetPath,
                                     Color(0xFF38BDF8), // Cyan silhouette outline
                                     style = Stroke(
-                                        width = 5.0f,
+                                        width = 4.0f,
                                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
                                     )
                                 )
                             }
 
-                            // 4. Draw Pieces
-                            puzzleState.pieces.forEach { piece ->
+                            // 4. Draw Pieces (Sorted: locked first, then unselected, then selected on top)
+                            val sortedPieces = puzzleState.pieces.sortedBy { piece ->
+                                when {
+                                    piece.isLocked -> 0
+                                    piece.id == selectedPieceId -> 2
+                                    else -> 1
+                                }
+                            }
+
+                            sortedPieces.forEach { piece ->
                                 val isSelected = piece.id == selectedPieceId
                                 val animRotation = pieceAnimations[piece.id] ?: piece.rotation
 
                                 val animatedVertices = GeometryUtils.transformPolygon(
-                                    piece.initialVertices,
+                                    piece.localVertices,
                                     piece.position,
                                     animRotation,
                                     isFlipped = piece.isFlipped
@@ -438,23 +456,23 @@ fun ShapesScreen(
                                 val piecePath = Path().apply {
                                     if (animatedVertices.isNotEmpty()) {
                                         val first = animatedVertices.first()
-                                        moveTo(first.x, first.y)
+                                        moveTo(first.x * gridScale, first.y * gridScale)
                                         animatedVertices.drop(1).forEach {
-                                            lineTo(it.x, it.y)
+                                            lineTo(it.x * gridScale, it.y * gridScale)
                                         }
                                         close()
                                     }
                                 }
-                                
+
                                 // Draw 3D drop shadow
                                 val shadowOffset = if (isSelected) Offset(3f, 6f) else Offset(1.5f, 3f)
                                 val shadowAlpha = if (isSelected) 0.4f else 0.25f
                                 val shadowPath = Path().apply {
                                     if (animatedVertices.isNotEmpty()) {
                                         val first = animatedVertices.first()
-                                        moveTo(first.x + shadowOffset.x, first.y + shadowOffset.y)
+                                        moveTo(first.x * gridScale + shadowOffset.x, first.y * gridScale + shadowOffset.y)
                                         animatedVertices.drop(1).forEach {
-                                            lineTo(it.x + shadowOffset.x, it.y + shadowOffset.y)
+                                            lineTo(it.x * gridScale + shadowOffset.x, it.y * gridScale + shadowOffset.y)
                                         }
                                         close()
                                     }
@@ -462,13 +480,25 @@ fun ShapesScreen(
                                 drawPath(shadowPath, Color.Black.copy(alpha = shadowAlpha), style = Fill)
 
                                 // Draw piece fill and elegant border
-                                drawPath(piecePath, piece.color, style = Fill)
+                                val pieceColor = if (piece.isLocked) piece.color.copy(alpha = 0.85f) else piece.color
+                                drawPath(piecePath, pieceColor, style = Fill)
+
+                                // Overlays for selection / locking
                                 clipPath(piecePath) {
-                                    drawPath(
-                                        piecePath, 
-                                        if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f),
-                                        style = Stroke(width = if (isSelected) 7.0f else 3.0f)
-                                    )
+                                    if (piece.isLocked) {
+                                        // Subtle green/gold locked border indicator
+                                        drawPath(
+                                            piecePath,
+                                            Color(0xFF4ADE80).copy(alpha = 0.7f),
+                                            style = Stroke(width = 3.5f)
+                                        )
+                                    } else {
+                                        drawPath(
+                                            piecePath,
+                                            if (isSelected) Color(0xFFFFD700) else Color.White.copy(alpha = 0.35f),
+                                            style = Stroke(width = if (isSelected) 6.0f else 2.5f)
+                                        )
+                                    }
                                 }
                             }
                         }

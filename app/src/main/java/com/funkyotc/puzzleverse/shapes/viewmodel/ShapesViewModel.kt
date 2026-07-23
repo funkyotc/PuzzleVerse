@@ -2,18 +2,29 @@ package com.funkyotc.puzzleverse.shapes.viewmodel
 
 import android.content.Context
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated
 import com.funkyotc.puzzleverse.shapes.data.ShapesRepository
 import com.funkyotc.puzzleverse.shapes.model.PuzzlePiece
 import com.funkyotc.puzzleverse.shapes.model.ShapesPuzzle
-import com.funkyotc.puzzleverse.shapes.model.TargetShape
+import com.funkyotc.puzzleverse.shapes.model.TangramPieceType
+import com.funkyotc.puzzleverse.shapes.model.TangramPieces
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
+import com.funkyotc.puzzleverse.shapes.util.TangramVerifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.funkyotc.puzzleverse.core.todayEpochDay
+import kotlin.math.abs
+import kotlin.math.hypot
 import kotlin.random.Random
+
+data class SolutionSlot(
+    val type: TangramPieceType,
+    val position: Offset,
+    val rotation: Float,
+    val flipped: Boolean
+)
 
 class ShapesViewModel(
     context: Context,
@@ -31,6 +42,9 @@ class ShapesViewModel(
     private val repository = ShapesRepository(context.applicationContext)
 
     init {
+        // Run debug verification in development
+        TangramVerifier.verifyAllPuzzles(ShapesPregenerated.ALL_PUZZLES)
+
         val saved = repository.loadPieces(mode, puzzleId)
         if (saved != null && mode != "daily") {
             currentLevel = saved.currentLevel
@@ -59,55 +73,37 @@ class ShapesViewModel(
     }
 
     private fun generatePuzzle(level: Int) {
-        val cx = 200f
-        val cy = 200f
-        val sc = 2.0f
-
         val pregen = if (mode == "puzzle" && puzzleId != null) {
-            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.getPuzzleById(puzzleId)
+            ShapesPregenerated.getPuzzleById(puzzleId)
         } else if (mode == "daily") {
-            val idx = (todayEpochDay() % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size).toInt()
-            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
+            val idx = (todayEpochDay() % ShapesPregenerated.ALL_PUZZLES.size).toInt()
+            ShapesPregenerated.ALL_PUZZLES[idx]
         } else {
-            val idx = kotlin.math.abs(level) % com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES.size
-            com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated.ALL_PUZZLES[idx]
+            val idx = abs(level) % ShapesPregenerated.ALL_PUZZLES.size
+            ShapesPregenerated.ALL_PUZZLES[idx]
         }
 
         if (pregen != null) {
-            val originalLevel = pregen.toShapesPuzzle()
+            val basePuzzle = pregen.toShapesPuzzle()
 
-            val scaledPieces = originalLevel.pieces.map { piece ->
-                piece.copy(
-                    initialVertices = piece.initialVertices.map { Offset(it.x * sc, it.y * sc) },
-                    position = Offset(
-                        cx + piece.solutionPosition.x * sc,
-                        cy + piece.solutionPosition.y * sc
-                    ),
-                    solutionPosition = Offset(
-                        cx + piece.solutionPosition.x * sc,
-                        cy + piece.solutionPosition.y * sc
-                    )
-                )
-            }
-
-            // Layout unplaced pieces cleanly in 2 rows in the bottom tray area (Y = 475..640)
-            val shuffledPieces = scaledPieces.mapIndexed { index, piece ->
+            // Tray area bounds in grid units (bottom area below Y=10)
+            // Pieces spawn shuffled in 2 rows in bottom tray
+            val trayPieces = basePuzzle.pieces.mapIndexed { index, piece ->
                 val row = index / 4
                 val col = index % 4
-                val x = 65f + col * 85f + Random.nextFloat() * 10f
-                val y = 475f + row * 90f + Random.nextFloat() * 10f
+                // Tray area X: 1.0..8.5, Y: 11.5..15.5
+                val tx = 1.2f + col * 2.0f + Random.nextFloat() * 0.4f
+                val ty = 12.0f + row * 2.2f + Random.nextFloat() * 0.4f
                 val randomRot = (Random.nextInt(8) * 45f)
+
                 piece.copy(
-                    position = Offset(x, y),
-                    rotation = randomRot
+                    position = Offset(tx, ty),
+                    rotation = randomRot,
+                    isFlipped = if (piece.type.isFlipSignificant) Random.nextBoolean() else false
                 )
             }
 
-            val scaledTarget = TargetShape(originalLevel.target.vertices.map {
-                Offset(cx + it.x * sc, cy + it.y * sc)
-            })
-
-            _puzzle.value = originalLevel.copy(pieces = shuffledPieces, target = scaledTarget)
+            _puzzle.value = basePuzzle.copy(pieces = trayPieces)
             _isGameWon.value = false
         }
     }
@@ -129,53 +125,12 @@ class ShapesViewModel(
         }
     }
 
-    fun movePieceDelta(pieceId: Int, delta: Offset) {
+    fun movePieceDelta(pieceId: Int, deltaGrid: Offset) {
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
-            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
-            val newPosition = Offset(tentativePiece.position.x + delta.x, tentativePiece.position.y + delta.y)
+            val piece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
+            val newPosition = Offset(piece.position.x + deltaGrid.x, piece.position.y + deltaGrid.y)
             movePiece(pieceId, newPosition)
-        }
-    }
-
-    fun snapPiece(pieceId: Int) {
-        _puzzle.value?.let { currentPuzzle ->
-            if (currentPuzzle.isComplete) return
-            val tentativePiece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
-
-            var bestSnapDelta = Offset.Zero
-            var minDistance = 25f
-
-            val targetVertices = currentPuzzle.target.vertices
-            val otherPiecesVertices = currentPuzzle.pieces.filter { it.id != pieceId }.flatMap { it.currentVertices }
-            val allSnapPoints = targetVertices + otherPiecesVertices
-
-            for (vertex in tentativePiece.currentVertices) {
-                for (snapPoint in allSnapPoints) {
-                    val dist = kotlin.math.hypot(vertex.x - snapPoint.x, vertex.y - snapPoint.y)
-                    if (dist < minDistance) {
-                        minDistance = dist
-                        bestSnapDelta = Offset(snapPoint.x - vertex.x, snapPoint.y - vertex.y)
-                    }
-                }
-            }
-
-            // Direct snap to solution position if close and correctly rotated
-            val distToSolution = kotlin.math.hypot(tentativePiece.position.x - tentativePiece.solutionPosition.x, tentativePiece.position.y - tentativePiece.solutionPosition.y)
-            val normRot = (tentativePiece.rotation % 360f + 360f) % 360f
-            val normSolRot = (tentativePiece.solutionRotation % 360f + 360f) % 360f
-            val rotDiff = kotlin.math.abs(normRot - normSolRot) % 360f
-            if (distToSolution < 25f && (rotDiff < 15f || rotDiff > 345f)) {
-                bestSnapDelta = Offset(tentativePiece.solutionPosition.x - tentativePiece.position.x, tentativePiece.solutionPosition.y - tentativePiece.position.y)
-            }
-
-            val finalPosition = Offset(tentativePiece.position.x + bestSnapDelta.x, tentativePiece.position.y + bestSnapDelta.y)
-            val updatedPieces = currentPuzzle.pieces.map {
-                if (it.id == pieceId && !it.isLocked) it.copy(position = finalPosition) else it
-            }
-            _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
-            persist()
-            checkCompletion()
         }
     }
 
@@ -184,7 +139,9 @@ class ShapesViewModel(
             if (currentPuzzle.isComplete) return
             val updatedPieces = currentPuzzle.pieces.map {
                 if (it.id == pieceId && !it.isLocked) {
-                    it.copy(rotation = (it.rotation + angle) % 360f)
+                    val newRot = (it.rotation + angle) % 360f
+                    val normRot = (newRot + 360f) % 360f
+                    it.copy(rotation = normRot)
                 } else it
             }
             _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
@@ -205,15 +162,130 @@ class ShapesViewModel(
         }
     }
 
+    fun snapPiece(pieceId: Int) {
+        _puzzle.value?.let { currentPuzzle ->
+            if (currentPuzzle.isComplete) return
+            val piece = currentPuzzle.pieces.find { it.id == pieceId && !it.isLocked } ?: return
+
+            // 1. Priority check: Solution snap & auto-lock
+            val matchingSlot = findMatchingSolutionSlot(piece, currentPuzzle)
+            if (matchingSlot != null) {
+                val lockedPiece = piece.copy(
+                    position = matchingSlot.position,
+                    rotation = matchingSlot.rotation,
+                    isFlipped = if (piece.type.isFlipSignificant) matchingSlot.flipped else piece.isFlipped,
+                    isLocked = true
+                )
+                val updatedPieces = currentPuzzle.pieces.map {
+                    if (it.id == pieceId) lockedPiece else it
+                }
+                _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
+                persist()
+                checkCompletion()
+                return
+            }
+
+            // 2. Vertex-to-vertex snapping (SNAP_DISTANCE in grid units)
+            val snapDistance = 0.8f
+            var bestDelta = Offset.Zero
+            var minDistance = snapDistance
+
+            val snapTargets = buildList {
+                addAll(currentPuzzle.target.vertices)
+                currentPuzzle.pieces.filter { it.isLocked && it.id != pieceId }
+                    .forEach { addAll(it.currentVertices) }
+            }
+
+            for (vertex in piece.currentVertices) {
+                for (target in snapTargets) {
+                    val dist = hypot(vertex.x - target.x, vertex.y - target.y)
+                    if (dist < minDistance) {
+                        minDistance = dist
+                        bestDelta = Offset(target.x - vertex.x, target.y - vertex.y)
+                    }
+                }
+            }
+
+            if (bestDelta != Offset.Zero) {
+                val finalPosition = Offset(piece.position.x + bestDelta.x, piece.position.y + bestDelta.y)
+                val updatedPieces = currentPuzzle.pieces.map {
+                    if (it.id == pieceId) it.copy(position = finalPosition) else it
+                }
+                _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
+                persist()
+                checkCompletion()
+            }
+        }
+    }
+
+    private fun findMatchingSolutionSlot(piece: PuzzlePiece, puzzle: ShapesPuzzle): SolutionSlot? {
+        val positionTolerance = 0.6f // grid units
+        val rotationTolerance = 12f  // degrees
+
+        val compatibleTypes = if (piece.type.interchangeableWith != null) {
+            setOf(piece.type, piece.type.interchangeableWith!!)
+        } else {
+            setOf(piece.type)
+        }
+
+        // Slots currently occupied by ALREADY locked pieces
+        val occupiedPositions = puzzle.pieces.filter { it.isLocked }.map { it.solutionPosition }
+
+        for (targetPiece in puzzle.pieces) {
+            if (targetPiece.type in compatibleTypes && targetPiece.solutionPosition !in occupiedPositions) {
+                val slot = SolutionSlot(
+                    type = targetPiece.type,
+                    position = targetPiece.solutionPosition,
+                    rotation = targetPiece.solutionRotation,
+                    flipped = targetPiece.solutionFlipped
+                )
+
+                if (isPieceAtSlot(piece, slot, positionTolerance, rotationTolerance)) {
+                    return slot
+                }
+            }
+        }
+        return null
+    }
+
+    private fun isPieceAtSlot(
+        piece: PuzzlePiece,
+        slot: SolutionSlot,
+        posTolerance: Float,
+        rotTolerance: Float
+    ): Boolean {
+        // Position check
+        val dist = hypot(piece.position.x - slot.position.x, piece.position.y - slot.position.y)
+        if (dist > posTolerance) return false
+
+        // Rotation check with symmetry period
+        val period = piece.type.symmetryPeriod
+        val pieceRot = ((piece.rotation % period) + period) % period
+        val slotRot = ((slot.rotation % period) + period) % period
+        val rotDiff = abs(pieceRot - slotRot)
+        val effectiveRotDiff = minOf(rotDiff, period - rotDiff)
+        if (effectiveRotDiff > rotTolerance) return false
+
+        // Flip check for chiral pieces (Parallelogram)
+        if (piece.type.isFlipSignificant && piece.isFlipped != slot.flipped) return false
+
+        return true
+    }
+
     fun hint() {
         _puzzle.value?.let { currentPuzzle ->
             if (currentPuzzle.isComplete) return
-            val pieceToHint = currentPuzzle.pieces.find { !it.isLocked && (it.position != it.solutionPosition || it.rotation != it.solutionRotation) }
+            val pieceToHint = currentPuzzle.pieces.find { !it.isLocked }
             if (pieceToHint != null) {
-                val updatedPieces = currentPuzzle.pieces.map {
-                    if (it.id == pieceToHint.id) {
-                        it.copy(position = it.solutionPosition, rotation = it.solutionRotation, isLocked = true)
-                    } else it
+                val updatedPieces = currentPuzzle.pieces.map { p ->
+                    if (p.id == pieceToHint.id) {
+                        p.copy(
+                            position = p.solutionPosition,
+                            rotation = p.solutionRotation,
+                            isFlipped = p.solutionFlipped,
+                            isLocked = true
+                        )
+                    } else p
                 }
                 _puzzle.value = currentPuzzle.copy(pieces = updatedPieces)
                 persist()
@@ -223,42 +295,52 @@ class ShapesViewModel(
     }
 
     private fun checkCompletion() {
-        val currentPuzzle = _puzzle.value ?: return
+        val puzzle = _puzzle.value ?: return
 
-        val allAtSolution = currentPuzzle.pieces.all { piece ->
-            val dist = kotlin.math.hypot(piece.position.x - piece.solutionPosition.x, piece.position.y - piece.solutionPosition.y)
-            val normRot = (piece.rotation % 360f + 360f) % 360f
-            val normSolRot = (piece.solutionRotation % 360f + 360f) % 360f
-            val rotDiff = kotlin.math.abs(normRot - normSolRot) % 360f
-            dist < 15f && (rotDiff < 15f || rotDiff > 345f)
+        // Solution slots from puzzle definition
+        val slots = puzzle.pieces.map {
+            SolutionSlot(it.type, it.solutionPosition, it.solutionRotation, it.solutionFlipped)
         }
 
-        if (allAtSolution) {
+        val allMatched = matchPiecesToSlots(puzzle.pieces, slots)
+
+        if (allMatched) {
             _isGameWon.value = true
-            _puzzle.value = currentPuzzle.copy(isComplete = true)
+            _puzzle.value = puzzle.copy(
+                isComplete = true,
+                pieces = puzzle.pieces.map { it.copy(isLocked = true) }
+            )
             repository.clear(mode, puzzleId)
-            return
         }
+    }
 
-        for (i in currentPuzzle.pieces.indices) {
-            for (j in i + 1 until currentPuzzle.pieces.size) {
-                if (GeometryUtils.doPolygonsIntersect(
-                        currentPuzzle.pieces[i].currentVertices,
-                        currentPuzzle.pieces[j].currentVertices
-                    )) {
-                    return
+    private fun matchPiecesToSlots(
+        pieces: List<PuzzlePiece>,
+        slots: List<SolutionSlot>
+    ): Boolean {
+        val posTolerance = 0.6f
+        val rotTolerance = 12f
+
+        val usedSlots = mutableSetOf<Int>()
+
+        for (piece in pieces) {
+            val compatibleTypes = if (piece.type.interchangeableWith != null) {
+                setOf(piece.type, piece.type.interchangeableWith!!)
+            } else {
+                setOf(piece.type)
+            }
+
+            var matched = false
+            for ((idx, slot) in slots.withIndex()) {
+                if (idx in usedSlots) continue
+                if (slot.type in compatibleTypes && isPieceAtSlot(piece, slot, posTolerance, rotTolerance)) {
+                    usedSlots.add(idx)
+                    matched = true
+                    break
                 }
             }
+            if (!matched) return false
         }
-
-        val allInside = currentPuzzle.pieces.all { piece ->
-            GeometryUtils.isPolygonInside(piece.currentVertices, currentPuzzle.target.vertices)
-        }
-
-        if (allInside) {
-            _isGameWon.value = true
-            _puzzle.value = currentPuzzle.copy(isComplete = true)
-            repository.clear(mode, puzzleId)
-        }
+        return true
     }
 }

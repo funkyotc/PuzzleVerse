@@ -215,6 +215,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(

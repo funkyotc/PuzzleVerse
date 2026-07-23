@@ -4,36 +4,66 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
 
-// Represents a single geometric piece in the puzzle
+enum class TangramPieceType(val displayName: String) {
+    LARGE_TRIANGLE_1("Large Triangle"),
+    LARGE_TRIANGLE_2("Large Triangle"),
+    MEDIUM_TRIANGLE("Medium Triangle"),
+    SMALL_TRIANGLE_1("Small Triangle"),
+    SMALL_TRIANGLE_2("Small Triangle"),
+    SQUARE("Square"),
+    PARALLELOGRAM("Parallelogram");
+
+    /** Pieces that are interchangeable with this one (same shape) */
+    val interchangeableWith: TangramPieceType? get() = when (this) {
+        LARGE_TRIANGLE_1 -> LARGE_TRIANGLE_2
+        LARGE_TRIANGLE_2 -> LARGE_TRIANGLE_1
+        SMALL_TRIANGLE_1 -> SMALL_TRIANGLE_2
+        SMALL_TRIANGLE_2 -> SMALL_TRIANGLE_1
+        else -> null
+    }
+
+    /** Rotational symmetry period in degrees */
+    val symmetryPeriod: Float get() = when (this) {
+        SQUARE -> 90f
+        PARALLELOGRAM -> 180f
+        else -> 360f  // No rotational symmetry for triangles
+    }
+
+    /** Whether flip state matters for solution matching */
+    val isFlipSignificant: Boolean get() = this == PARALLELOGRAM
+}
+
 data class PuzzlePiece(
     val id: Int,
-    val initialVertices: List<Offset>, // Vertices in local space (centered or relative to 0,0)
-    val position: Offset, // Center position in world space
-    val rotation: Float = 0f, // Angle in degrees
+    val type: TangramPieceType,
+    val localVertices: List<Offset>,  // Canonical vertices centered at (0,0)
+    val position: Offset,             // Current center in grid coordinates
+    val rotation: Float = 0f,         // Degrees (multiples of 45)
     val isFlipped: Boolean = false,
-    val color: Color = Color.Blue,
-    val isLocked: Boolean = false, // If true, piece is correctly placed and shouldn't move
-    val solutionPosition: Offset = Offset.Zero,
-    val solutionRotation: Float = 0f
+    val color: Color,
+    val isLocked: Boolean = false,
+    val solutionPosition: Offset,
+    val solutionRotation: Float,
+    val solutionFlipped: Boolean = false
 ) {
-    // Computed property for current world vertices
+    // Computed property for current world vertices in grid space
     val currentVertices: List<Offset> get() = GeometryUtils.transformPolygon(
-        initialVertices,
+        localVertices,
         position,
         rotation,
         isFlipped = isFlipped
     )
 }
 
-// Represents the target silhouette for the puzzle
-data class TargetShape(
-    val vertices: List<Offset>,
-    val color: Color = Color.DarkGray
+data class TargetSilhouette(
+    val vertices: List<Offset>,  // The actual concave outline polygon in grid coordinates
+    val color: Color = Color(0xFF1E293B)
 )
 
-// Represents the entire state of the Shapes puzzle
 data class ShapesPuzzle(
+    val id: String,
+    val name: String,
     val pieces: List<PuzzlePiece>,
-    val target: TargetShape,
+    val target: TargetSilhouette,
     val isComplete: Boolean = false
 )

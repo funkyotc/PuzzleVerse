@@ -1,7 +1,9 @@
 package com.funkyotc.puzzleverse.shapes.util
 
 import androidx.compose.ui.geometry.Offset
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.roundToLong
 import kotlin.math.sin
 
 object GeometryUtils {
@@ -140,5 +142,53 @@ object GeometryUtils {
             
             Offset(rx + translation.x, ry + translation.y)
         }
+    }
+
+    /**
+     * Computes the outer boundary polygon from multiple non-overlapping,
+     * edge-sharing polygons (perfect for tangram pieces).
+     */
+    fun computeOuterBoundary(polygons: List<List<Offset>>): List<Offset> {
+        fun packCoord(offset: Offset): Long {
+            val x = (offset.x * 1000f).roundToLong()
+            val y = (offset.y * 1000f).roundToLong()
+            return x * 100_000_000L + y
+        }
+
+        val edgeEndpoints = mutableMapOf<Pair<Long, Long>, Pair<Offset, Offset>>()
+
+        for (polygon in polygons) {
+            for (i in polygon.indices) {
+                val from = polygon[i]
+                val to = polygon[(i + 1) % polygon.size]
+                val key = Pair(packCoord(from), packCoord(to))
+                edgeEndpoints[key] = Pair(from, to)
+            }
+        }
+
+        val boundaryEdges = mutableListOf<Pair<Offset, Offset>>()
+        for ((key, endpoints) in edgeEndpoints) {
+            val reverseKey = Pair(key.second, key.first)
+            if (reverseKey !in edgeEndpoints) {
+                boundaryEdges.add(endpoints)
+            }
+        }
+
+        if (boundaryEdges.isEmpty()) return emptyList()
+
+        val result = mutableListOf<Offset>()
+        val remaining = boundaryEdges.toMutableList()
+        var current = remaining.removeAt(0)
+        result.add(current.first)
+
+        while (remaining.isNotEmpty()) {
+            val currentEnd = packCoord(current.second)
+            val nextIdx = remaining.indexOfFirst { packCoord(it.first) == currentEnd }
+            if (nextIdx == -1) break
+            current = remaining.removeAt(nextIdx)
+            result.add(current.first)
+        }
+
+        return result
     }
 }

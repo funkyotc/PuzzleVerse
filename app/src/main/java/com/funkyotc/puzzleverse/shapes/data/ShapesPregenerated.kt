@@ -1,255 +1,488 @@
 package com.funkyotc.puzzleverse.shapes.data
 
+import androidx.compose.ui.geometry.Offset
 import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
 import com.funkyotc.puzzleverse.shapes.model.PuzzlePiece
-import com.funkyotc.puzzleverse.shapes.model.TargetShape
 import com.funkyotc.puzzleverse.shapes.model.ShapesPuzzle
+import com.funkyotc.puzzleverse.shapes.model.TargetSilhouette
+import com.funkyotc.puzzleverse.shapes.model.TangramPieceType
+import com.funkyotc.puzzleverse.shapes.model.TangramPieces
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import kotlin.random.Random
+
+data class PiecePlacement(
+    val x: Float,        // Centroid X in grid coordinates
+    val y: Float,        // Centroid Y in grid coordinates
+    val rotation: Float, // Degrees (multiples of 45: 0, 45, 90, 135, 180, 225, 270, 315)
+    val flipped: Boolean = false
+)
 
 data class PregeneratedShape(
     override val id: String,
     override val difficulty: String,
     val name: String,
-    val target: TargetShape,
-    val pieces: List<PuzzlePiece>
+    val category: String,
+    // Order of placements: LT1, LT2, MT, ST1, ST2, SQ, PARA
+    val placements: List<PiecePlacement>
 ) : BrowseablePuzzle {
     override val label: String get() = name
-    override val subtitle: String get() = "${pieces.size} pieces"
+    override val subtitle: String get() = category
+
+    private val cachedSilhouette: List<Offset> by lazy {
+        computeSilhouette()
+    }
+
+    fun computeSilhouette(): List<Offset> {
+        val types = listOf(
+            TangramPieceType.LARGE_TRIANGLE_1,
+            TangramPieceType.LARGE_TRIANGLE_2,
+            TangramPieceType.MEDIUM_TRIANGLE,
+            TangramPieceType.SMALL_TRIANGLE_1,
+            TangramPieceType.SMALL_TRIANGLE_2,
+            TangramPieceType.SQUARE,
+            TangramPieceType.PARALLELOGRAM
+        )
+
+        val polygons = types.zip(placements).map { (type, placement) ->
+            val localVerts = TangramPieces.verticesForType(type)
+            GeometryUtils.transformPolygon(
+                localVerts,
+                translation = Offset(placement.x, placement.y),
+                rotationDegrees = placement.rotation,
+                isFlipped = placement.flipped
+            )
+        }
+
+        val boundary = GeometryUtils.computeOuterBoundary(polygons)
+        return boundary.ifEmpty {
+            // Fallback to convex hull if boundary extraction fails
+            polygons.flatten().distinct()
+        }
+    }
 
     fun toShapesPuzzle(): ShapesPuzzle {
-        return ShapesPuzzle(pieces, target, false)
+        val types = listOf(
+            TangramPieceType.LARGE_TRIANGLE_1,
+            TangramPieceType.LARGE_TRIANGLE_2,
+            TangramPieceType.MEDIUM_TRIANGLE,
+            TangramPieceType.SMALL_TRIANGLE_1,
+            TangramPieceType.SMALL_TRIANGLE_2,
+            TangramPieceType.SQUARE,
+            TangramPieceType.PARALLELOGRAM
+        )
+
+        val pieces = types.zip(placements).mapIndexed { index, (type, placement) ->
+            val localVerts = TangramPieces.verticesForType(type)
+            val solutionPos = Offset(placement.x, placement.y)
+            val solutionRot = placement.rotation
+            val color = TangramPieces.COLORS[type] ?: androidx.compose.ui.graphics.Color.Blue
+
+            PuzzlePiece(
+                id = index + 1,
+                type = type,
+                localVertices = localVerts,
+                position = Offset.Zero, // initialized below in shuffled layout
+                rotation = 0f,
+                isFlipped = false,
+                color = color,
+                isLocked = false,
+                solutionPosition = solutionPos,
+                solutionRotation = solutionRot,
+                solutionFlipped = placement.flipped
+            )
+        }
+
+        val target = TargetSilhouette(cachedSilhouette)
+        return ShapesPuzzle(id, name, pieces, target, false)
     }
 }
 
 object ShapesPregenerated {
-    private val COLOR_LARGE_1 = Color(0xFF3B82F6) // Blue
-    private val COLOR_LARGE_2 = Color(0xFF8B5CF6) // Purple
-    private val COLOR_MEDIUM  = Color(0xFF14B8A6) // Teal
-    private val COLOR_SMALL_1 = Color(0xFFF59E0B) // Amber
-    private val COLOR_SQUARE  = Color(0xFFF43F5E) // Rose
-    private val COLOR_PARA    = Color(0xFF10B981) // Emerald
-    private val COLOR_SMALL_2 = Color(0xFFF97316) // Orange
 
-    data class PieceConfig(
-        val pos: Offset,
-        val rot: Float,
-        val flipped: Boolean = false
-    )
-
-    fun createStandardTangramPieces(
-        sol1: PieceConfig, sol2: PieceConfig, sol3: PieceConfig,
-        sol4: PieceConfig, sol5: PieceConfig, sol6: PieceConfig, sol7: PieceConfig
-    ): List<PuzzlePiece> {
-        return listOf(
-            PuzzlePiece(1, listOf(Offset(-50f, -25f), Offset(50f, -25f), Offset(0f, 25f)), Offset.Zero, color = COLOR_LARGE_1, solutionPosition = sol1.pos, solutionRotation = sol1.rot, isFlipped = sol1.flipped),
-            PuzzlePiece(2, listOf(Offset(-50f, -25f), Offset(50f, -25f), Offset(0f, 25f)), Offset.Zero, color = COLOR_LARGE_2, solutionPosition = sol2.pos, solutionRotation = sol2.rot, isFlipped = sol2.flipped),
-            PuzzlePiece(3, listOf(Offset(-25f, -25f), Offset(25f, -25f), Offset(-25f, 25f)), Offset.Zero, color = COLOR_MEDIUM, solutionPosition = sol3.pos, solutionRotation = sol3.rot, isFlipped = sol3.flipped),
-            PuzzlePiece(4, listOf(Offset(-25f, 12.5f), Offset(25f, 12.5f), Offset(0f, -12.5f)), Offset.Zero, color = COLOR_SMALL_1, solutionPosition = sol4.pos, solutionRotation = sol4.rot, isFlipped = sol4.flipped),
-            PuzzlePiece(5, listOf(Offset(0f, -25f), Offset(25f, 0f), Offset(0f, 25f), Offset(-25f, 0f)), Offset.Zero, color = COLOR_SQUARE, solutionPosition = sol5.pos, solutionRotation = sol5.rot, isFlipped = sol5.flipped),
-            PuzzlePiece(6, listOf(Offset(-25f, -12.5f), Offset(0f, -12.5f), Offset(25f, 12.5f), Offset(0f, 12.5f)), Offset.Zero, color = COLOR_PARA, solutionPosition = sol6.pos, solutionRotation = sol6.rot, isFlipped = sol6.flipped),
-            PuzzlePiece(7, listOf(Offset(-25f, 12.5f), Offset(25f, 12.5f), Offset(0f, -12.5f)), Offset.Zero, color = COLOR_SMALL_2, solutionPosition = sol7.pos, solutionRotation = sol7.rot, isFlipped = sol7.flipped)
+    // Helper constructor for 7 piece placements
+    private fun puzzle(
+        id: String, difficulty: String, name: String, category: String,
+        lt1: PiecePlacement, lt2: PiecePlacement, mt: PiecePlacement,
+        st1: PiecePlacement, st2: PiecePlacement, sq: PiecePlacement, para: PiecePlacement
+    ): PregeneratedShape {
+        return PregeneratedShape(
+            id = id,
+            difficulty = difficulty,
+            name = name,
+            category = category,
+            placements = listOf(lt1, lt2, mt, st1, st2, sq, para)
         )
     }
 
-    private fun createPregeneratedShape(
-        id: String, difficulty: String, name: String,
-        sol1: PieceConfig, sol2: PieceConfig, sol3: PieceConfig,
-        sol4: PieceConfig, sol5: PieceConfig, sol6: PieceConfig, sol7: PieceConfig
-    ): PregeneratedShape {
-        val pieces = createStandardTangramPieces(sol1, sol2, sol3, sol4, sol5, sol6, sol7)
-        val allWorldVerts = pieces.flatMap { piece ->
-            GeometryUtils.transformPolygon(piece.initialVertices, piece.solutionPosition, piece.solutionRotation, isFlipped = piece.isFlipped)
-        }
-        val targetVerts = computeConvexHull(allWorldVerts)
-        return PregeneratedShape(id, difficulty, name, TargetShape(targetVerts), pieces)
-    }
-
-    private fun computeConvexHull(points: List<Offset>): List<Offset> {
-        val sorted = points.distinctBy { Pair((it.x * 10f).toInt(), (it.y * 10f).toInt()) }
-            .sortedWith(compareBy({ it.x }, { it.y }))
-        if (sorted.size <= 3) return sorted
-        val lower = mutableListOf<Offset>()
-        for (p in sorted) {
-            while (lower.size >= 2 && crossProduct(lower[lower.size - 2], lower.last(), p) <= 0) {
-                lower.removeAt(lower.size - 1)
-            }
-            lower.add(p)
-        }
-        val upper = mutableListOf<Offset>()
-        for (p in sorted.reversed()) {
-            while (upper.size >= 2 && crossProduct(upper[upper.size - 2], upper.last(), p) <= 0) {
-                upper.removeAt(upper.size - 1)
-            }
-            upper.add(p)
-        }
-        lower.removeAt(lower.size - 1)
-        upper.removeAt(upper.size - 1)
-        return lower + upper
-    }
-
-    private fun crossProduct(o: Offset, a: Offset, b: Offset): Float {
-        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
-    }
-
-    // Standard 0-overlap layout A (Classic Square layout)
-    private val LAYOUT_A = listOf(
-        PieceConfig(Offset(-25f, 0f), 270f),
-        PieceConfig(Offset(0f, -25f), 0f),
-        PieceConfig(Offset(-25f, 25f), 180f),
-        PieceConfig(Offset(12.5f, 25f), 90f),
-        PieceConfig(Offset(25f, 0f), 0f),
-        PieceConfig(Offset(25f, 37.5f), 0f, flipped = true),
-        PieceConfig(Offset(37.5f, -25f), 270f)
-    )
-
-    // Standard 0-overlap layout B (Grand Triangle layout)
-    private val LAYOUT_B = listOf(
-        PieceConfig(Offset(-50f, 25f), 180f),
-        PieceConfig(Offset(-25f, 0f), 90f),
-        PieceConfig(Offset(0f, -12.5f), 135f),
-        PieceConfig(Offset(25f, 37.5f), 0f),
-        PieceConfig(Offset(50f, 25f), 0f),
-        PieceConfig(Offset(12.5f, 25f), 90f),
-        PieceConfig(Offset(75f, 37.5f), 0f)
-    )
-
-    // Standard 0-overlap layout C (Monk / Swan figure)
-    private val LAYOUT_C = listOf(
-        PieceConfig(Offset(0f, 25f), 0f),
-        PieceConfig(Offset(0f, -25f), 180f),
-        PieceConfig(Offset(0f, 50f), 180f),
-        PieceConfig(Offset(0f, -62.5f), 0f),
-        PieceConfig(Offset(-25f, 50f), 0f),
-        PieceConfig(Offset(37.5f, 25f), 90f),
-        PieceConfig(Offset(-37.5f, 25f), 90f)
-    )
-
-    // Standard 0-overlap layout D (Twin Rectangle layout)
-    private val LAYOUT_D = listOf(
-        PieceConfig(Offset(-50f, 0f), 0f),
-        PieceConfig(Offset(0f, 0f), 180f),
-        PieceConfig(Offset(-75f, 0f), 270f),
-        PieceConfig(Offset(25f, -12.5f), 180f),
-        PieceConfig(Offset(50f, 0f), 0f),
-        PieceConfig(Offset(75f, -12.5f), 0f),
-        PieceConfig(Offset(75f, 12.5f), 0f)
-    )
-
-    // Standard 0-overlap layout E (Wide Parallelogram layout)
-    private val LAYOUT_E = listOf(
-        PieceConfig(Offset(-25f, -12.5f), 0f),
-        PieceConfig(Offset(-50f, 12.5f), 180f),
-        PieceConfig(Offset(50f, -12.5f), 0f),
-        PieceConfig(Offset(-62.5f, -12.5f), 90f),
-        PieceConfig(Offset(0f, 12.5f), 0f),
-        PieceConfig(Offset(-87.5f, 0f), 90f),
-        PieceConfig(Offset(12.5f, -12.5f), 270f)
-    )
-
-    // Standard 0-overlap layout F (Strip layout)
-    private val LAYOUT_F = listOf(
-        PieceConfig(Offset(-62.5f, -62.5f), 0f),
-        PieceConfig(Offset(-62.5f, -12.5f), 0f),
-        PieceConfig(Offset(-62.5f, 12.5f), 180f),
-        PieceConfig(Offset(-62.5f, 50f), 0f),
-        PieceConfig(Offset(-25f, 50f), 0f),
-        PieceConfig(Offset(-37.5f, -50f), 0f, flipped = true),
-        PieceConfig(Offset(-25f, -12.5f), 270f)
-    )
-
     val ALL_PUZZLES: List<PregeneratedShape> by lazy {
         listOf(
-            createPregeneratedShape("eagle", "medium", "Soaring Eagle", PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(50.0f, -25.0f), 0f, false), PieceConfig(Offset(12.5f, -0.0f), 225f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(-50.0f, -25.0f), 180f, false), PieceConfig(Offset(-12.5f, 25.0f), 180f, false), PieceConfig(Offset(-75.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("horse", "hard", "Galloping Horse", PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(12.5f, -62.5f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 90f, false), PieceConfig(Offset(-0.0f, -87.5f), 180f, false), PieceConfig(Offset(12.5f, 12.5f), 0f, false)),
-            createPregeneratedShape("rooster", "medium", "Morning Rooster", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("kangaroo", "hard", "Kangaroo", PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(-12.5f, 62.5f), 0f, false), PieceConfig(Offset(12.5f, 0.0f), 270f, false), PieceConfig(Offset(0.0f, 87.5f), 0f, false), PieceConfig(Offset(-12.5f, -12.5f), 180f, false)),
-            createPregeneratedShape("bat", "easy", "Night Bat", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("flamingo", "medium", "Pink Flamingo", PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -0.0f), 90f, false), PieceConfig(Offset(50.0f, 12.5f), 315f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false), PieceConfig(Offset(25.0f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("dolphin", "easy", "Jumping Dolphin", PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(62.5f, 12.5f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 180f, false), PieceConfig(Offset(87.5f, -0.0f), 270f, false), PieceConfig(Offset(-12.5f, 12.5f), 90f, false)),
-            createPregeneratedShape("owl", "medium", "Wise Owl", PieceConfig(Offset(-25.0f, -0.0f), 270f, false), PieceConfig(Offset(0.0f, -25.0f), 0f, false), PieceConfig(Offset(25.0f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, 25.0f), 270f, false), PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("squirrel", "easy", "Nutty Squirrel", PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -0.0f), 90f, false), PieceConfig(Offset(50.0f, 12.5f), 315f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false), PieceConfig(Offset(25.0f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("whale", "medium", "Blue Whale", PieceConfig(Offset(-0.0f, -50.0f), 90f, false), PieceConfig(Offset(0.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 75.0f), 270f, false), PieceConfig(Offset(-12.5f, -25.0f), 90f, false), PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(-12.5f, -75.0f), 90f, false), PieceConfig(Offset(-12.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("crab", "easy", "Beach Crab", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("penguin", "easy", "Emperor Penguin", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("elephant", "hard", "Majestic Elephant", PieceConfig(Offset(50.0f, -0.0f), 180f, false), PieceConfig(Offset(-50.0f, 0.0f), 180f, false), PieceConfig(Offset(-75.0f, 0.0f), 0f, false), PieceConfig(Offset(25.0f, -12.5f), 180f, false), PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(75.0f, -12.5f), 180f, false), PieceConfig(Offset(-25.0f, -12.5f), 180f, false)),
-            createPregeneratedShape("butterfly", "medium", "Monarch Butterfly", PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, -50.0f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 135f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, 50.0f), 90f, false), PieceConfig(Offset(25.0f, 12.5f), 90f, false), PieceConfig(Offset(-37.5f, 75.0f), 90f, false)),
-            createPregeneratedShape("giraffe", "hard", "Tall Giraffe", PieceConfig(Offset(0.0f, 50.0f), 270f, false), PieceConfig(Offset(0.0f, -50.0f), 270f, false), PieceConfig(Offset(0.0f, -75.0f), 90f, false), PieceConfig(Offset(12.5f, 25.0f), 270f, false), PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(12.5f, 75.0f), 270f, false), PieceConfig(Offset(12.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("ostrich", "medium", "Running Ostrich", PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(62.5f, 12.5f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 180f, false), PieceConfig(Offset(87.5f, -0.0f), 270f, false), PieceConfig(Offset(-12.5f, 12.5f), 90f, false)),
-            createPregeneratedShape("goat", "medium", "Mountain Goat", PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(50.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -12.5f), 135f, false), PieceConfig(Offset(-0.0f, -37.5f), 180f, false), PieceConfig(Offset(-25.0f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("snail", "easy", "Slow Snail", PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, -37.5f), 180f, false), PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("duck", "easy", "Floating Duck", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("monk", "easy", "Meditating Monk", PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(0.0f, -50.0f), 180f, false), PieceConfig(Offset(-12.5f, 50.0f), 45f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false), PieceConfig(Offset(25.0f, 25.0f), 0f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(37.5f, 0.0f), 270f, false)),
-            createPregeneratedShape("runner", "medium", "Fast Runner", PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(-12.5f, 62.5f), 0f, false), PieceConfig(Offset(12.5f, 0.0f), 270f, false), PieceConfig(Offset(0.0f, 87.5f), 0f, false), PieceConfig(Offset(-12.5f, -12.5f), 180f, false)),
-            createPregeneratedShape("skier", "hard", "Downhill Skier", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("dancer", "medium", "Graceful Dancer", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("walking_man", "easy", "Walking Man", PieceConfig(Offset(0.0f, 50.0f), 270f, false), PieceConfig(Offset(0.0f, -50.0f), 270f, false), PieceConfig(Offset(0.0f, -75.0f), 90f, false), PieceConfig(Offset(12.5f, 25.0f), 270f, false), PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(12.5f, 75.0f), 270f, false), PieceConfig(Offset(12.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("sitting_man", "easy", "Sitting Thinker", PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(50.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -12.5f), 135f, false), PieceConfig(Offset(-0.0f, -37.5f), 180f, false), PieceConfig(Offset(-25.0f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("acrobat", "hard", "Cirque Acrobat", PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(12.5f, -62.5f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 90f, false), PieceConfig(Offset(-0.0f, -87.5f), 180f, false), PieceConfig(Offset(12.5f, 12.5f), 0f, false)),
-            createPregeneratedShape("reader", "easy", "Book Reader", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("archer", "hard", "Bow Archer", PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(50.0f, -25.0f), 0f, false), PieceConfig(Offset(12.5f, -0.0f), 225f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(-50.0f, -25.0f), 180f, false), PieceConfig(Offset(-12.5f, 25.0f), 180f, false), PieceConfig(Offset(-75.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("standing_guard", "easy", "Standing Guard", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("rider", "hard", "Horse Rider", PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(-12.5f, 62.5f), 0f, false), PieceConfig(Offset(12.5f, 0.0f), 270f, false), PieceConfig(Offset(0.0f, 87.5f), 0f, false), PieceConfig(Offset(-12.5f, -12.5f), 180f, false)),
-            createPregeneratedShape("samurai", "hard", "Honor Samurai", PieceConfig(Offset(-0.0f, -50.0f), 90f, false), PieceConfig(Offset(0.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 75.0f), 270f, false), PieceConfig(Offset(-12.5f, -25.0f), 90f, false), PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(-12.5f, -75.0f), 90f, false), PieceConfig(Offset(-12.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("ballerina", "medium", "Solo Ballerina", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("swordsman", "hard", "Fencing Master", PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, -50.0f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 135f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, 50.0f), 90f, false), PieceConfig(Offset(25.0f, 12.5f), 90f, false), PieceConfig(Offset(-37.5f, 75.0f), 90f, false)),
-            createPregeneratedShape("swimmer", "medium", "Freestyle Swimmer", PieceConfig(Offset(50.0f, -0.0f), 180f, false), PieceConfig(Offset(-50.0f, 0.0f), 180f, false), PieceConfig(Offset(-75.0f, 0.0f), 0f, false), PieceConfig(Offset(25.0f, -12.5f), 180f, false), PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(75.0f, -12.5f), 180f, false), PieceConfig(Offset(-25.0f, -12.5f), 180f, false)),
-            createPregeneratedShape("bowler", "easy", "Tenpin Bowler", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("skater", "medium", "Ice Skater", PieceConfig(Offset(-25.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-62.5f, -12.5f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 0f, false), PieceConfig(Offset(-87.5f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -12.5f), 270f, false)),
-            createPregeneratedShape("pilot", "medium", "Jet Pilot", PieceConfig(Offset(0.0f, 25.0f), 0f, false), PieceConfig(Offset(-50.0f, 25.0f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 45f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(50.0f, 25.0f), 0f, false), PieceConfig(Offset(12.5f, -25.0f), 0f, false), PieceConfig(Offset(75.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("boxer", "hard", "Champion Boxer", PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(50.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -12.5f), 135f, false), PieceConfig(Offset(-0.0f, -37.5f), 180f, false), PieceConfig(Offset(-25.0f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("diver", "medium", "Deep Diver", PieceConfig(Offset(0.0f, 50.0f), 270f, false), PieceConfig(Offset(0.0f, -50.0f), 270f, false), PieceConfig(Offset(0.0f, -75.0f), 90f, false), PieceConfig(Offset(12.5f, 25.0f), 270f, false), PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(12.5f, 75.0f), 270f, false), PieceConfig(Offset(12.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("surfer", "medium", "Wave Surfer", PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(12.5f, -62.5f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 90f, false), PieceConfig(Offset(-0.0f, -87.5f), 180f, false), PieceConfig(Offset(12.5f, 12.5f), 0f, false)),
-            createPregeneratedShape("climber", "hard", "Rock Climber", PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, -37.5f), 180f, false), PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("cyclist", "hard", "Road Cyclist", PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -0.0f), 90f, false), PieceConfig(Offset(50.0f, 12.5f), 315f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false), PieceConfig(Offset(25.0f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("yogi", "easy", "Yoga Master", PieceConfig(Offset(-25.0f, -0.0f), 270f, false), PieceConfig(Offset(0.0f, -25.0f), 0f, false), PieceConfig(Offset(25.0f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, 25.0f), 270f, false), PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("chef", "easy", "Master Chef", PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(0.0f, -50.0f), 180f, false), PieceConfig(Offset(-12.5f, 50.0f), 45f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false), PieceConfig(Offset(25.0f, 25.0f), 0f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(37.5f, 0.0f), 270f, false)),
-            createPregeneratedShape("house", "easy", "Cosy Cottage", PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(0.0f, -50.0f), 180f, false), PieceConfig(Offset(-12.5f, 50.0f), 45f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false), PieceConfig(Offset(25.0f, 25.0f), 0f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(37.5f, 0.0f), 270f, false)),
-            createPregeneratedShape("sailboat", "easy", "Ocean Sailboat", PieceConfig(Offset(0.0f, 25.0f), 0f, false), PieceConfig(Offset(-50.0f, 25.0f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 45f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(50.0f, 25.0f), 0f, false), PieceConfig(Offset(12.5f, -25.0f), 0f, false), PieceConfig(Offset(75.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("rocket", "medium", "Space Rocket", PieceConfig(Offset(-50.0f, 0.0f), 0f, false), PieceConfig(Offset(50.0f, 0.0f), 0f, false), PieceConfig(Offset(75.0f, 0.0f), 180f, false), PieceConfig(Offset(-25.0f, 12.5f), 0f, false), PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(-75.0f, 12.5f), 0f, false), PieceConfig(Offset(25.0f, 12.5f), 0f, false)),
-            createPregeneratedShape("candle", "easy", "Birthday Candle", PieceConfig(Offset(-50.0f, 0.0f), 0f, false), PieceConfig(Offset(50.0f, 0.0f), 0f, false), PieceConfig(Offset(75.0f, 0.0f), 180f, false), PieceConfig(Offset(-25.0f, 12.5f), 0f, false), PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(-75.0f, 12.5f), 0f, false), PieceConfig(Offset(25.0f, 12.5f), 0f, false)),
-            createPregeneratedShape("kettle", "easy", "Tea Kettle", PieceConfig(Offset(0.0f, -25.0f), 0f, false), PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, 25.0f), 0f, false), PieceConfig(Offset(-25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, 25.0f), 0f, false), PieceConfig(Offset(-25.0f, -12.5f), 0f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("diamond", "easy", "Sparkling Diamond", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("arrow", "easy", "North Arrow", PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(50.0f, -25.0f), 0f, false), PieceConfig(Offset(12.5f, -0.0f), 225f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(-50.0f, -25.0f), 180f, false), PieceConfig(Offset(-12.5f, 25.0f), 180f, false), PieceConfig(Offset(-75.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("key", "medium", "Golden Key", PieceConfig(Offset(-25.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-62.5f, -12.5f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 0f, false), PieceConfig(Offset(-87.5f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -12.5f), 270f, false)),
-            createPregeneratedShape("crown", "medium", "Royal Crown", PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(0.0f, -50.0f), 180f, false), PieceConfig(Offset(-12.5f, 50.0f), 45f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false), PieceConfig(Offset(25.0f, 25.0f), 0f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(37.5f, 0.0f), 270f, false)),
-            createPregeneratedShape("clock", "easy", "Grandfather Clock", PieceConfig(Offset(-50.0f, 0.0f), 0f, false), PieceConfig(Offset(50.0f, 0.0f), 0f, false), PieceConfig(Offset(75.0f, 0.0f), 180f, false), PieceConfig(Offset(-25.0f, 12.5f), 0f, false), PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(-75.0f, 12.5f), 0f, false), PieceConfig(Offset(25.0f, 12.5f), 0f, false)),
-            createPregeneratedShape("bridge", "medium", "Arch Bridge", PieceConfig(Offset(-0.0f, -50.0f), 90f, false), PieceConfig(Offset(0.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 75.0f), 270f, false), PieceConfig(Offset(-12.5f, -25.0f), 90f, false), PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(-12.5f, -75.0f), 90f, false), PieceConfig(Offset(-12.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("chair", "easy", "Dining Chair", PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(50.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -12.5f), 135f, false), PieceConfig(Offset(-0.0f, -37.5f), 180f, false), PieceConfig(Offset(-25.0f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("cup", "easy", "Coffee Cup", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("helicopter", "hard", "Rescue Helicopter", PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(12.5f, -62.5f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 90f, false), PieceConfig(Offset(-0.0f, -87.5f), 180f, false), PieceConfig(Offset(12.5f, 12.5f), 0f, false)),
-            createPregeneratedShape("yacht", "medium", "Luxury Yacht", PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, -50.0f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 135f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, 50.0f), 90f, false), PieceConfig(Offset(25.0f, 12.5f), 90f, false), PieceConfig(Offset(-37.5f, 75.0f), 90f, false)),
-            createPregeneratedShape("windmill", "hard", "Dutch Windmill", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("lighthouse", "medium", "Coastal Lighthouse", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("castle", "hard", "Medieval Castle", PieceConfig(Offset(50.0f, -0.0f), 180f, false), PieceConfig(Offset(-50.0f, 0.0f), 180f, false), PieceConfig(Offset(-75.0f, 0.0f), 0f, false), PieceConfig(Offset(25.0f, -12.5f), 180f, false), PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(75.0f, -12.5f), 180f, false), PieceConfig(Offset(-25.0f, -12.5f), 180f, false)),
-            createPregeneratedShape("tower", "medium", "Clock Tower", PieceConfig(Offset(50.0f, -0.0f), 180f, false), PieceConfig(Offset(-50.0f, 0.0f), 180f, false), PieceConfig(Offset(-75.0f, 0.0f), 0f, false), PieceConfig(Offset(25.0f, -12.5f), 180f, false), PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(75.0f, -12.5f), 180f, false), PieceConfig(Offset(-25.0f, -12.5f), 180f, false)),
-            createPregeneratedShape("airplane", "hard", "Biplane", PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(50.0f, -25.0f), 0f, false), PieceConfig(Offset(12.5f, -0.0f), 225f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(-50.0f, -25.0f), 180f, false), PieceConfig(Offset(-12.5f, 25.0f), 180f, false), PieceConfig(Offset(-75.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("lamp", "easy", "Desk Lamp", PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, -37.5f), 180f, false), PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("submarine", "medium", "Deep Submarine", PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(62.5f, 12.5f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 180f, false), PieceConfig(Offset(87.5f, -0.0f), 270f, false), PieceConfig(Offset(-12.5f, 12.5f), 90f, false)),
-            createPregeneratedShape("shield", "easy", "Knight Shield", PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -0.0f), 90f, false), PieceConfig(Offset(50.0f, 12.5f), 315f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false), PieceConfig(Offset(25.0f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("anchor", "hard", "Ship Anchor", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("hammer", "easy", "Steel Hammer", PieceConfig(Offset(0.0f, 50.0f), 270f, false), PieceConfig(Offset(0.0f, -50.0f), 270f, false), PieceConfig(Offset(0.0f, -75.0f), 90f, false), PieceConfig(Offset(12.5f, 25.0f), 270f, false), PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(12.5f, 75.0f), 270f, false), PieceConfig(Offset(12.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("square", "easy", "Classic Square", PieceConfig(Offset(0.0f, -25.0f), 0f, false), PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, 25.0f), 0f, false), PieceConfig(Offset(-25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, 25.0f), 0f, false), PieceConfig(Offset(-25.0f, -12.5f), 0f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("grand_triangle", "easy", "Grand Triangle", PieceConfig(Offset(0.0f, 25.0f), 0f, false), PieceConfig(Offset(-50.0f, 25.0f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 45f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(50.0f, 25.0f), 0f, false), PieceConfig(Offset(12.5f, -25.0f), 0f, false), PieceConfig(Offset(75.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("twin_rectangle", "easy", "Twin Rectangle", PieceConfig(Offset(-50.0f, 0.0f), 0f, false), PieceConfig(Offset(50.0f, 0.0f), 0f, false), PieceConfig(Offset(75.0f, 0.0f), 180f, false), PieceConfig(Offset(-25.0f, 12.5f), 0f, false), PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(-75.0f, 12.5f), 0f, false), PieceConfig(Offset(25.0f, 12.5f), 0f, false)),
-            createPregeneratedShape("wide_parallelogram", "medium", "Wide Parallelogram", PieceConfig(Offset(-25.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-62.5f, -12.5f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 0f, false), PieceConfig(Offset(-87.5f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -12.5f), 270f, false)),
-            createPregeneratedShape("cottage_geo", "easy", "Classic Cottage", PieceConfig(Offset(0.0f, 0.0f), 0f, false), PieceConfig(Offset(0.0f, -50.0f), 180f, false), PieceConfig(Offset(-12.5f, 50.0f), 45f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false), PieceConfig(Offset(25.0f, 25.0f), 0f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(37.5f, 0.0f), 270f, false)),
-            createPregeneratedShape("square_r90", "easy", "Rotated Square", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("triangle_r90", "easy", "Rotated Triangle", PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(-25.0f, -50.0f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 135f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, 50.0f), 90f, false), PieceConfig(Offset(25.0f, 12.5f), 90f, false), PieceConfig(Offset(-37.5f, 75.0f), 90f, false)),
-            createPregeneratedShape("rectangle_r90", "easy", "Rotated Rectangle", PieceConfig(Offset(-0.0f, -50.0f), 90f, false), PieceConfig(Offset(0.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 75.0f), 270f, false), PieceConfig(Offset(-12.5f, -25.0f), 90f, false), PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(-12.5f, -75.0f), 90f, false), PieceConfig(Offset(-12.5f, 25.0f), 90f, false)),
-            createPregeneratedShape("parallelogram_r90", "medium", "Rotated Parallelogram", PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(12.5f, -62.5f), 180f, false), PieceConfig(Offset(-12.5f, 0.0f), 90f, false), PieceConfig(Offset(-0.0f, -87.5f), 180f, false), PieceConfig(Offset(12.5f, 12.5f), 0f, false)),
-            createPregeneratedShape("cottage_r90", "easy", "Rotated Cottage", PieceConfig(Offset(0.0f, 0.0f), 90f, false), PieceConfig(Offset(50.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -12.5f), 135f, false), PieceConfig(Offset(-0.0f, -37.5f), 180f, false), PieceConfig(Offset(-25.0f, 25.0f), 90f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false)),
-            createPregeneratedShape("square_r180", "easy", "Flipped Square", PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, -37.5f), 180f, false), PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("triangle_r180", "easy", "Flipped Triangle", PieceConfig(Offset(-0.0f, -25.0f), 180f, false), PieceConfig(Offset(50.0f, -25.0f), 0f, false), PieceConfig(Offset(12.5f, -0.0f), 225f, false), PieceConfig(Offset(-25.0f, -37.5f), 180f, false), PieceConfig(Offset(-50.0f, -25.0f), 180f, false), PieceConfig(Offset(-12.5f, 25.0f), 180f, false), PieceConfig(Offset(-75.0f, -37.5f), 180f, false)),
-            createPregeneratedShape("rectangle_r180", "easy", "Flipped Rectangle", PieceConfig(Offset(50.0f, -0.0f), 180f, false), PieceConfig(Offset(-50.0f, 0.0f), 180f, false), PieceConfig(Offset(-75.0f, 0.0f), 0f, false), PieceConfig(Offset(25.0f, -12.5f), 180f, false), PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(75.0f, -12.5f), 180f, false), PieceConfig(Offset(-25.0f, -12.5f), 180f, false)),
-            createPregeneratedShape("parallelogram_r180", "medium", "Flipped Parallelogram", PieceConfig(Offset(25.0f, 12.5f), 180f, false), PieceConfig(Offset(50.0f, -12.5f), 0f, false), PieceConfig(Offset(-50.0f, 12.5f), 180f, false), PieceConfig(Offset(62.5f, 12.5f), 270f, false), PieceConfig(Offset(-0.0f, -12.5f), 180f, false), PieceConfig(Offset(87.5f, -0.0f), 270f, false), PieceConfig(Offset(-12.5f, 12.5f), 90f, false)),
-            createPregeneratedShape("cottage_r180", "easy", "Flipped Cottage", PieceConfig(Offset(-0.0f, 0.0f), 180f, false), PieceConfig(Offset(0.0f, 50.0f), 0f, false), PieceConfig(Offset(12.5f, -50.0f), 225f, false), PieceConfig(Offset(37.5f, -0.0f), 270f, false), PieceConfig(Offset(-25.0f, -25.0f), 180f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(-37.5f, 0.0f), 90f, false)),
-            createPregeneratedShape("square_r270", "easy", "Side Square", PieceConfig(Offset(-25.0f, -0.0f), 270f, false), PieceConfig(Offset(0.0f, -25.0f), 0f, false), PieceConfig(Offset(25.0f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, 25.0f), 270f, false), PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("triangle_r270", "easy", "Side Triangle", PieceConfig(Offset(25.0f, 0.0f), 270f, false), PieceConfig(Offset(25.0f, 50.0f), 90f, false), PieceConfig(Offset(0.0f, 12.5f), 315f, false), PieceConfig(Offset(37.5f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, -50.0f), 270f, false), PieceConfig(Offset(-25.0f, -12.5f), 270f, false), PieceConfig(Offset(37.5f, -75.0f), 270f, false)),
-            createPregeneratedShape("rectangle_r270", "easy", "Side Rectangle", PieceConfig(Offset(0.0f, 50.0f), 270f, false), PieceConfig(Offset(0.0f, -50.0f), 270f, false), PieceConfig(Offset(0.0f, -75.0f), 90f, false), PieceConfig(Offset(12.5f, 25.0f), 270f, false), PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(12.5f, 75.0f), 270f, false), PieceConfig(Offset(12.5f, -25.0f), 270f, false)),
-            createPregeneratedShape("parallelogram_r270", "medium", "Side Parallelogram", PieceConfig(Offset(-12.5f, 25.0f), 270f, false), PieceConfig(Offset(12.5f, 50.0f), 90f, false), PieceConfig(Offset(-12.5f, -50.0f), 270f, false), PieceConfig(Offset(-12.5f, 62.5f), 0f, false), PieceConfig(Offset(12.5f, 0.0f), 270f, false), PieceConfig(Offset(0.0f, 87.5f), 0f, false), PieceConfig(Offset(-12.5f, -12.5f), 180f, false)),
-            createPregeneratedShape("cottage_r270", "easy", "Side Cottage", PieceConfig(Offset(0.0f, 0.0f), 270f, false), PieceConfig(Offset(-50.0f, -0.0f), 90f, false), PieceConfig(Offset(50.0f, 12.5f), 315f, false), PieceConfig(Offset(0.0f, 37.5f), 0f, false), PieceConfig(Offset(25.0f, -25.0f), 270f, false), PieceConfig(Offset(25.0f, 37.5f), 0f, false), PieceConfig(Offset(0.0f, -37.5f), 180f, false))
+            // ==================== GEOMETRIC SHAPES (10) ====================
+            puzzle("square", "easy", "Classic Square", "Geometric",
+                PiecePlacement(2.0000f, 0.6667f, 0f),
+                PiecePlacement(0.6667f, 2.0000f, 90f),
+                PiecePlacement(2.6667f, 3.3333f, 0f),
+                PiecePlacement(3.6667f, 1.0000f, 0f),
+                PiecePlacement(3.6667f, 3.0000f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(1.5000f, 3.5000f, 0f, flipped = false)
+            ),
+            puzzle("grand_triangle", "easy", "Grand Triangle", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 2.6667f, 90f),
+                PiecePlacement(3.0000f, 3.6667f, 0f),
+                PiecePlacement(5.0000f, 3.6667f, 90f),
+                PiecePlacement(4.0000f, 3.3333f, 0f),
+                PiecePlacement(4.0000f, 4.5000f, 90f)
+            ),
+            puzzle("rectangle", "easy", "Twin Rectangle", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 0.6667f, 270f),
+                PiecePlacement(0.6667f, 2.3333f, 90f),
+                PiecePlacement(7.3333f, 0.3333f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 0f),
+                PiecePlacement(5.5000f, 2.5000f, 0f)
+            ),
+            puzzle("parallelogram_geo", "medium", "Wide Parallelogram", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(4.0000f, 2.6667f, 180f),
+                PiecePlacement(6.6667f, 1.3333f, 0f),
+                PiecePlacement(0.6667f, 0.6667f, 90f),
+                PiecePlacement(5.3333f, 3.3333f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(7.5000f, 2.5000f, 0f, flipped = false)
+            ),
+            puzzle("trapezoid", "easy", "Large Trapezoid", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 0f),
+                PiecePlacement(4.0000f, 2.6667f, 180f),
+                PiecePlacement(0.6667f, 0.6667f, 90f),
+                PiecePlacement(7.3333f, 2.3333f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 0f),
+                PiecePlacement(5.5000f, 2.5000f, 0f)
+            ),
+            puzzle("pentagon", "medium", "Convex Pentagon", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(0.6667f, 3.3333f, 90f),
+                PiecePlacement(3.3333f, 3.3333f, 180f),
+                PiecePlacement(4.3333f, 1.0000f, 0f),
+                PiecePlacement(2.3333f, 4.3333f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(1.5000f, 4.5000f, 0f)
+            ),
+            puzzle("hexagon", "medium", "Symmetric Hexagon", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(0.6667f, 2.3333f, 90f),
+                PiecePlacement(7.3333f, 0.3333f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 0f),
+                PiecePlacement(5.5000f, 2.5000f, 0f)
+            ),
+            puzzle("diamond", "easy", "Sparkling Diamond", "Geometric",
+                PiecePlacement(2.0000f, 1.3333f, 45f),
+                PiecePlacement(4.0000f, 3.3333f, 225f),
+                PiecePlacement(1.3333f, 3.3333f, 135f),
+                PiecePlacement(4.6667f, 1.3333f, 45f),
+                PiecePlacement(2.6667f, 4.3333f, 315f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(3.5000f, 3.5000f, 45f)
+            ),
+            puzzle("arrow_geo", "easy", "North Arrow", "Geometric",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 0.6667f, 90f),
+                PiecePlacement(3.0000f, 4.0000f, 0f),
+                PiecePlacement(5.0000f, 4.0000f, 90f),
+                PiecePlacement(4.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 5.0000f, 90f)
+            ),
+            puzzle("cross_geo", "hard", "Iron Cross", "Geometric",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 4.0000f, 180f),
+                PiecePlacement(2.0000f, 4.6667f, 90f),
+                PiecePlacement(0.6667f, 2.0000f, 0f),
+                PiecePlacement(5.3333f, 4.0000f, 180f),
+                PiecePlacement(3.0000f, 3.0000f, 45f),
+                PiecePlacement(4.0000f, 1.5000f, 90f)
+            ),
+
+            // ==================== ANIMALS (12) ====================
+            puzzle("swan", "easy", "Graceful Swan", "Animals",
+                PiecePlacement(2.0000f, 2.6667f, 0f),
+                PiecePlacement(4.0000f, 4.0000f, 180f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(2.6667f, 0.3333f, 0f),
+                PiecePlacement(5.3333f, 4.6667f, 270f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(5.5000f, 2.5000f, 0f, flipped = false)
+            ),
+            puzzle("cat", "easy", "Curious Cat", "Animals",
+                PiecePlacement(2.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 4.3333f, 180f),
+                PiecePlacement(3.0000f, 1.6667f, 90f),
+                PiecePlacement(2.0000f, 0.3333f, 0f),
+                PiecePlacement(4.0000f, 0.3333f, 90f),
+                PiecePlacement(3.0000f, 0.6667f, 45f),
+                PiecePlacement(5.5000f, 3.0000f, 45f, flipped = false)
+            ),
+            puzzle("dog", "medium", "Running Dog", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 90f),
+                PiecePlacement(4.6667f, 2.0000f, 270f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(0.3333f, 2.3333f, 0f),
+                PiecePlacement(6.0000f, 3.3333f, 180f),
+                PiecePlacement(3.0000f, 0.6667f, 0f),
+                PiecePlacement(4.5000f, 3.5000f, 90f)
+            ),
+            puzzle("rabbit", "medium", "Hopping Rabbit", "Animals",
+                PiecePlacement(2.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 3.0000f, 180f),
+                PiecePlacement(1.3333f, 1.3333f, 45f),
+                PiecePlacement(2.0000f, 0.3333f, 315f),
+                PiecePlacement(5.3333f, 4.3333f, 90f),
+                PiecePlacement(3.0000f, 1.6667f, 45f),
+                PiecePlacement(0.5000f, 4.5000f, 0f)
+            ),
+            puzzle("duck", "easy", "Floating Duck", "Animals",
+                PiecePlacement(3.0000f, 2.6667f, 0f),
+                PiecePlacement(5.0000f, 4.0000f, 180f),
+                PiecePlacement(1.6667f, 1.3333f, 45f),
+                PiecePlacement(2.3333f, 0.3333f, 0f),
+                PiecePlacement(6.3333f, 4.6667f, 270f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(0.5000f, 3.5000f, 0f)
+            ),
+            puzzle("horse", "hard", "Galloping Horse", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 90f),
+                PiecePlacement(4.6667f, 2.0000f, 270f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(0.3333f, 4.3333f, 0f),
+                PiecePlacement(6.0000f, 4.3333f, 180f),
+                PiecePlacement(3.0000f, 0.6667f, 0f),
+                PiecePlacement(3.5000f, 4.5000f, 90f)
+            ),
+            puzzle("fish", "easy", "Golden Fish", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 45f),
+                PiecePlacement(4.0000f, 2.0000f, 225f),
+                PiecePlacement(6.0000f, 2.0000f, 135f),
+                PiecePlacement(5.3333f, 0.6667f, 45f),
+                PiecePlacement(5.3333f, 3.3333f, 315f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(0.5000f, 2.0000f, 45f)
+            ),
+            puzzle("bird", "medium", "Soaring Eagle", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 0.6667f, 90f),
+                PiecePlacement(1.0000f, 3.6667f, 0f),
+                PiecePlacement(7.0000f, 3.6667f, 90f),
+                PiecePlacement(4.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 3.5000f, 90f)
+            ),
+            puzzle("fox", "medium", "Clever Fox", "Animals",
+                PiecePlacement(2.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 4.3333f, 180f),
+                PiecePlacement(1.3333f, 1.3333f, 45f),
+                PiecePlacement(2.0000f, 0.3333f, 0f),
+                PiecePlacement(4.0000f, 0.3333f, 90f),
+                PiecePlacement(3.0000f, 1.6667f, 45f),
+                PiecePlacement(5.5000f, 3.0000f, 45f)
+            ),
+            puzzle("turtle", "hard", "Sea Turtle", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 45f),
+                PiecePlacement(4.0000f, 2.0000f, 225f),
+                PiecePlacement(3.0000f, 0.3333f, 180f),
+                PiecePlacement(0.6667f, 2.0000f, 90f),
+                PiecePlacement(5.3333f, 2.0000f, 270f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(3.0000f, 4.0000f, 0f)
+            ),
+            puzzle("butterfly", "medium", "Monarch Butterfly", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 45f),
+                PiecePlacement(4.0000f, 2.0000f, 225f),
+                PiecePlacement(3.0000f, 4.0000f, 0f),
+                PiecePlacement(0.6667f, 0.6667f, 45f),
+                PiecePlacement(5.3333f, 0.6667f, 315f),
+                PiecePlacement(3.0000f, 2.0000f, 45f),
+                PiecePlacement(3.0000f, 0.5000f, 90f)
+            ),
+            puzzle("crab", "hard", "Beach Crab", "Animals",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(0.6667f, 0.6667f, 45f),
+                PiecePlacement(7.3333f, 0.6667f, 315f),
+                PiecePlacement(4.0000f, 1.0000f, 0f),
+                PiecePlacement(4.0000f, 4.5000f, 90f)
+            ),
+
+            // ==================== PEOPLE (8) ====================
+            puzzle("runner", "medium", "Fast Runner", "People",
+                PiecePlacement(2.0000f, 2.0000f, 45f),
+                PiecePlacement(4.6667f, 3.3333f, 180f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(0.3333f, 3.6667f, 0f),
+                PiecePlacement(6.0000f, 4.6667f, 180f),
+                PiecePlacement(2.5000f, 0.3333f, 0f),
+                PiecePlacement(4.0000f, 1.5000f, 90f)
+            ),
+            puzzle("dancer", "medium", "Graceful Dancer", "People",
+                PiecePlacement(2.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 4.3333f, 180f),
+                PiecePlacement(3.0000f, 1.6667f, 90f),
+                PiecePlacement(3.0000f, 0.3333f, 0f),
+                PiecePlacement(5.3333f, 5.3333f, 270f),
+                PiecePlacement(3.0000f, 0.6667f, 45f),
+                PiecePlacement(1.0000f, 5.0000f, 45f)
+            ),
+            puzzle("monk", "easy", "Meditating Monk", "People",
+                PiecePlacement(2.0000f, 2.6667f, 0f),
+                PiecePlacement(4.0000f, 2.6667f, 180f),
+                PiecePlacement(3.0000f, 4.0000f, 180f),
+                PiecePlacement(1.6667f, 0.6667f, 45f),
+                PiecePlacement(4.3333f, 0.6667f, 315f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(3.0000f, 5.0000f, 90f)
+            ),
+            puzzle("sitting_man", "easy", "Sitting Thinker", "People",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(2.3333f, 0.3333f, 0f),
+                PiecePlacement(5.3333f, 4.3333f, 270f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(3.5000f, 4.5000f, 90f)
+            ),
+            puzzle("walking_man", "easy", "Walking Man", "People",
+                PiecePlacement(2.0000f, 2.6667f, 0f),
+                PiecePlacement(4.0000f, 4.0000f, 180f),
+                PiecePlacement(3.0000f, 1.3333f, 90f),
+                PiecePlacement(3.0000f, 0.3333f, 0f),
+                PiecePlacement(5.3333f, 5.3333f, 270f),
+                PiecePlacement(3.0000f, 0.6667f, 45f),
+                PiecePlacement(1.0000f, 5.0000f, 0f)
+            ),
+            puzzle("archer", "hard", "Bow Archer", "People",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 0.6667f, 90f),
+                PiecePlacement(0.6667f, 3.6667f, 0f),
+                PiecePlacement(7.3333f, 3.6667f, 90f),
+                PiecePlacement(4.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 3.5000f, 90f)
+            ),
+            puzzle("reader", "easy", "Book Reader", "People",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(1.3333f, 0.6667f, 45f),
+                PiecePlacement(2.3333f, 0.3333f, 0f),
+                PiecePlacement(5.3333f, 4.3333f, 270f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(1.5000f, 3.5000f, 0f)
+            ),
+            puzzle("yogi", "hard", "Yoga Master", "People",
+                PiecePlacement(2.0000f, 2.6667f, 0f),
+                PiecePlacement(4.0000f, 2.6667f, 180f),
+                PiecePlacement(3.0000f, 4.0000f, 180f),
+                PiecePlacement(1.0000f, 0.6667f, 45f),
+                PiecePlacement(5.0000f, 0.6667f, 315f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(3.0000f, 5.0000f, 0f)
+            ),
+
+            // ==================== OBJECTS (10) ====================
+            puzzle("house", "easy", "Cosy Cottage", "Objects",
+                PiecePlacement(2.0000f, 2.6667f, 0f),
+                PiecePlacement(6.0000f, 2.6667f, 180f),
+                PiecePlacement(4.0000f, 1.3333f, 90f),
+                PiecePlacement(2.0000f, 4.3333f, 0f),
+                PiecePlacement(6.0000f, 4.3333f, 90f),
+                PiecePlacement(4.0000f, 4.0000f, 0f),
+                PiecePlacement(4.0000f, 5.5000f, 90f)
+            ),
+            puzzle("sailboat", "easy", "Ocean Sailboat", "Objects",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(4.0000f, 2.0000f, 180f),
+                PiecePlacement(6.0000f, 4.0000f, 180f),
+                PiecePlacement(1.0000f, 4.0000f, 0f),
+                PiecePlacement(3.0000f, 4.0000f, 90f),
+                PiecePlacement(3.0000f, 0.6667f, 45f),
+                PiecePlacement(4.5000f, 4.5000f, 0f)
+            ),
+            puzzle("candle", "easy", "Birthday Candle", "Objects",
+                PiecePlacement(2.0000f, 3.3333f, 0f),
+                PiecePlacement(6.0000f, 3.3333f, 180f),
+                PiecePlacement(4.0000f, 1.3333f, 90f),
+                PiecePlacement(4.0000f, 0.3333f, 0f),
+                PiecePlacement(7.3333f, 5.0000f, 270f),
+                PiecePlacement(4.0000f, 2.3333f, 0f),
+                PiecePlacement(1.5000f, 5.0000f, 0f)
+            ),
+            puzzle("cup", "easy", "Coffee Cup", "Objects",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(0.6667f, 0.6667f, 45f),
+                PiecePlacement(7.3333f, 0.6667f, 315f),
+                PiecePlacement(4.0000f, 1.0000f, 0f),
+                PiecePlacement(7.5000f, 2.5000f, 90f)
+            ),
+            puzzle("rocket", "medium", "Space Rocket", "Objects",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 0.6667f, 90f),
+                PiecePlacement(0.6667f, 4.0000f, 90f),
+                PiecePlacement(7.3333f, 4.0000f, 270f),
+                PiecePlacement(4.0000f, 3.0000f, 0f),
+                PiecePlacement(4.0000f, 4.5000f, 90f)
+            ),
+            puzzle("hammer", "easy", "Steel Hammer", "Objects",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(4.0000f, 4.6667f, 0f),
+                PiecePlacement(4.0000f, 6.0000f, 90f),
+                PiecePlacement(4.0000f, 2.0000f, 0f),
+                PiecePlacement(1.5000f, 1.5000f, 90f)
+            ),
+            puzzle("bridge", "medium", "Arch Bridge", "Objects",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 0.0000f, 90f),
+                PiecePlacement(0.6667f, 2.3333f, 90f),
+                PiecePlacement(7.3333f, 2.3333f, 270f),
+                PiecePlacement(4.0000f, 1.6667f, 0f),
+                PiecePlacement(4.0000f, 3.0000f, 90f)
+            ),
+            puzzle("key", "medium", "Golden Key", "Objects",
+                PiecePlacement(2.0000f, 1.3333f, 0f),
+                PiecePlacement(6.0000f, 1.3333f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(8.0000f, 1.3333f, 0f),
+                PiecePlacement(8.0000f, 3.3333f, 90f),
+                PiecePlacement(4.0000f, 2.0000f, 0f),
+                PiecePlacement(0.5000f, 1.5000f, 0f)
+            ),
+            puzzle("heart", "medium", "Red Heart", "Objects",
+                PiecePlacement(2.0000f, 2.0000f, 45f),
+                PiecePlacement(4.0000f, 2.0000f, 225f),
+                PiecePlacement(3.0000f, 4.0000f, 180f),
+                PiecePlacement(0.6667f, 0.6667f, 45f),
+                PiecePlacement(5.3333f, 0.6667f, 315f),
+                PiecePlacement(3.0000f, 1.0000f, 45f),
+                PiecePlacement(3.0000f, 5.0000f, 90f)
+            ),
+            puzzle("boat", "hard", "Speed Boat", "Objects",
+                PiecePlacement(2.0000f, 2.0000f, 0f),
+                PiecePlacement(6.0000f, 2.0000f, 180f),
+                PiecePlacement(4.0000f, 3.3333f, 180f),
+                PiecePlacement(0.6667f, 3.3333f, 90f),
+                PiecePlacement(7.3333f, 3.3333f, 270f),
+                PiecePlacement(4.0000f, 1.0000f, 0f),
+                PiecePlacement(4.0000f, 4.5000f, 90f)
+            )
         )
     }
 
