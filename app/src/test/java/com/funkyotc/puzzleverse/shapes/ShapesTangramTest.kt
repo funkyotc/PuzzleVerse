@@ -11,7 +11,7 @@ class ShapesTangramTest {
     @Test
     fun testAllPregeneratedPuzzlesHaveSevenPieces() {
         val puzzles = ShapesPregenerated.ALL_PUZZLES
-        assertEquals(15, puzzles.size)
+        assertEquals(100, puzzles.size)
         for (puzzle in puzzles) {
             assertEquals("Puzzle ${puzzle.name} (${puzzle.id}) must have 7 pieces", 7, puzzle.pieces.size)
         }
