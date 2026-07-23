@@ -110,6 +110,7 @@ fun SudokuScreen(
 
     LaunchedEffect(isGameWon) {
         if (isGameWon) {
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             settingsRepository.addWin()
         }
     }
@@ -561,7 +562,7 @@ fun ActionRow(
         }
         IconButton(
             onClick = {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                soundManager.playSound(SoundManager.SOUND_ID_PENCIL_ERASE)
                 onErase()
             },
             modifier = Modifier.size(buttonSize).animateTapFeedback(eraseInteractionSource),
@@ -662,7 +663,8 @@ fun RowScope.NumberButton(
                 indication = androidx.compose.foundation.LocalIndication.current,
                 enabled = !isCompleted,
                 onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    val sound = if (isPencilOn) SoundManager.SOUND_ID_KEY_PRESS else SoundManager.SOUND_ID_TILE_PLACE
+                    soundManager.playSound(sound)
                     onClick()
                 }
             )

@@ -145,7 +145,7 @@ fun TfeScreen(
                         detectDragGestures(
                             onDragEnd = {
                                 swipeDirection?.let {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                                     viewModel.move(it)
                                 }
                                 swipeDirection = null
@@ -206,8 +206,11 @@ fun AnimatedTile(tile: Tile, tileSize: Dp, margin: Dp) {
         }
     }
     
+    val soundManager = LocalSoundManager.current
     LaunchedEffect(tile.isMerged) {
         if (tile.isMerged) {
+            val rate = (1.0f + (kotlin.math.log2(tile.value.toFloat()) * 0.08f)).coerceIn(0.8f, 1.8f)
+            soundManager.playSound(SoundManager.SOUND_ID_MERGE_POP, rate = rate)
             visibleScale = 1.2f
             kotlinx.coroutines.delay(100)
             visibleScale = 1f

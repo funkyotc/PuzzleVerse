@@ -198,7 +198,7 @@ fun KakuroScreen(
                             val interactionSource = remember { MutableInteractionSource() }
                             Button(
                                 onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
                                     selectedCell?.let { (r, c) ->
                                         viewModel.setCellValue(r, c, num)
                                     }

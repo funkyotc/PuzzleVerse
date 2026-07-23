@@ -232,7 +232,7 @@ fun WaterSortScreen(
                                         .padding(horizontal = if (cols >= 5) 2.dp else 6.dp)
                                         .animateEntrance(delayMillis = index * 40, trigger = state.level),
                                     onClick = {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        soundManager.playSound(SoundManager.SOUND_ID_LIQUID_POUR)
                                         viewModel.selectBottle(index)
                                     }
                                 )

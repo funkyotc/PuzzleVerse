@@ -229,7 +229,7 @@ fun WoodNutsScreen(
                                         sqrt(dx * dx + dy * dy) <= touchRadius
                                     }
                                     if (bolt != null) {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK, 0.8f)
+                                        soundManager.playSound(SoundManager.SOUND_ID_METAL_SHING, 0.9f)
                                         viewModel.removeBolt(bolt.id)
                                     }
                                 }

@@ -131,7 +131,7 @@ fun PullPinScreen(
             val nowInCup = s.balls.filter { it.inCup }.map { it.color }.toSet()
             val newInCup = nowInCup - prevInCup
             if (newInCup.isNotEmpty()) {
-                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                soundManager.playSound(SoundManager.SOUND_ID_COIN_COLLECT)
             }
             prevInCup = nowInCup
         }
@@ -237,7 +237,7 @@ fun PullPinScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     onPinTap = { pinId ->
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        soundManager.playSound(SoundManager.SOUND_ID_METAL_SHING)
                         viewModel.removePin(pinId)
                     }
                 )

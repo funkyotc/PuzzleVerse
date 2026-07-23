@@ -229,7 +229,7 @@ fun ChessScreen(
                                                 interactionSource = interactionSource,
                                                 indication = null
                                             ) {
-                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                soundManager.playSound(SoundManager.SOUND_ID_CHESS_LAND)
                                                 viewModel.onSquareClicked(row, col)
                                             }
                                             .animateTapFeedback(interactionSource),

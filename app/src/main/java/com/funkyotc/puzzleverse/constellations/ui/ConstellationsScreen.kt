@@ -229,7 +229,7 @@ fun ConstellationsScreen(
                                 val col = (offset.x / cellSize).toInt()
                                 val row = (offset.y / cellSize).toInt()
                                 if (row in 0 until p.size && col in 0 until p.size) {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    soundManager.playSound(SoundManager.SOUND_ID_GLASS_CHIME)
                                     constellationsViewModel.onCellClicked(row, col)
                                 }
                             }
@@ -241,7 +241,7 @@ fun ConstellationsScreen(
                                     val col = (offset.x / cellSize).toInt()
                                     val row = (offset.y / cellSize).toInt()
                                     if (row in 0 until p.size && col in 0 until p.size) {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        soundManager.playSound(SoundManager.SOUND_ID_GLASS_CHIME)
                                         constellationsViewModel.onDragStart(row, col)
                                     }
                                 },

@@ -90,7 +90,7 @@ fun CubeShooterScreen(
     var lastProjectileCount by remember { mutableIntStateOf(0) }
     LaunchedEffect(state.projectiles.size) {
         if (state.projectiles.size > lastProjectileCount) {
-            soundManager.playSound(SoundManager.SOUND_ID_CLICK, 0.72f, cooldownMs = 70L)
+            soundManager.playSound(SoundManager.SOUND_ID_LASER_SHOOT, 0.9f, cooldownMs = 70L)
         }
         lastProjectileCount = state.projectiles.size
     }

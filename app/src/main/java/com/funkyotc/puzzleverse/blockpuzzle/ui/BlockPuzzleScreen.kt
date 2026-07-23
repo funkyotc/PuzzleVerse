@@ -127,6 +127,7 @@ fun BlockPuzzleScreen(
                 var flashRunning by remember { mutableStateOf(false) }
                 LaunchedEffect(state.flashId) {
                     if (state.flashId > 0) {
+                        soundManager.playSound(SoundManager.SOUND_ID_LINE_CLEAR)
                         flashRunning = true
                         kotlinx.coroutines.delay(150)
                         flashRunning = false
@@ -263,7 +264,7 @@ fun DraggableShape(
                     },
                     onDragEnd = {
                         isDragging = false
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        soundManager.playSound(SoundManager.SOUND_ID_BLOCK_DROP)
                         haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                         if (blockPx > 0f) {
                             val currentPosition = initialPosition + Offset(offsetX, offsetY)

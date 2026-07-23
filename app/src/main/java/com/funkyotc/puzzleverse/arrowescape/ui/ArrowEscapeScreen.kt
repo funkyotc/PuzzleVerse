@@ -47,6 +47,7 @@ fun ArrowEscapeScreen(
 
     LaunchedEffect(uiState.isComplete) {
         if (uiState.isComplete) {
+            soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             settingsRepository.addWin()
         }
     }
@@ -104,6 +105,7 @@ fun ArrowEscapeScreen(
                 gridWidth = uiState.gridWidth,
                 gridHeight = uiState.gridHeight,
                 onArrowTapped = { arrowId, onBump, onMove ->
+                    soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                     viewModel.onArrowTapped(arrowId, onBump, onMove)
                 }
             )

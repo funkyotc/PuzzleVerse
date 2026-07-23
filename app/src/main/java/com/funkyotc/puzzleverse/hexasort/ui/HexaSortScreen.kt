@@ -554,7 +554,7 @@ fun HexaSortScreen(
                                     )
                                     if (cellCoords != null) {
                                         val (r, c) = cellCoords
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        soundManager.playSound(SoundManager.SOUND_ID_MERGE_POP)
                                         viewModel.tapCell(r, c)
                                     }
                                 }

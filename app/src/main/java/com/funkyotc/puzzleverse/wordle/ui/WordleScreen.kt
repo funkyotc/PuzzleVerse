@@ -322,7 +322,7 @@ fun KeyboardKey(char: Char, state: LetterState, onClick: () -> Unit) {
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                    soundManager.playSound(SoundManager.SOUND_ID_KEY_PRESS)
                     onClick()
                 }
             ),

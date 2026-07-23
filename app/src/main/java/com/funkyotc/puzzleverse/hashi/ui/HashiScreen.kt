@@ -131,7 +131,7 @@ fun HashiScreen(
                     puzzle = puzzle!!,
                     bridges = bridges,
                     onToggleBridge = { i1, i2 ->
-                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
                         viewModel.toggleBridge(i1, i2)
                     }
                 )

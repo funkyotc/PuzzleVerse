@@ -306,7 +306,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = { position ->
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             isDragging = true
                             // Convert screen position to puzzle space (Grid Units)
@@ -324,6 +324,7 @@ fun BonzaBoard(puzzle: BonzaPuzzle, viewModel: BonzaViewModel) {
                         },
                         onDragEnd = { 
                             isDragging = false
+                            soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                             viewModel.onDragEnd() 
                         },

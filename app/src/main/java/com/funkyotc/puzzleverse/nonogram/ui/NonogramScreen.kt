@@ -186,7 +186,8 @@ fun NonogramScreen(
                                             val col = (gridX / cellWidthPx).toInt()
                                             val row = (gridY / cellHeightPx).toInt()
                                             if (row in 0 until state.rows && col in 0 until state.cols) {
-                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                val sound = if (isFillMode) SoundManager.SOUND_ID_TILE_PLACE else SoundManager.SOUND_ID_PENCIL_ERASE
+                                                soundManager.playSound(sound)
                                                 viewModel.toggleCell(row, col, isFillAction = isFillMode)
                                             }
                                         }

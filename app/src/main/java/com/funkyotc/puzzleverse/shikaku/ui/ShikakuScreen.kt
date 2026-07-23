@@ -376,6 +376,7 @@ fun ShikakuScreen(
                                     onDragEnd = {
                                         drawStartCell?.let { start ->
                                             currentDragRect?.let { rect ->
+                                                soundManager.playSound(SoundManager.SOUND_ID_LINE_CLEAR)
                                                 viewModel.onPlayerRectangleDraw(rect)
                                             }
                                         }

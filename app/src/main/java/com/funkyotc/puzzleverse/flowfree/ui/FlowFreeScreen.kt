@@ -218,14 +218,14 @@ fun FlowFreeScreen(
 
                                     val dot = state.dots.find { it.start == Point(r, c) || it.end == Point(r, c) }
                                     if (dot != null) {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        soundManager.playSound(SoundManager.SOUND_ID_LIQUID_POUR)
                                         activeColorId = dot.colorId
                                         viewModel.startPath(dot.colorId, r, c)
                                     } else {
                                         // Resume path from middle
                                         val path = state.paths.find { it.path.contains(Point(r, c)) }
                                         if (path != null) {
-                                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                            soundManager.playSound(SoundManager.SOUND_ID_LIQUID_POUR)
                                             activeColorId = path.colorId
                                         }
                                     }

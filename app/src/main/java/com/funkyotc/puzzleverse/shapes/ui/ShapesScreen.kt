@@ -189,7 +189,7 @@ fun ShapesScreen(
                     .fillMaxWidth()
                     .padding(16.dp)
                     .background(MaterialTheme.colorScheme.surface),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val rotateLInteractionSource = remember { MutableInteractionSource() }
@@ -204,7 +204,18 @@ fun ShapesScreen(
                 ) {
                     Text("Rotate L")
                 }
-                Spacer(modifier = Modifier.width(16.dp))
+                val flipInteractionSource = remember { MutableInteractionSource() }
+                Button(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        selectedPieceId?.let { vm.flipPiece(it) }
+                    },
+                    enabled = selectedPieceId != null,
+                    interactionSource = flipInteractionSource,
+                    modifier = Modifier.animateTapFeedback(flipInteractionSource)
+                ) {
+                    Text("Flip")
+                }
                 val rotateRInteractionSource = remember { MutableInteractionSource() }
                 Button(
                     onClick = {
@@ -319,7 +330,7 @@ fun ShapesScreen(
                                          GeometryUtils.isPointInPolygon(virtualOffset, piece.currentVertices)
                                     }
                                     if (clickedPiece != null) {
-                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                                         selectedPieceId = clickedPiece.id
                                     }
                                 }
@@ -333,13 +344,13 @@ fun ShapesScreen(
                             },
                             onDragEnd = {
                                 selectedPieceId?.let { id ->
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
                                     vm.snapPiece(id)
                                 }
                             },
                             onDragCancel = {
                                 selectedPieceId?.let { id ->
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                    soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
                                     vm.snapPiece(id)
                                 }
                             }

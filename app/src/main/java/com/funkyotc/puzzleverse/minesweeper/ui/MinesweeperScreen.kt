@@ -62,7 +62,7 @@ fun MinesweeperScreen(
 
     LaunchedEffect(state.isGameOver) {
         if (state.isGameOver) {
-            soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
+            soundManager.playSound(SoundManager.SOUND_ID_BLAST_EXPLODE)
         }
     }
 
@@ -165,17 +165,17 @@ fun MinesweeperScreen(
                                                 interactionSource = cellInteractionSource,
                                                 indication = null,
                                                 onClick = {
-                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                    if (cell.isRevealed) {
-                                                        viewModel.revealNeighbors(r, c)
-                                                    } else {
-                                                        viewModel.revealCell(r, c)
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                    viewModel.toggleFlag(r, c)
-                                                }
+                                                     soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
+                                                     if (cell.isRevealed) {
+                                                         viewModel.revealNeighbors(r, c)
+                                                     } else {
+                                                         viewModel.revealCell(r, c)
+                                                     }
+                                                 },
+                                                 onLongClick = {
+                                                     soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
+                                                     viewModel.toggleFlag(r, c)
+                                                 }
                                             )
                                             .animateTapFeedback(cellInteractionSource),
                                         contentAlignment = Alignment.Center
