@@ -97,6 +97,10 @@ object ShapesPregenerated {
         return ALL_PUZZLES.find { it.id == id }
     }
 
+    val PUZZLES_BY_DIFFICULTY: Map<String, List<PregeneratedShape>> by lazy {
+        ALL_PUZZLES.groupBy { it.difficulty.replaceFirstChar { c -> c.uppercase() } }
+    }
+
     val ALL_PUZZLES: List<PregeneratedShape> by lazy {
         listOf(
             createPregeneratedShape("cat", "easy", "Playful Cat", PieceConfig(Offset(25.0f, 0.0f), 90f, false), PieceConfig(Offset(0.0f, 25.0f), 180f, false), PieceConfig(Offset(-25.0f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, -25.0f), 90f, false), PieceConfig(Offset(-25.0f, 0.0f), 90f, false), PieceConfig(Offset(12.5f, -25.0f), 90f, false), PieceConfig(Offset(-37.5f, 25.0f), 90f, false)),
