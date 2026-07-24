@@ -106,7 +106,7 @@ object SvgPuzzleParser {
             val sanitizedString = sanitizePathData(rawPathString)
             try {
                 val piecePath = PathParser.createPathFromPathData(sanitizedString)
-                if (piecePath != null && !piecePath.isEmpty) {
+                if (!piecePath.isEmpty) {
                     masterPath.addPath(piecePath)
                     rawPaths.add(piecePath)
                 }
@@ -167,6 +167,8 @@ object SvgPuzzleParser {
         val targetSlots = mutableListOf<TargetSlot>()
         val targetVertices = mutableListOf<PointF>()
 
+        val numberRegex = Regex("""[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?""")
+
         for (i in transformedPaths.indices) {
             val p = transformedPaths[i]
             val area = pathAreas[i]
@@ -179,6 +181,16 @@ object SvgPuzzleParser {
             val center = PointF(pBounds.centerX(), pBounds.centerY())
             targetSlots.add(TargetSlot(center, type))
             targetVertices.add(center)
+            
+            // Extract corner vertices from raw SVG path data
+            val rawPathStr = sanitizePathData(matches.elementAt(i).groupValues[1])
+            val numbers = numberRegex.findAll(rawPathStr).mapNotNull { it.value.toFloatOrNull() }.toList()
+            for (j in 0 until numbers.size - 1 step 2) {
+                val pts = floatArrayOf(numbers[j], numbers[j + 1])
+                matrix.mapPoints(pts)
+                targetVertices.add(PointF(pts[0], pts[1]))
+            }
+            
             Log.d("TangramParse", "Piece $i classified as $type (Area: $area, Unit expected: $expectedUnitArea)")
         }
 

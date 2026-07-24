@@ -220,41 +220,21 @@ class TangramsViewModel(
     }
 
     /**
-     * Magnetically snaps piece vertices and centers to target solution slots & neighboring piece corners.
+     * Magnetically snaps piece vertices to target silhouette corners and neighboring placed piece corners.
      */
     fun snapPiece(id: Int) {
         val currentPieces = _pieces.value
         val activePiece = currentPieces.firstOrNull { it.id == id } ?: return
 
-        // 1. Check center snapping to matching target solution slots first
-        val pBounds = RectF()
-        activePiece.getTransformedPath().computeBounds(pBounds, true)
-        val pieceCenter = PointF(pBounds.centerX(), pBounds.centerY())
-        val pType = getPieceType(activePiece)
-
-        val matchingSlot = targetSlots.firstOrNull { slot ->
-            slot.pieceType == pType && hypot(slot.center.x - pieceCenter.x, slot.center.y - pieceCenter.y) <= 60f
-        }
-
-        if (matchingSlot != null) {
-            val dx = matchingSlot.center.x - pieceCenter.x
-            val dy = matchingSlot.center.y - pieceCenter.y
-            _pieces.value = _pieces.value.map { piece ->
-                if (piece.id == id) {
-                    piece.copy(x = piece.x + dx, y = piece.y + dy)
-                } else piece
-            }
-            checkVictory()
-            return
-        }
-
-        // 2. Vertex snapping to other placed pieces and target vertices
         val activeVertices = getTransformedVertices(activePiece)
-        val targetVertices = mutableListOf<PointF>()
+        val candidateSnapTargets = mutableListOf<PointF>()
 
-        targetVertices.addAll(targetSolutionVertices)
+        // 1. Target silhouette corner vertices
+        candidateSnapTargets.addAll(targetSolutionVertices)
+
+        // 2. Vertices of other placed pieces
         currentPieces.filter { it.id != id }.forEach { piece ->
-            targetVertices.addAll(getTransformedVertices(piece))
+            candidateSnapTargets.addAll(getTransformedVertices(piece))
         }
 
         val snapThreshold = 40f
@@ -263,7 +243,7 @@ class TangramsViewModel(
         var minDistance = Float.MAX_VALUE
 
         for (v in activeVertices) {
-            for (t in targetVertices) {
+            for (t in candidateSnapTargets) {
                 val dist = hypot(t.x - v.x, t.y - v.y)
                 if (dist < minDistance && dist <= snapThreshold) {
                     minDistance = dist
@@ -330,7 +310,7 @@ class TangramsViewModel(
     }
 
     fun checkVictory() {
-        val solved = TangramValidator.isPuzzleSolved(_pieces.value, targetPiecePaths)
+        val solved = TangramValidator.isPuzzleSolved(_pieces.value, _targetSilhouette.value)
         _isPuzzleSolved.value = solved
     }
 
@@ -342,14 +322,6 @@ class TangramsViewModel(
         android.util.Log.d("TangramDebug", "=== DEBUG STATE ===")
         android.util.Log.d("TangramDebug", "Screen: ${screenWidth}x${screenHeight}")
         android.util.Log.d("TangramDebug", "PieceScale: $calculatedPieceScale")
-        android.util.Log.d("TangramDebug", "TargetPiecePaths count: ${targetPiecePaths.size}")
-        
-        for ((i, pair) in targetPiecePaths.withIndex()) {
-            val (tPath, tType) = pair
-            val b = RectF()
-            tPath.computeBounds(b, true)
-            android.util.Log.d("TangramDebug", "  Target[$i] type=$tType bounds=[${b.left.toInt()},${b.top.toInt()},${b.right.toInt()},${b.bottom.toInt()}] size=${b.width().toInt()}x${b.height().toInt()}")
-        }
         
         for (piece in _pieces.value) {
             val pPath = piece.getTransformedPath()
