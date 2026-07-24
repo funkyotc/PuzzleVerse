@@ -57,6 +57,8 @@ git add -A && git commit -m "type(scope): description"
 - **Pre-generated Data**: Daily/Standard puzzles use pre-generated Kotlin objects, NOT runtime generation. Modifying puzzle logic requires updating both sources.
 - **No CI/CD**: No GitHub Actions or other CI workflows exist. Builds are manual.
 - **No opencode.json**: Repository lacks opencode configuration; consider creating one for custom instructions.
+- **Compose Multi-Touch Gestures**: Stacking standard `detectDragGestures` and `detectTapGestures` suppresses multi-finger input (e.g. tapping secondary finger while dragging). Use `awaitPointerEventScope` to track multi-pointer state explicitly.
+- **SVG Silhouette Paths**: Composite puzzle silhouettes must combine constituent SVG piece paths via geometric `Path.Op.UNION` to strip internal edges and render clean outer outlines.
 
 ## Key Files
 - `app/build.gradle.kts` — Build config, dependencies, build types (namespace `com.funkyotc.puzzleverse`)
