@@ -179,10 +179,26 @@ object SvgPuzzleParser {
             val center = PointF(pBounds.centerX(), pBounds.centerY())
             targetSlots.add(TargetSlot(center, type))
             targetVertices.add(center)
-            
             Log.d("TangramParse", "Piece $i classified as $type (Area: $area, Unit expected: $expectedUnitArea)")
         }
 
-        return SilhouetteResult(masterPath, pieceScale, targetVertices, targetSlots, finalPiecePaths)
+        // Create a single unified silhouette path without internal piece lines
+        val combinedPath = Path()
+        try {
+            for (piecePath in rawPaths) {
+                if (combinedPath.isEmpty) {
+                    combinedPath.set(piecePath)
+                } else {
+                    combinedPath.op(piecePath, Path.Op.UNION)
+                }
+            }
+            combinedPath.transform(matrix)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        val silhouettePath = if (!combinedPath.isEmpty) combinedPath else masterPath
+
+        return SilhouetteResult(silhouettePath, pieceScale, targetVertices, targetSlots, finalPiecePaths)
     }
 }
