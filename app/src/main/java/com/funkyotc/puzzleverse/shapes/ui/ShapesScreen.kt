@@ -408,29 +408,30 @@ fun ShapesScreen(
                                 )
                             )
 
-                            // 3. Draw Target Silhouette (Concave Outline) in Upper Area
-                            val targetVertices = puzzleState.target.vertices
-                            val targetPath = Path().apply {
-                                if (targetVertices.isNotEmpty()) {
-                                    val first = targetVertices.first()
-                                    moveTo(first.x * gridScale, first.y * gridScale)
-                                    targetVertices.drop(1).forEach {
-                                        lineTo(it.x * gridScale, it.y * gridScale)
+                            // 3. Draw Target Silhouette (Concave Silhouette of all target pieces)
+                            puzzleState.target.polygons.forEach { poly ->
+                                val targetPath = Path().apply {
+                                    if (poly.isNotEmpty()) {
+                                        val first = poly.first()
+                                        moveTo(first.x * gridScale, first.y * gridScale)
+                                        poly.drop(1).forEach {
+                                            lineTo(it.x * gridScale, it.y * gridScale)
+                                        }
+                                        close()
                                     }
-                                    close()
                                 }
-                            }
 
-                            drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
-                            clipPath(targetPath) {
-                                drawPath(
-                                    targetPath,
-                                    Color(0xFF38BDF8), // Cyan silhouette outline
-                                    style = Stroke(
-                                        width = 4.0f,
-                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                                drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
+                                clipPath(targetPath) {
+                                    drawPath(
+                                        targetPath,
+                                        Color(0xFF38BDF8), // Cyan silhouette outline
+                                        style = Stroke(
+                                            width = 4.0f,
+                                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
+                                        )
                                     )
-                                )
+                                }
                             }
 
                             // 4. Draw Pieces (Sorted: locked first, then unselected, then selected on top)

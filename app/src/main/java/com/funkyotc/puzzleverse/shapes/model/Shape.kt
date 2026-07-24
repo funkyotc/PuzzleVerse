@@ -56,9 +56,12 @@ data class PuzzlePiece(
 }
 
 data class TargetSilhouette(
-    val vertices: List<Offset>,  // The actual concave outline polygon in grid coordinates
+    val polygons: List<List<Offset>>,  // Target piece polygons in grid coordinates
     val color: Color = Color(0xFF1E293B)
-)
+) {
+    /** Flattened list of all target vertices for snap targets */
+    val vertices: List<Offset> get() = polygons.flatten()
+}
 
 data class ShapesPuzzle(
     val id: String,

@@ -2,9 +2,6 @@ package com.funkyotc.puzzleverse.shapes.util
 
 import android.util.Log
 import com.funkyotc.puzzleverse.shapes.data.PregeneratedShape
-import com.funkyotc.puzzleverse.shapes.model.TangramPieceType
-import com.funkyotc.puzzleverse.shapes.model.TangramPieces
-import androidx.compose.ui.geometry.Offset
 import kotlin.math.abs
 
 /**
@@ -48,10 +45,10 @@ object TangramVerifier {
             }
         }
 
-        // 3. Compute silhouette and check non-empty
-        val silhouette = puzzle.computeSilhouette()
-        if (silhouette.isEmpty()) {
-            errors.add("Failed to compute outer boundary silhouette")
+        // 3. Compute silhouette target polygons and check non-empty
+        val targetPolygons = puzzle.toShapesPuzzle().target.polygons
+        if (targetPolygons.size != 7) {
+            errors.add("Failed to compute target silhouette polygons, expected 7, found ${targetPolygons.size}")
         }
 
         return errors

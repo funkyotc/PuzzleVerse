@@ -26,16 +26,14 @@ data class PregeneratedShape(
     override val label: String get() = name
     override val subtitle: String get() = category
 
-    private val cachedSilhouette: List<Offset> by lazy { computeSilhouette() }
-
-    fun computeSilhouette(): List<Offset> {
+    fun toShapesPuzzle(): ShapesPuzzle {
         val types = listOf(
             TangramPieceType.LARGE_TRIANGLE_1, TangramPieceType.LARGE_TRIANGLE_2,
             TangramPieceType.MEDIUM_TRIANGLE, TangramPieceType.SMALL_TRIANGLE_1,
             TangramPieceType.SMALL_TRIANGLE_2, TangramPieceType.SQUARE,
             TangramPieceType.PARALLELOGRAM
         )
-        val polygons = types.zip(placements).map { (type, placement) ->
+        val targetPolygons = types.zip(placements).map { (type, placement) ->
             val localVerts = TangramPieces.verticesForType(type)
             GeometryUtils.transformPolygon(
                 localVerts,
@@ -44,17 +42,6 @@ data class PregeneratedShape(
                 isFlipped = placement.flipped
             )
         }
-        val boundary = GeometryUtils.computeOuterBoundary(polygons)
-        return boundary.ifEmpty { polygons.flatten().distinct() }
-    }
-
-    fun toShapesPuzzle(): ShapesPuzzle {
-        val types = listOf(
-            TangramPieceType.LARGE_TRIANGLE_1, TangramPieceType.LARGE_TRIANGLE_2,
-            TangramPieceType.MEDIUM_TRIANGLE, TangramPieceType.SMALL_TRIANGLE_1,
-            TangramPieceType.SMALL_TRIANGLE_2, TangramPieceType.SQUARE,
-            TangramPieceType.PARALLELOGRAM
-        )
         val pieces = types.zip(placements).mapIndexed { index, (type, placement) ->
             val localVerts = TangramPieces.verticesForType(type)
             val solutionPos = Offset(placement.x, placement.y)
@@ -68,7 +55,7 @@ data class PregeneratedShape(
                 solutionFlipped = placement.flipped
             )
         }
-        return ShapesPuzzle(id, name, pieces, TargetSilhouette(cachedSilhouette), false)
+        return ShapesPuzzle(id, name, pieces, TargetSilhouette(targetPolygons), false)
     }
 }
 
