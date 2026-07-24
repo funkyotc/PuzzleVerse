@@ -11,7 +11,6 @@ import com.funkyotc.puzzleverse.shapes.model.ShapesPuzzle
 import com.funkyotc.puzzleverse.shapes.model.TangramPieceType
 import com.funkyotc.puzzleverse.shapes.model.TangramPieces
 import com.funkyotc.puzzleverse.shapes.util.GeometryUtils
-import com.funkyotc.puzzleverse.shapes.util.TangramVerifier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,9 +41,6 @@ class ShapesViewModel(
     private val repository = ShapesRepository(context.applicationContext)
 
     init {
-        // Run debug verification in development
-        TangramVerifier.verifyAllPuzzles(ShapesPregenerated.ALL_PUZZLES)
-
         val saved = repository.loadPieces(mode, puzzleId)
         if (saved != null && mode != "daily") {
             currentLevel = saved.currentLevel

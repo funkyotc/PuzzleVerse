@@ -2,108 +2,86 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="10"
+   height="3"
+   viewBox="0 0 10 3"
    version="1.1"
-   width="852.96423"
-   height="249.08466"
-   id="svg2"
-   inkscape:version="0.47 r22583"
-   sodipodi:docname="Tangram_181_Nevit.svg">
-  <metadata
-     id="metadata3616">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
+   id="svg1"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   sodipodi:docname="bridge.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
-     pagecolor="#ffffff"
-     bordercolor="#666666"
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
      borderopacity="1"
-     objecttolerance="10"
-     gridtolerance="10"
-     guidetolerance="10"
+     inkscape:showpageshadow="0"
      inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:window-width="1280"
-     inkscape:window-height="744"
-     id="namedview3614"
-     showgrid="false"
-     inkscape:snap-midpoints="true"
-     inkscape:zoom="0.67058096"
-     inkscape:cx="517.78432"
-     inkscape:cy="179.49868"
-     inkscape:window-x="-4"
-     inkscape:window-y="-4"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="128"
+     inkscape:cx="4.828125"
+     inkscape:cy="2.8398437"
+     inkscape:window-width="3840"
+     inkscape:window-height="2071"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg2" />
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="1"
+       color="#0099e5"
+       opacity="0.5254902"
+       empspacing="5"
+       enabled="true"
+       visible="true"
+       dotted="false" />
+  </sodipodi:namedview>
   <defs
-     id="defs4">
-    <inkscape:perspective
-       sodipodi:type="inkscape:persp3d"
-       inkscape:vp_x="0 : 270.5 : 1"
-       inkscape:vp_y="0 : 1000 : 0"
-       inkscape:vp_z="541 : 270.5 : 1"
-       inkscape:persp3d-origin="270.5 : 180.33333 : 1"
-       id="perspective3618" />
-  </defs>
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="m 850.96421,245.2221 -243.07104,10e-6 L 608.38324,2.6411199 850.96421,245.2221 z"
-     id="path3626"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="M 1.9999999,245.09959 244.58099,2.5185999 l 0,243.0710501 -242.5809901,-0.49006 z"
-     id="path3628"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="m 365.61429,3.1392799 121.24153,120.7923401 121.28239,0 L 487.39485,2.8942399 365.61428,3.1392799 z"
-     id="path3632"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="m 244.58099,2.7717299 0,121.2824001 L 365.32435,3.0167599 244.58099,2.7717299 z"
-     id="path3634"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="m 361.26714,247.08466 121.28239,0 0.55524,-121.03736 -121.83763,-0.24503 0,121.28239 z"
-     id="path3638"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="M 608.65276,2.5552499 487.61539,1.9999999 607.91766,124.82586 608.65276,2.5552499 z"
-     id="path3636"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
-  <path
-     style="fill:#d40000;stroke:#ffffff;stroke-width:3.99999976;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-     d="M 244.83007,124.42978 365.07526,2.6411199 487.39484,124.42978 l -242.56478,0 z"
-     id="path3640"
-     inkscape:export-filename="C:\Documents and Settings\Leylosss\Belgelerim\path3626.png"
-     inkscape:export-xdpi="32.989559"
-     inkscape:export-ydpi="32.989559" />
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="m 2.8284273,1.4142138 2.828427,-4e-7 L 4.2426409,8.5e-8 Z"
+       id="path12" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="M 5.6568544,1.4142139 V 2.8284275 H 4.2426408 l 10e-8,-1.4142134 z"
+       id="path13" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="M 4.2426408,5e-8 2.8284271,0 l -10e-8,1.4142139 z"
+       id="path14" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="M 5.6568543,6.625e-8 7.0710679,1.4142136 7.0710677,3.6625e-7 Z"
+       id="path15" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="m 7.0710676,1.4142137 -1.414213,-2e-7 L 4.2426406,0 5.6568546,-6.75e-8 Z"
+       id="path16" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="M 9.8994949,2.8284273 H 7.0710675 l 1e-7,-2.8284272 z"
+       id="path17" />
+    <path
+       style="fill:#ffffff;stroke-width:0.264583"
+       d="M 0,2.8284271 2.8284268,0 l 2e-7,2.8284273 z"
+       id="path18" />
+  </g>
 </svg>

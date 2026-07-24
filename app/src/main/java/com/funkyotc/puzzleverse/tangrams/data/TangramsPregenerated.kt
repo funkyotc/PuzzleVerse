@@ -16,11 +16,12 @@ data class TangramPuzzleInfo(
 object TangramsPregenerated {
     val ALL_PUZZLES = listOf(
         TangramPuzzleInfo("triangle", "Easy", "Triangle", "tangrams/triangle.svg", "🔺"),
+        TangramPuzzleInfo("square", "Easy", "Square", "tangrams/square.svg", "🟩"),
         TangramPuzzleInfo("rhombus", "Easy", "Rhombus", "tangrams/rhombus.svg", "🔷"),
         TangramPuzzleInfo("gem", "Easy", "Gem", "tangrams/gem.svg", "💎"),
         TangramPuzzleInfo("candle", "Easy", "Candle", "tangrams/candle.svg", "🕯️"),
         TangramPuzzleInfo("house", "Easy", "House", "tangrams/house.svg", "🏠"),
-        TangramPuzzleInfo("fish", "Easy", "Fish", "tangrams/fish.svg", "🐟"),
+        TangramPuzzleInfo("koi", "Easy", "Koi", "tangrams/koi.svg", "🎏"),
         TangramPuzzleInfo("snake", "Easy", "Snake", "tangrams/snake.svg", "🐍"),
         TangramPuzzleInfo("swan", "Medium", "Swan", "tangrams/swan.svg", "🦢"),
         TangramPuzzleInfo("cat", "Medium", "Cat", "tangrams/cat.svg", "🐱"),

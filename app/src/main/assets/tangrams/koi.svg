@@ -2,13 +2,13 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="7"
-   height="8"
-   viewBox="0 0 7 8"
+   width="8"
+   height="7"
+   viewBox="0 0 8 7"
    version="1.1"
    id="svg1"
    inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
-   sodipodi:docname="person.svg"
+   sodipodi:docname="koi.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -25,8 +25,8 @@
      inkscape:document-units="mm"
      showgrid="true"
      inkscape:zoom="128"
-     inkscape:cx="2.3828125"
-     inkscape:cy="2.8476562"
+     inkscape:cx="4.3125"
+     inkscape:cy="3.5507812"
      inkscape:window-width="3840"
      inkscape:window-height="2071"
      inkscape:window-x="-9"
@@ -57,31 +57,31 @@
      id="layer1">
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 4.4142123,2.5857868 -2.8284266,2e-7 1.4142129,1.4142131 z"
+       d="M 0,3.5857857 6e-7,6.4142126 1.4142137,4.9999998 Z"
        id="path12" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="M 3.9999998,1.0000005 5,-3.5e-8 6.0000003,1.0000003 5.0000005,2 Z"
+       d="M 7.6568572,5.8284279 H 6.2426434 l -2e-7,-1.4142138 1.414213,-3e-7 z"
        id="path13" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 4.4142123,5.4142138 -4e-7,-1.4142123 -1.4142136,-1.4e-6 z"
+       d="M 6.2426427,3.0000003 V 4.414214 l 1.414214,-2e-7 z"
        id="path14" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 1.999999,6 -1.9999996,1e-7 1.00000053,0.999999 z"
+       d="m 5.4142134,4.9999998 -1.414213,1.4142134 1.414213,-1e-6 z"
        id="path15" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 6.414212,7.4142129 -1.4142128,6e-7 -1.4142137,-1.4142129 1.414214,-5e-7 z"
+       d="m 5.2426417,4.5e-7 1,0.9999993 1e-6,1.99999995 -1.000001,-1.0000002 z"
        id="path16" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 0.99999923,6.0000001 2.00000007,-2 1.9999995,2 z"
+       d="m 1.4142137,4.9999998 2,-2.0000001 1.9999997,2.0000001 z"
        id="path17" />
     <path
        style="fill:#ffffff;stroke-width:0.264583"
-       d="m 7.000001,3.9999997 -4.000002,4e-7 L 4.9999999,2 Z"
+       d="m 6.2426427,5.8284283 -2.828429,-2.8284286 2.828428,1.2e-6 z"
        id="path18" />
   </g>
 </svg>
