@@ -260,6 +260,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("chess/puzzles")
                     }
                 }
+                "tangrams" -> {
+                    MenuCard(text = "Random Puzzle") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/tangrams/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("tangrams/puzzles")
+                    }
+                }
                 else -> {
                     MenuCard(text = "Standard") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
