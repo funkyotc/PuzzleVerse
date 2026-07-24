@@ -61,7 +61,8 @@ val games = listOf(
     Game("hexasort", "Hexa Sort"),
     Game("chess", "Chess"),
     Game("hashi", "Hashi"),
-    Game("arrowescape", "Arrow Escape")
+    Game("arrowescape", "Arrow Escape"),
+    Game("tangrams", "Tangrams")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

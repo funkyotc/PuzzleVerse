@@ -67,6 +67,8 @@ import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
 import com.funkyotc.puzzleverse.hashi.ui.HashiScreen
 import com.funkyotc.puzzleverse.hashi.data.HashiPregenerated
 import com.funkyotc.puzzleverse.arrowescape.ui.ArrowEscapeScreen
+import com.funkyotc.puzzleverse.tangrams.ui.TangramsScreen
+import com.funkyotc.puzzleverse.tangrams.data.TangramsPregenerated
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -185,6 +187,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "tangrams" -> TangramsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -216,6 +219,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
+                "tangrams" -> TangramsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -564,6 +568,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             HashiScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("tangrams/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Tangrams",
+                gameName = "Tangrams",
+                navController = navController,
+                puzzlesByDifficulty = TangramsPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/tangrams/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/tangrams/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            TangramsScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
