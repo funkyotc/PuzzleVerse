@@ -7,6 +7,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -105,7 +107,7 @@ fun TangramsScreen(
 
     if (showHowToDialog) {
         GameHowToDialog(
-            instructions = "Drag and rotate the Tangram pieces so they fit perfectly into the target silhouette without overlapping. Pieces will magnetically snap into place.",
+            instructions = "Drag and rotate the Tangram pieces to fit into the target silhouette. While holding/dragging a piece with one finger, tap anywhere with a second finger to rotate it!",
             onDismiss = { showHowToDialog = false }
         )
     }
@@ -226,50 +228,86 @@ fun TangramsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onDoubleTap = { offset ->
-                                val hitPiece = pieces.reversed().firstOrNull { it.containsPoint(offset.x, offset.y) }
-                                hitPiece?.let { piece ->
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    vm.rotatePiece(piece.id)
-                                    vm.selectPiece(piece.id)
+                        var lastTapTime = 0L
+                        var lastTapPieceId: Int? = null
+
+                        awaitPointerEventScope {
+                            while (true) {
+                                val downEvent = awaitFirstDown(requireUnconsumed = false)
+                                val primaryPointerId = downEvent.id
+                                var lastPosition = downEvent.position
+
+                                val currentPieces = pieces
+                                val hitPiece = currentPieces.reversed().firstOrNull { it.containsPoint(lastPosition.x, lastPosition.y) }
+
+                                if (hitPiece == null) {
+                                    vm.selectPiece(null)
+                                    continue
                                 }
-                            },
-                            onTap = { offset ->
-                                val hitPiece = pieces.reversed().firstOrNull { it.containsPoint(offset.x, offset.y) }
-                                if (hitPiece != null) {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+
+                                val pieceId = hitPiece.id
+                                activeDragPieceId = pieceId
+                                vm.selectPiece(pieceId)
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+
+                                var isDragging = false
+                                var totalDragDistance = 0f
+                                val touchSlop = viewConfiguration.touchSlop
+                                val currentTime = System.currentTimeMillis()
+
+                                // Double-tap rotation check
+                                if (lastTapPieceId == pieceId && (currentTime - lastTapTime) < 350L) {
+                                    vm.rotatePiece(pieceId)
+                                    lastTapTime = 0L
+                                    lastTapPieceId = null
+                                } else {
+                                    lastTapTime = currentTime
+                                    lastTapPieceId = pieceId
                                 }
-                                vm.selectPiece(hitPiece?.id)
+
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val primaryChange = event.changes.firstOrNull { it.id == primaryPointerId }
+
+                                    if (primaryChange == null || !primaryChange.pressed) {
+                                        // Primary finger released or cancelled
+                                        if (isDragging) {
+                                            soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
+                                            vm.snapPiece(pieceId)
+                                        }
+                                        activeDragPieceId = null
+                                        break
+                                    }
+
+                                    // Secondary finger tap detection (rotates the piece being held/dragged)
+                                    val secondPointerDown = event.changes.firstOrNull { change ->
+                                        change.id != primaryPointerId && change.changedToDown()
+                                    }
+                                    if (secondPointerDown != null) {
+                                        secondPointerDown.consume()
+                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                        vm.rotatePiece(pieceId)
+                                    }
+
+                                    // Primary finger drag movement
+                                    val currentPos = primaryChange.position
+                                    val dragAmount = currentPos - lastPosition
+                                    val dist = dragAmount.getDistance()
+
+                                    if (dist > 0f) {
+                                        totalDragDistance += dist
+                                        if (!isDragging && totalDragDistance > touchSlop) {
+                                            isDragging = true
+                                        }
+                                        if (isDragging) {
+                                            primaryChange.consume()
+                                            vm.updatePiecePosition(pieceId, dragAmount.x, dragAmount.y)
+                                        }
+                                        lastPosition = currentPos
+                                    }
+                                }
                             }
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                val hitPiece = pieces.reversed().firstOrNull { it.containsPoint(offset.x, offset.y) }
-                                hitPiece?.let { piece ->
-                                    activeDragPieceId = piece.id
-                                    vm.selectPiece(piece.id)
-                                }
-                            },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                activeDragPieceId?.let { id ->
-                                    vm.updatePiecePosition(id, dragAmount.x, dragAmount.y)
-                                }
-                            },
-                            onDragEnd = {
-                                activeDragPieceId?.let { id -> 
-                                    soundManager.playSound(SoundManager.SOUND_ID_SNAP_CONNECT)
-                                    vm.snapPiece(id) 
-                                }
-                                activeDragPieceId = null
-                            },
-                            onDragCancel = {
-                                activeDragPieceId = null
-                            }
-                        )
+                        }
                     }
             ) {
                 // 1. Draw Target Silhouette
