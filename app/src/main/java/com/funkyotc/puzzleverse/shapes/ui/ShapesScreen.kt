@@ -408,9 +408,9 @@ fun ShapesScreen(
                                 )
                             )
 
-                            // 3. Draw Target Silhouette (Concave Silhouette of all target pieces)
+                            // 3. Draw Target Silhouette (Seamless solid target shape)
                             puzzleState.target.polygons.forEach { poly ->
-                                val targetPath = Path().apply {
+                                val piecePath = Path().apply {
                                     if (poly.isNotEmpty()) {
                                         val first = poly.first()
                                         moveTo(first.x * gridScale, first.y * gridScale)
@@ -420,18 +420,16 @@ fun ShapesScreen(
                                         close()
                                     }
                                 }
-
-                                drawPath(targetPath, Color(0xFF1E293B).copy(alpha = 0.6f), style = Fill) // Slate fill
-                                clipPath(targetPath) {
-                                    drawPath(
-                                        targetPath,
-                                        Color(0xFF38BDF8), // Cyan silhouette outline
-                                        style = Stroke(
-                                            width = 4.0f,
-                                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
-                                        )
+                                // Solid slate fill merges adjacent pieces into a seamless target silhouette
+                                drawPath(piecePath, Color(0xFF1E293B).copy(alpha = 0.85f), style = Fill)
+                                drawPath(
+                                    piecePath,
+                                    Color(0xFF38BDF8).copy(alpha = 0.6f),
+                                    style = Stroke(
+                                        width = 2.5f,
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
                                     )
-                                }
+                                )
                             }
 
                             // 4. Draw Pieces (Sorted: locked first, then unselected, then selected on top)
