@@ -214,7 +214,6 @@ fun GameTypePreview(gameName: String, isCompleted: Boolean) {
         "kakuro" -> Text("◩", fontSize = 20.sp, color = tint)
         "nonogram" -> Text("⬛", fontSize = 20.sp, color = tint)
         "constellations" -> Text("✨", fontSize = 20.sp, color = tint)
-        "shapes" -> Text("▲", fontSize = 20.sp, color = tint)
         "minesweeper" -> Text("💣", fontSize = 20.sp, color = tint)
         "pullpin" -> Text("📌", fontSize = 20.sp, color = tint)
         "wood screws" -> Text("🔩", fontSize = 20.sp, color = tint)

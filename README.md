@@ -2,7 +2,7 @@
 
 ### **1. High-Level Summary**
 
-The goal is to create a polished, engaging, and user-friendly native Android application named "PuzzleVerse". The app will serve as a hub for multiple classic puzzle games, each with two modes: a "Standard" mode for casual play and a "Daily Challenge" mode that is consistent for all users each day. The initial game roster will include Sudoku, Bonza, Constellations, Shapes, and Wordle.
+The goal is to create a polished, engaging, and user-friendly native Android application named "PuzzleVerse". The app will serve as a hub for multiple classic puzzle games, each with two modes: a "Standard" mode for casual play and a "Daily Challenge" mode that is consistent for all users each day. The initial game roster will include Sudoku, Bonza, Constellations, and Wordle.
 
 The application will be built using modern, best-practice Android development technologies to ensure it is robust, maintainable, and has a high-quality feel. This document reflects the current state of the application, using the Sudoku game as a template for future development.
 
@@ -18,7 +18,6 @@ The application will be built using modern, best-practice Android development te
     *   **Sudoku:** Classic 9x9 number grid puzzle.
     *   **Bonza:** A word puzzle where users connect word fragments on a grid.
     *   **Constellations:** A logic game where the goal is to place stars in every row, column, and color region.
-    *   **Shapes:** A tangram-style puzzle where users fit geometric pieces into a target silhouette.
     *   **Wordle:** The popular 5-letter word guessing game.
 *   **Local Progress Storage:** User progress for daily challenges, standard games, and streaks are saved on the device.
 *   **Fullscreen Mode:** The app runs in an immersive fullscreen mode, hiding the system status and navigation bars.
@@ -77,7 +76,7 @@ The Sudoku game has been implemented with a polished UI and a robust set of feat
 
 **Phase 3: Implementing the Remaining Games**
 *Using the Sudoku implementation as a template:*
-1.  **For each game (Wordle, Bonza, Constellations, Shapes):**
+1.  **For each game (Wordle, Bonza, Constellations):**
     *   Implement the game's data models and logic within a `ViewModel`.
     *   Create the interactive game board UI using Jetpack Compose, following the `Scaffold` and `TopAppBar` pattern.
     *   Implement the `Standard` and `Daily Challenge` modes, using the `ViewModelFactory` to handle puzzle loading and generation.

@@ -1,7 +1,7 @@
 # AGENTS.md — PuzzleVerse
 
 ## Project Overview
-Android app with 18 puzzle games: sudoku, bonza, constellations, shapes, wordle, tfe (2048), minesweeper, nonogram, blockpuzzle, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess. Each game has Standard / Daily modes with streak tracking and resume.
+Android app with 19 puzzle games: sudoku, bonza, constellations, wordle, tfe (2048), minesweeper, nonogram, blockpuzzle, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess, hashi, tangrams. Each game has Standard / Daily modes with streak tracking and resume.
 
 ## Commands
 ```bash

@@ -29,7 +29,6 @@ import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
 import com.funkyotc.puzzleverse.constellations.ui.ConstellationsScreen
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.settings.ui.SettingsScreen
-import com.funkyotc.puzzleverse.shapes.ui.ShapesScreen
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.ui.screens.detail.GameDetailScreen
 import com.funkyotc.puzzleverse.ui.screens.game.GameScreen
@@ -50,7 +49,6 @@ import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
 import com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated
-import com.funkyotc.puzzleverse.shapes.data.ShapesPregenerated
 import com.funkyotc.puzzleverse.shikaku.data.ShikakuPregenerated
 import com.funkyotc.puzzleverse.cubeshooter.ui.CubeShooterScreen
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
@@ -171,7 +169,6 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
-                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
@@ -218,7 +215,6 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "shapes" -> ShapesScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 "tangrams" -> TangramsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
@@ -407,29 +403,6 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             ConstellationsScreen(
-                navController = navController,
-                mode = "puzzle",
-                puzzleId = puzzleId,
-                settingsRepository = settingsRepository,
-                streakRepository = streakRepository
-            )
-        }
-        composable("shapes/puzzles") {
-            PuzzleBrowserScreen(
-                title = "Shapes Puzzles",
-                gameName = "Shapes",
-                navController = navController,
-                puzzlesByDifficulty = ShapesPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
-                difficultyOrder = listOf("Easy", "Medium", "Hard"),
-                onPuzzleClick = { puzzle -> navController.navigate("game/shapes/puzzle/${puzzle.id}") }
-            )
-        }
-        composable(
-            "game/shapes/puzzle/{puzzleId}",
-            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
-            ShapesScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,

@@ -46,7 +46,6 @@ val games = listOf(
     Game("sudoku", "Sudoku"),
     Game("bonza", "Bonza"),
     Game("constellations", "Constellations"),
-    Game("shapes", "Shapes"),
     Game("wordle", "Wordle"),
     Game("tfe", "2048"),
     Game("minesweeper", "Minesweeper"),
