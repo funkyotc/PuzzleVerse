@@ -231,11 +231,7 @@ object FlowFreeGenerator {
         }
 
         private fun areAllPathsMinimal(paths: MutableMap<Int, MutableList<Point>>): Boolean {
-            for ((colorId, path) in paths) {
-                val minLength = minPathLengths[colorId] ?: continue
-                // Path includes start point, so size >= minLength
-                if (path.size > minLength) return false
-            }
+            // Flow Free paths fill grid space and do not need to equal Manhattan distance
             return true
         }
 
