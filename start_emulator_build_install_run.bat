@@ -27,7 +27,7 @@ if not defined SDK_DIR (
     exit /b 1
 )
 
-:: Export SDK environment variables so emulator.exe can find system images
+:: Export SDK environment variables for current process tree
 set "ANDROID_SDK_ROOT=%SDK_DIR%"
 set "ANDROID_HOME=%SDK_DIR%"
 set "PATH=%SDK_DIR%\platform-tools;%SDK_DIR%\emulator;%PATH%"
@@ -52,7 +52,7 @@ if %ERRORLEVEL% equ 0 (
 echo.
 echo [2/4] Finding available Android Virtual Devices (AVDs)...
 set "AVD_NAME="
-for /f "tokens=*" %%a in ('"%EMULATOR_EXE%" -list-avds 2^>nul') do (
+for /f "tokens=*" %%a in ('"%EMULATOR_EXE%" -list-avds -sdk_root "%SDK_DIR%" 2^>nul') do (
     if not defined AVD_NAME set "AVD_NAME=%%a"
 )
 
@@ -62,13 +62,13 @@ if not defined AVD_NAME (
 )
 
 echo Starting emulator with AVD: %AVD_NAME%
-start "" "%EMULATOR_EXE%" -avd %AVD_NAME%
+start "" "%EMULATOR_EXE%" -avd %AVD_NAME% -sdk_root "%SDK_DIR%"
 
-echo Waiting for emulator to boot up...
+echo Waiting for emulator to connect...
 "%ADB_EXE%" wait-for-device
 
 :WAIT_BOOT
-timeout /t 2 /nobreak >nul
+ping 127.0.0.1 -n 3 >nul
 for /f "tokens=*" %%b in ('"%ADB_EXE%" shell getprop sys.boot_completed 2^>nul') do set "BOOT_STATUS=%%b"
 set "BOOT_STATUS=%BOOT_STATUS:~0,1%"
 if not "%BOOT_STATUS%"=="1" (
