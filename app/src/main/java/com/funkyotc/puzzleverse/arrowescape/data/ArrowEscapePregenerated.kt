@@ -3,6 +3,16 @@ package com.funkyotc.puzzleverse.arrowescape.data
 import com.funkyotc.puzzleverse.arrowescape.model.Arrow
 import com.funkyotc.puzzleverse.arrowescape.model.Coordinate
 import com.funkyotc.puzzleverse.arrowescape.model.Direction
+import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
+
+data class ArrowEscapePuzzle(
+    override val id: String,
+    override val difficulty: String,
+    val arrows: List<Arrow>
+) : BrowseablePuzzle {
+    override val label: String get() = "Puzzle ${id.takeLast(3)}"
+    override val subtitle: String get() = "${arrows.size} arrows"
+}
 
 object ArrowEscapePuzzle1 {
     val arrows = listOf(
@@ -1935,36 +1945,40 @@ object ArrowEscapePuzzle24 {
 }
 
 object ArrowEscapePregenerated {
-    val PUZZLES_BY_DIFFICULTY = mapOf(
-        "Easy" to listOf(
-            ArrowEscapePuzzle1.arrows,
-            ArrowEscapePuzzle2.arrows,
-            ArrowEscapePuzzle3.arrows,
-            ArrowEscapePuzzle4.arrows,
-            ArrowEscapePuzzle5.arrows,
-            ArrowEscapePuzzle6.arrows,
-            ArrowEscapePuzzle7.arrows,
-            ArrowEscapePuzzle8.arrows,
-        ),
-        "Medium" to listOf(
-            ArrowEscapePuzzle9.arrows,
-            ArrowEscapePuzzle10.arrows,
-            ArrowEscapePuzzle11.arrows,
-            ArrowEscapePuzzle12.arrows,
-            ArrowEscapePuzzle13.arrows,
-            ArrowEscapePuzzle14.arrows,
-            ArrowEscapePuzzle15.arrows,
-            ArrowEscapePuzzle16.arrows,
-        ),
-        "Hard" to listOf(
-            ArrowEscapePuzzle17.arrows,
-            ArrowEscapePuzzle18.arrows,
-            ArrowEscapePuzzle19.arrows,
-            ArrowEscapePuzzle20.arrows,
-            ArrowEscapePuzzle21.arrows,
-            ArrowEscapePuzzle22.arrows,
-            ArrowEscapePuzzle23.arrows,
-            ArrowEscapePuzzle24.arrows,
-        ),
-    )
+    val ALL_PUZZLES: List<ArrowEscapePuzzle> by lazy {
+        listOf(
+            ArrowEscapePuzzle("arrowescape_easy_001", "Easy", ArrowEscapePuzzle1.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_002", "Easy", ArrowEscapePuzzle2.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_003", "Easy", ArrowEscapePuzzle3.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_004", "Easy", ArrowEscapePuzzle4.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_005", "Easy", ArrowEscapePuzzle5.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_006", "Easy", ArrowEscapePuzzle6.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_007", "Easy", ArrowEscapePuzzle7.arrows),
+            ArrowEscapePuzzle("arrowescape_easy_008", "Easy", ArrowEscapePuzzle8.arrows),
+
+            ArrowEscapePuzzle("arrowescape_medium_001", "Medium", ArrowEscapePuzzle9.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_002", "Medium", ArrowEscapePuzzle10.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_003", "Medium", ArrowEscapePuzzle11.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_004", "Medium", ArrowEscapePuzzle12.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_005", "Medium", ArrowEscapePuzzle13.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_006", "Medium", ArrowEscapePuzzle14.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_007", "Medium", ArrowEscapePuzzle15.arrows),
+            ArrowEscapePuzzle("arrowescape_medium_008", "Medium", ArrowEscapePuzzle16.arrows),
+
+            ArrowEscapePuzzle("arrowescape_hard_001", "Hard", ArrowEscapePuzzle17.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_002", "Hard", ArrowEscapePuzzle18.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_003", "Hard", ArrowEscapePuzzle19.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_004", "Hard", ArrowEscapePuzzle20.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_005", "Hard", ArrowEscapePuzzle21.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_006", "Hard", ArrowEscapePuzzle22.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_007", "Hard", ArrowEscapePuzzle23.arrows),
+            ArrowEscapePuzzle("arrowescape_hard_008", "Hard", ArrowEscapePuzzle24.arrows)
+        )
+    }
+
+    val PUZZLES_BY_DIFFICULTY: Map<String, List<ArrowEscapePuzzle>> by lazy {
+        ALL_PUZZLES.groupBy { it.difficulty }
+    }
+
+    fun getPuzzleById(id: String): ArrowEscapePuzzle? = ALL_PUZZLES.find { it.id == id }
 }

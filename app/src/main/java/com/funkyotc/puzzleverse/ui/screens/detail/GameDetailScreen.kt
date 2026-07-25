@@ -172,15 +172,15 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         navController.navigate("constellations/puzzles")
                     }
                 }
-                "shapes" -> {
+                "hashi" -> {
                     MenuCard(text = "Random Puzzle") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("game/shapes/standard")
+                        navController.navigate("game/hashi/standard")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     MenuCard(text = "Browse Puzzles") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("shapes/puzzles")
+                        navController.navigate("hashi/puzzles")
                     }
                 }
                 "shikaku" -> {
@@ -269,6 +269,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                     MenuCard(text = "Browse Puzzles") {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.navigate("tangrams/puzzles")
+                    }
+                }
+                "arrowescape" -> {
+                    MenuCard(text = "Random Puzzle") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("game/arrowescape/standard")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    MenuCard(text = "Browse Puzzles") {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        navController.navigate("arrowescape/puzzles")
                     }
                 }
                 else -> {

@@ -78,7 +78,7 @@ fun ConstellationsScreen(
     var showHintDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "constellations") }
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "Constellations") }
 
     if (showHintDialog) {
         GameConfirmDialog(

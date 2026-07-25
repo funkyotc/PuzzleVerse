@@ -219,6 +219,12 @@ fun GameTypePreview(gameName: String, isCompleted: Boolean) {
         "wood screws" -> Text("🔩", fontSize = 20.sp, color = tint)
         "hexa sort" -> Text("⬡", fontSize = 20.sp, color = tint)
         "chess" -> Text("♚", fontSize = 20.sp, color = tint)
+        "shikaku" -> Text("⧈", fontSize = 20.sp, color = tint)
+        "water sort" -> Text("🧪", fontSize = 20.sp, color = tint)
+        "hashi" -> Text("🌉", fontSize = 20.sp, color = tint)
+        "tangrams" -> Text("📐", fontSize = 20.sp, color = tint)
+        "arrow escape" -> Text("🏹", fontSize = 20.sp, color = tint)
+        "cube shooter" -> Text("🧊", fontSize = 20.sp, color = tint)
         else -> Text("●", fontSize = 20.sp, color = tint)
     }
 }

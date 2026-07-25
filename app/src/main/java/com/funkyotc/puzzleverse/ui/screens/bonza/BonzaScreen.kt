@@ -95,7 +95,7 @@ fun BonzaScreen(
     var showHintDialog by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
-    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "bonza") }
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "Bonza") }
     
     if (showHintDialog) {
         GameConfirmDialog(

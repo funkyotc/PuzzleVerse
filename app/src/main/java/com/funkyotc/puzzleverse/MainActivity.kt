@@ -232,7 +232,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Bonza",
                 navController = navController,
                 puzzlesByDifficulty = BonzaPregenerated.PUZZLES_BY_THEME,
-                difficultyOrder = listOf("Animals", "Colors", "Space"),
+                difficultyOrder = listOf("Cities", "Fruit", "Nature", "Technology"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/bonza/puzzle/${puzzle.id}") }
             )
         }
@@ -324,7 +324,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Sudoku",
                 navController = navController,
                 puzzlesByDifficulty = SudokuPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
-                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/sudoku/puzzle/${puzzle.id}") }
             )
         }
@@ -462,7 +462,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Wood Screws",
                 navController = navController,
                 puzzlesByDifficulty = WoodNutsPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
-                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert", "Master"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/woodnuts/puzzle/${puzzle.id}") }
             )
         }
@@ -531,7 +531,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Hashi",
                 navController = navController,
                 puzzlesByDifficulty = HashiPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
-                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/hashi/puzzle/${puzzle.id}") }
             )
         }
@@ -564,6 +564,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             TangramsScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository,
+                settingsRepository = settingsRepository
+            )
+        }
+        composable("arrowescape/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Arrow Escape Puzzles",
+                gameName = "Arrow Escape",
+                navController = navController,
+                puzzlesByDifficulty = com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY,
+                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/arrowescape/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/arrowescape/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            ArrowEscapeScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,

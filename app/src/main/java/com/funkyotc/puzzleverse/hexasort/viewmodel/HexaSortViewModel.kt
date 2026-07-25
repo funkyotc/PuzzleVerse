@@ -31,7 +31,7 @@ class HexaSortViewModel(
 ) : ViewModel() {
 
     private val repository = HexaSortRepository(context)
-    private val completionRepo = PuzzleCompletionRepository(context, "HexaSort")
+    private val completionRepo = PuzzleCompletionRepository(context, "Hexa Sort")
     private val gridKey = when {
         mode == "daily" -> "daily_hexasort_grid"
         puzzleId != null -> "puzzle_${puzzleId}"

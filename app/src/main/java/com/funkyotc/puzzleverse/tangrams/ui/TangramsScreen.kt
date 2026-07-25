@@ -77,7 +77,7 @@ fun TangramsScreen(
     val screenHeightPx = with(density) { (configuration.screenHeightDp.dp - 150.dp).toPx() } // Subtract top bar / bottom bar approx
 
     val soundManager = LocalSoundManager.current
-    val completionRepo = remember { PuzzleCompletionRepository(context, "tangrams") }
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Tangrams") }
 
     LaunchedEffect(screenWidthPx, screenHeightPx) {
         if (screenWidthPx > 0f && screenHeightPx > 0f) {

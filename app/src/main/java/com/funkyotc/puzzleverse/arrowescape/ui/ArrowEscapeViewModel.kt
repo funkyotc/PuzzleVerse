@@ -31,14 +31,18 @@ class ArrowEscapeViewModel(
     }
 
     private fun loadPuzzle() {
-        val difficulty = when (mode) {
+        val specificPuzzle = if (puzzleId != null) ArrowEscapePregenerated.getPuzzleById(puzzleId) else null
+        val difficulty = specificPuzzle?.difficulty ?: when (mode) {
             "daily" -> "Medium"
-            else -> "Easy" // For now just default to Easy if not specified or standard
+            else -> "Easy"
         }
         
-        // Pick a random puzzle from the generated list for now
-        val puzzles = ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY[difficulty] ?: emptyList()
-        val arrows = if (puzzles.isNotEmpty()) puzzles.random() else emptyList()
+        val arrows = if (specificPuzzle != null) {
+            specificPuzzle.arrows
+        } else {
+            val puzzles = ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY[difficulty] ?: emptyList()
+            if (puzzles.isNotEmpty()) puzzles.random().arrows else emptyList()
+        }
         
         // Determine grid size based on puzzle
         val width = if (difficulty == "Easy") 10 else if (difficulty == "Medium") 20 else 30

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
@@ -56,10 +57,16 @@ fun FlowFreeScreen(
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val completionRepo = remember { PuzzleCompletionRepository(context, "Flow") }
+
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
             settingsRepository.addWin()
             soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 

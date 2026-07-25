@@ -45,10 +45,16 @@ fun ArrowEscapeScreen(
     val soundManager = LocalSoundManager.current
     var showHowToDialog by remember { mutableStateOf(false) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val completionRepo = remember { com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "Arrow Escape") }
+
     LaunchedEffect(uiState.isComplete) {
         if (uiState.isComplete) {
             soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             settingsRepository.addWin()
+            if (mode == "puzzle" && puzzleId != null) {
+                completionRepo.markCompleted(puzzleId)
+            }
         }
     }
 
