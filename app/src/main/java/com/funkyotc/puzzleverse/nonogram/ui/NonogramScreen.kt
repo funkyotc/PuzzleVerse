@@ -149,7 +149,12 @@ fun NonogramScreen(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (state.cols > 0 && state.rows > 0) {
+                val isStateReady = state.cols > 0 && state.rows > 0 &&
+                        state.playerGrid.size == state.rows &&
+                        state.rowClues.size == state.rows &&
+                        state.colClues.size == state.cols
+
+                if (isStateReady) {
                     val availableWidth = maxWidth - 32.dp
                     val availableHeight = maxHeight - 64.dp
                     val gridWidthDp = minOf(availableWidth, availableHeight)
@@ -295,6 +300,8 @@ fun NonogramScreen(
                             }
                         }
                     }
+                } else {
+                    CircularProgressIndicator()
                 }
             }
         }

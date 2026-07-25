@@ -3,8 +3,8 @@ package com.funkyotc.puzzleverse.nonogram.data
 enum class CellState { EMPTY, FILLED, CROSSED }
 
 data class NonogramState(
-    val rows: Int = 5,
-    val cols: Int = 5,
+    val rows: Int = 0,
+    val cols: Int = 0,
     val solutionGrid: List<List<Boolean>> = emptyList(),
     val playerGrid: List<List<CellState>> = emptyList(),
     val rowClues: List<List<Int>> = emptyList(),

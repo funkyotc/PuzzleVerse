@@ -133,11 +133,8 @@ class NonogramSolver {
             result: MutableList<List<Boolean>>
         ) {
             if (clueIndex >= clues.size) {
-                // Fill remaining positions with empty
-                while (current.size < length) {
-                    current.add(false)
-                }
-                result.add(current.toList())
+                val completed = current + List(length - current.size) { false }
+                result.add(completed)
                 return
             }
 

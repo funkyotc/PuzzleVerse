@@ -153,4 +153,15 @@ class NonogramSolvabilityTest {
         )
         assertTrue(NonogramSolver.isSolvableWithoutGuessing(solvable3x3))
     }
+
+    @Test
+    fun testInitialStateIsSafeFromOutOfBounds() {
+        val defaultState = com.funkyotc.puzzleverse.nonogram.data.NonogramState()
+        // Default rows/cols must be 0 so UI does not attempt indexing before ViewModel loads
+        org.junit.Assert.assertEquals(0, defaultState.rows)
+        org.junit.Assert.assertEquals(0, defaultState.cols)
+        assertTrue(defaultState.playerGrid.isEmpty())
+        assertTrue(defaultState.rowClues.isEmpty())
+        assertTrue(defaultState.colClues.isEmpty())
+    }
 }
