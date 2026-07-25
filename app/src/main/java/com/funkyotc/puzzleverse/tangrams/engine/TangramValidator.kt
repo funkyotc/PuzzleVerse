@@ -34,8 +34,8 @@ object TangramValidator {
 
     /**
      * Check if puzzle is solved by verifying:
-     * 1. Overall target silhouette coverage >= 95%
-     * 2. Inter-piece overlap <= 5%
+     * 1. Overall target silhouette coverage >= 98%
+     * 2. Inter-piece overlap <= 2.5%
      * 
      * Uses path union optimization: Total Overlap Area = Sum(Piece Areas) - Area(Union of Pieces).
      */
@@ -87,7 +87,7 @@ object TangramValidator {
 
         Log.d(TAG, "Victory check: silArea=$silArea, sumPieceAreas=$sumPieceAreas, unionArea=$unionArea, overlapArea=$overlapArea (overlapRatio=${overlapRatio * 100}%), intersectArea=$intersectArea (coverageRatio=${coverageRatio * 100}%)")
 
-        val solved = coverageRatio >= 0.95f && overlapRatio <= 0.05f
+        val solved = coverageRatio >= 0.98f && overlapRatio <= 0.025f
         if (solved) {
             Log.d(TAG, "=== PUZZLE SOLVED! Coverage: ${(coverageRatio * 100).toInt()}%, Overlap: ${(overlapRatio * 100).toInt()}% ===")
         }
