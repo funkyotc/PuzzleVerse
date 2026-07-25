@@ -10,19 +10,22 @@ class ShikakuGenerator(private val seed: Long) {
     private val random = Random(seed)
 
     fun generate(difficulty: String): ShikakuBoard {
-        val gridSize = when (difficulty) {
+        val gridSize = when (difficulty.lowercase()) {
             "easy" -> 8
             "medium" -> 10
             "hard" -> 12
+            "expert" -> 14
+            "master" -> 15
             else -> 8
         }
 
         val puzzleId = if (seed > 0 && seed < 100000) "daily" else "std_${seed}"
 
         val maxArea = when (gridSize) {
-            in 12..14 -> 12
-            in 10..11 -> 12 // Increased to 12!
-            else -> 10      // Increased to 10!
+            in 14..15 -> 16
+            in 12..13 -> 14
+            in 10..11 -> 12
+            else -> 10
         }
         val minRectangles = (gridSize * gridSize) / maxArea
         // Lower the maximum split count to get larger boxes and more variety!
