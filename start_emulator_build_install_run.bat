@@ -11,6 +11,13 @@ if defined ANDROID_HOME (
     set "SDK_DIR=%ANDROID_HOME%"
 ) else if defined ANDROID_SDK_ROOT (
     set "SDK_DIR=%ANDROID_SDK_ROOT%"
+) else if exist "local.properties" (
+    for /f "tokens=1,* delims==" %%i in ('type local.properties ^| findstr /b /c:"sdk.dir"') do (
+        set "RAW_SDK=%%j"
+        set "RAW_SDK=!RAW_SDK:\:=:!"
+        set "RAW_SDK=!RAW_SDK:\\=\!"
+        set "SDK_DIR=!RAW_SDK!"
+    )
 ) else if exist "%LOCALAPPDATA%\Android\Sdk" (
     set "SDK_DIR=%LOCALAPPDATA%\Android\Sdk"
 )
@@ -19,6 +26,11 @@ if not defined SDK_DIR (
     echo Error: Could not locate Android SDK directory.
     exit /b 1
 )
+
+:: Export SDK environment variables so emulator.exe can find system images
+set "ANDROID_SDK_ROOT=%SDK_DIR%"
+set "ANDROID_HOME=%SDK_DIR%"
+set "PATH=%SDK_DIR%\platform-tools;%SDK_DIR%\emulator;%PATH%"
 
 set "EMULATOR_EXE=%SDK_DIR%\emulator\emulator.exe"
 set "ADB_EXE=%SDK_DIR%\platform-tools\adb.exe"
@@ -40,7 +52,7 @@ if %ERRORLEVEL% equ 0 (
 echo.
 echo [2/4] Finding available Android Virtual Devices (AVDs)...
 set "AVD_NAME="
-for /f "tokens=*" %%a in ('"%EMULATOR_EXE%" -list-avds') do (
+for /f "tokens=*" %%a in ('"%EMULATOR_EXE%" -list-avds 2^>nul') do (
     if not defined AVD_NAME set "AVD_NAME=%%a"
 )
 
