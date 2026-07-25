@@ -197,47 +197,60 @@ fun WaterSortScreen(
 
             val bottles = state.bottles
             val cols = when {
-                bottles.size <= 3 -> bottles.size
-                bottles.size <= 6 -> 3
-                bottles.size <= 9 -> 4
+                bottles.size <= 4 -> bottles.size
+                bottles.size <= 8 -> 4
                 bottles.size <= 12 -> 5
                 else -> 6
             }
             val rows = (bottles.size + cols - 1) / cols
-            val scrollState = rememberScrollState()
 
-            Column(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                for (row in 0 until rows) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        for (col in 0 until cols) {
-                            val index = row * cols + col
-                            if (index < bottles.size) {
-                                BottleView(
-                                    bottle = bottles[index],
-                                    height = state.level.height,
-                                    isSelected = state.selectedIndex == index,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(horizontal = if (cols >= 5) 2.dp else 6.dp)
-                                        .animateEntrance(delayMillis = index * 40, trigger = state.level),
-                                    onClick = {
-                                        soundManager.playSound(SoundManager.SOUND_ID_LIQUID_POUR)
-                                        viewModel.selectBottle(index)
-                                    }
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
+                // Calculate dynamic bottle height based on available screen height and row count
+                val verticalSpacing = 24.dp
+                val availableHeight = maxHeight - (verticalSpacing * (rows - 1))
+                val targetBottleHeight = (availableHeight / rows).coerceIn(120.dp, 280.dp)
+                val targetBottleWidth = (targetBottleHeight * 0.42f)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    verticalArrangement = Arrangement.spacedBy(verticalSpacing, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    for (row in 0 until rows) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(targetBottleHeight),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            for (col in 0 until cols) {
+                                val index = row * cols + col
+                                if (index < bottles.size) {
+                                    BottleView(
+                                        bottle = bottles[index],
+                                        height = state.level.height,
+                                        isSelected = state.selectedIndex == index,
+                                        modifier = Modifier
+                                            .width(targetBottleWidth)
+                                            .fillMaxHeight()
+                                            .padding(horizontal = if (cols >= 5) 2.dp else 4.dp)
+                                            .animateEntrance(delayMillis = index * 40, trigger = state.level),
+                                        onClick = {
+                                            soundManager.playSound(SoundManager.SOUND_ID_LIQUID_POUR)
+                                            viewModel.selectBottle(index)
+                                        }
+                                    )
+                                } else {
+                                    Spacer(modifier = Modifier.width(targetBottleWidth))
+                                }
                             }
                         }
                     }
@@ -307,7 +320,6 @@ private fun BottleView(
     val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
-            .aspectRatio(0.65f)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
             .animateTapFeedback(interactionSource)
