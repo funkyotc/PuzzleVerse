@@ -255,6 +255,14 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
     private fun canPlaceWord(
         word: String, startX: Int, startY: Int, direction: ConnectionDirection, grid: Map<Pair<Int, Int>, Char>
     ): Boolean {
+        // Head check: cell immediately BEFORE start of word must be empty
+        val headCell = if (direction == ConnectionDirection.HORIZONTAL) Pair(startX - 1, startY) else Pair(startX, startY - 1)
+        if (grid.containsKey(headCell)) return false
+
+        // Tail check: cell immediately AFTER end of word must be empty
+        val tailCell = if (direction == ConnectionDirection.HORIZONTAL) Pair(startX + word.length, startY) else Pair(startX, startY + word.length)
+        if (grid.containsKey(tailCell)) return false
+
         for (i in word.indices) {
             val (x, y) = if (direction == ConnectionDirection.HORIZONTAL) Pair(startX + i, startY) else Pair(startX, startY + i)
             
