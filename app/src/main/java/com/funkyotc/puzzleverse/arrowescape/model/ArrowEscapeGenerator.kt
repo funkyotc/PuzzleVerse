@@ -62,48 +62,54 @@ class ArrowEscapeGenerator {
             // Check if spawn point is empty
             if (grid[headY][headX] != 0) continue
 
-            // Determine length of the arrow (3 to 12 segments for longer curling tails)
-            val length = random.nextInt(3, 13)
+            // Determine target length of the arrow (6 to 16 segments for longer curling tails)
+            val targetLength = random.nextInt(6, 16)
             
             val segments = mutableListOf<Coordinate>()
             var currentX = headX
             var currentY = headY
             var currentDir = spawnDir.opposite // The direction we push the tail
             
-            var validArrow = true
             segments.add(Coordinate(currentX, currentY))
 
-            for (i in 1 until length) {
-                // Higher turn probability for more curling (40% chance)
-                if (random.nextFloat() < 0.4f) {
+            for (i in 1 until targetLength) {
+                // High turn probability for serpentine curling (45% chance)
+                var tryDir = currentDir
+                if (random.nextFloat() < 0.45f) {
                     val turnOptions = listOf(
                         Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT
                     ).filter { it != currentDir && it != currentDir.opposite }
-                    currentDir = turnOptions.random(random)
+                    tryDir = turnOptions.random(random)
                 }
 
-                val nextX = currentX + currentDir.dx
-                val nextY = currentY + currentDir.dy
+                var nextX = currentX + tryDir.dx
+                var nextY = currentY + tryDir.dy
 
-                // Check bounds
-                if (nextX !in 0 until width || nextY !in 0 until height) {
-                    break // Stop growing if we hit a wall
+                // If preferred step is blocked, try remaining open turn options before giving up
+                if (nextX !in 0 until width || nextY !in 0 until height || grid[nextY][nextX] != 0 || segments.contains(Coordinate(nextX, nextY))) {
+                    val validDirs = listOf(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
+                        .filter { dir ->
+                            val nx = currentX + dir.dx
+                            val ny = currentY + dir.dy
+                            nx in 0 until width && ny in 0 until height && grid[ny][nx] == 0 && !segments.contains(Coordinate(nx, ny))
+                        }
+                    if (validDirs.isNotEmpty()) {
+                        tryDir = validDirs.random(random)
+                        nextX = currentX + tryDir.dx
+                        nextY = currentY + tryDir.dy
+                    } else {
+                        break // Fully blocked
+                    }
                 }
 
-                // Check collision
-                if (grid[nextY][nextX] != 0) {
-                    break // Stop growing if we hit another arrow
-                }
-                
-                // Also check if we cross ourselves (shouldn't happen with simple logic, but just in case)
-                if (segments.contains(Coordinate(nextX, nextY))) {
-                    break
-                }
-
+                currentDir = tryDir
                 currentX = nextX
                 currentY = nextY
                 segments.add(Coordinate(currentX, currentY))
             }
+
+            // Require minimum length of 4 segments for satisfying curling arrows
+            if (segments.size < 4) continue
 
             // Assign to grid
             val arrowId = nextId++

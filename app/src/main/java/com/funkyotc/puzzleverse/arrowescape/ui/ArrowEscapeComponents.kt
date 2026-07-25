@@ -137,7 +137,7 @@ fun ArrowEscapeGrid(
                 }
                 
                 val color = colorPalette[arrow.color % colorPalette.size]
-                val strokeWidth = minOf(cellWidth, cellHeight) * 0.6f
+                val strokeWidth = minOf(cellWidth, cellHeight) * 0.48f
                 
                 drawPath(
                     path = path,
@@ -149,41 +149,53 @@ fun ArrowEscapeGrid(
                     )
                 )
 
-                // Draw the head pointer (a simple triangle at the head segment)
+                // Draw the head pointer (contained within cell bounds with subtle tone shift)
                 val head = arrow.head
                 val hx = head.x * cellWidth + cellWidth / 2f + bumpOffsetX
                 val hy = head.y * cellHeight + cellHeight / 2f + bumpOffsetY
                 
-                val arrowHeadSize = strokeWidth * 0.6f
+                val arrowHeadSize = strokeWidth * 0.75f
                 val headPath = Path()
                 
-                // Calculate points based on direction
+                // Subtle color shift (15% darker tone of same hue)
+                val tipColor = Color(
+                    red = color.red * 0.82f,
+                    green = color.green * 0.82f,
+                    blue = color.blue * 0.82f,
+                    alpha = 1f
+                )
+                
+                // Calculate points based on direction (tip stays within cell boundary)
                 when (arrow.direction) {
                     Direction.UP -> {
-                        headPath.moveTo(hx, hy - arrowHeadSize)
-                        headPath.lineTo(hx - arrowHeadSize, hy + arrowHeadSize)
-                        headPath.lineTo(hx + arrowHeadSize, hy + arrowHeadSize)
+                        headPath.moveTo(hx, hy - arrowHeadSize * 0.8f)
+                        headPath.lineTo(hx - arrowHeadSize * 0.9f, hy + arrowHeadSize * 0.5f)
+                        headPath.lineTo(hx, hy + arrowHeadSize * 0.1f)
+                        headPath.lineTo(hx + arrowHeadSize * 0.9f, hy + arrowHeadSize * 0.5f)
                     }
                     Direction.DOWN -> {
-                        headPath.moveTo(hx, hy + arrowHeadSize)
-                        headPath.lineTo(hx - arrowHeadSize, hy - arrowHeadSize)
-                        headPath.lineTo(hx + arrowHeadSize, hy - arrowHeadSize)
+                        headPath.moveTo(hx, hy + arrowHeadSize * 0.8f)
+                        headPath.lineTo(hx - arrowHeadSize * 0.9f, hy - arrowHeadSize * 0.5f)
+                        headPath.lineTo(hx, hy - arrowHeadSize * 0.1f)
+                        headPath.lineTo(hx + arrowHeadSize * 0.9f, hy - arrowHeadSize * 0.5f)
                     }
                     Direction.LEFT -> {
-                        headPath.moveTo(hx - arrowHeadSize, hy)
-                        headPath.lineTo(hx + arrowHeadSize, hy - arrowHeadSize)
-                        headPath.lineTo(hx + arrowHeadSize, hy + arrowHeadSize)
+                        headPath.moveTo(hx - arrowHeadSize * 0.8f, hy)
+                        headPath.lineTo(hx + arrowHeadSize * 0.5f, hy - arrowHeadSize * 0.9f)
+                        headPath.lineTo(hx + arrowHeadSize * 0.1f, hy)
+                        headPath.lineTo(hx + arrowHeadSize * 0.5f, hy + arrowHeadSize * 0.9f)
                     }
                     Direction.RIGHT -> {
-                        headPath.moveTo(hx + arrowHeadSize, hy)
-                        headPath.lineTo(hx - arrowHeadSize, hy - arrowHeadSize)
-                        headPath.lineTo(hx - arrowHeadSize, hy + arrowHeadSize)
+                        headPath.moveTo(hx + arrowHeadSize * 0.8f, hy)
+                        headPath.lineTo(hx - arrowHeadSize * 0.5f, hy - arrowHeadSize * 0.9f)
+                        headPath.lineTo(hx - arrowHeadSize * 0.1f, hy)
+                        headPath.lineTo(hx - arrowHeadSize * 0.5f, hy + arrowHeadSize * 0.9f)
                     }
                 }
                 headPath.close()
                 drawPath(
                     path = headPath,
-                    color = color
+                    color = tipColor
                 )
             }
         }
