@@ -39,14 +39,13 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
         for (i in 1 until words.size) {
             val wordToPlace = words[i]
             var placed = false
-            var attempts = 0
-            while (!placed && attempts < 100) {
-                val intersectingWord = placedWords.random(random)
-                val intersection = findIntersection(wordToPlace, intersectingWord.word)
-                if (intersection != null) {
-                    val (charIndexInWord, charIndexInPlacedWord) = intersection
+            
+            val candidateWords = placedWords.shuffled(random)
+            for (intersectingWord in candidateWords) {
+                if (placed) break
+                val intersections = findAllIntersections(wordToPlace, intersectingWord.word).shuffled(random)
+                for ((charIndexInWord, charIndexInPlacedWord) in intersections) {
                     val newDirection = if (intersectingWord.direction == ConnectionDirection.HORIZONTAL) ConnectionDirection.VERTICAL else ConnectionDirection.HORIZONTAL
-
                     val (newX, newY) = calculatePosition(
                         intersectingWord, charIndexInPlacedWord, charIndexInWord
                     )
@@ -60,9 +59,9 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
                             )
                         )
                         placed = true
+                        break
                     }
                 }
-                attempts++
             }
         }
 
@@ -227,15 +226,16 @@ class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
         }
     }
 
-    private fun findIntersection(word1: String, word2: String): Pair<Int, Int>? {
+    private fun findAllIntersections(word1: String, word2: String): List<Pair<Int, Int>> {
+        val list = mutableListOf<Pair<Int, Int>>()
         for (i in word1.indices) {
             for (j in word2.indices) {
                 if (word1[i] == word2[j]) {
-                    return Pair(i, j)
+                    list.add(Pair(i, j))
                 }
             }
         }
-        return null
+        return list
     }
 
     private fun calculatePosition(
