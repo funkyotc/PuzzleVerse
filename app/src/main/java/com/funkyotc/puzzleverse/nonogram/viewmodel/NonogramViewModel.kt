@@ -81,6 +81,25 @@ class NonogramViewModel(
         return clues
     }
 
+    fun cycleCell(r: Int, c: Int) {
+        val st = _state.value
+        if (st.isWon || st.isGameOver) return
+
+        val currentCell = st.playerGrid[r][c]
+        val nextCell = when (currentCell) {
+            CellState.EMPTY -> CellState.FILLED
+            CellState.FILLED -> CellState.CROSSED
+            CellState.CROSSED -> CellState.EMPTY
+        }
+
+        val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
+        newPlayerGrid[r][c] = nextCell
+
+        val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
+        _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+        checkAndSaveStreak(isWon)
+    }
+
     fun toggleCell(r: Int, c: Int, isFillAction: Boolean) {
         val st = _state.value
         if (st.isWon || st.isGameOver) return

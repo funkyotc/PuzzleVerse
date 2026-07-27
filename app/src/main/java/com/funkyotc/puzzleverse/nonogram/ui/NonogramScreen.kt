@@ -15,7 +15,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +40,42 @@ import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.GameConfirmDialog
 import com.funkyotc.puzzleverse.core.ui.GameEndDialog
+
+private fun isClueSatisfied(lineCells: List<CellState>, clueIndex: Int, clues: List<Int>): Boolean {
+    val runs = mutableListOf<Int>()
+    var currentRun = 0
+    for (cell in lineCells) {
+        if (cell == CellState.FILLED) {
+            currentRun++
+        } else if (currentRun > 0) {
+            runs.add(currentRun)
+            currentRun = 0
+        }
+    }
+    if (currentRun > 0) {
+        runs.add(currentRun)
+    }
+
+    if (clues.size == 1 && clues[0] == 0) {
+        return runs.isEmpty()
+    }
+
+    if (runs.isEmpty()) return false
+    if (runs.size > clues.size) return false
+
+    var prefixCount = 0
+    while (prefixCount < clues.size && prefixCount < runs.size && clues[prefixCount] == runs[prefixCount]) {
+        prefixCount++
+    }
+
+    var suffixCount = 0
+    val maxSuffix = minOf(clues.size - prefixCount, runs.size - prefixCount)
+    while (suffixCount < maxSuffix && clues[clues.size - 1 - suffixCount] == runs[runs.size - 1 - suffixCount]) {
+        suffixCount++
+    }
+
+    return clueIndex < prefixCount || clueIndex >= clues.size - suffixCount
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,13 +204,21 @@ fun NonogramScreen(
                         // Draw Top Clues
                         Row(modifier = Modifier.fillMaxWidth().height(64.dp).padding(start = 32.dp)) {
                             for (c in 0 until state.cols) {
+                                val colCells = state.playerGrid.map { it[c] }
+                                val clues = state.colClues[c]
                                 Column(
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                     verticalArrangement = Arrangement.Bottom,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    state.colClues[c].forEach { clue ->
-                                        Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    clues.forEachIndexed { index, clue ->
+                                        val satisfied = isClueSatisfied(colCells, index, clues)
+                                        Text(
+                                            text = clue.toString(),
+                                            fontSize = 10.sp,
+                                            fontWeight = if (satisfied) FontWeight.Normal else FontWeight.Bold,
+                                            color = if (satisfied) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
                                 }
                             }
@@ -191,9 +238,14 @@ fun NonogramScreen(
                                             val col = (gridX / cellWidthPx).toInt()
                                             val row = (gridY / cellHeightPx).toInt()
                                             if (row in 0 until state.rows && col in 0 until state.cols) {
-                                                val sound = if (isFillMode) SoundManager.SOUND_ID_TILE_PLACE else SoundManager.SOUND_ID_PENCIL_ERASE
+                                                val current = state.playerGrid[row][col]
+                                                val sound = when (current) {
+                                                    CellState.EMPTY -> SoundManager.SOUND_ID_TILE_PLACE
+                                                    CellState.FILLED -> SoundManager.SOUND_ID_CLICK
+                                                    CellState.CROSSED -> SoundManager.SOUND_ID_PENCIL_ERASE
+                                                }
                                                 soundManager.playSound(sound)
-                                                viewModel.toggleCell(row, col, isFillAction = isFillMode)
+                                                viewModel.cycleCell(row, col)
                                             }
                                         }
                                     )
@@ -211,19 +263,25 @@ fun NonogramScreen(
                                             val row = (gridY / cellHeightPx).toInt()
                                             if (row in 0 until state.rows && col in 0 until state.cols) {
                                                 val current = state.playerGrid[row][col]
-                                                val targetModeState = if (isFillMode) CellState.FILLED else CellState.CROSSED
-                                                val target = if (current == targetModeState) CellState.EMPTY else targetModeState
+                                                if (current != CellState.CROSSED) {
+                                                    val targetModeState = if (isFillMode) CellState.FILLED else CellState.CROSSED
+                                                    val target = if (current == targetModeState) CellState.EMPTY else targetModeState
 
-                                                dragActionState = target
-                                                cellsModifiedDuringDrag.clear()
-                                                cellsModifiedDuringDrag.add(Pair(row, col))
-                                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                viewModel.setCellState(row, col, target)
+                                                    dragActionState = target
+                                                    cellsModifiedDuringDrag.clear()
+                                                    cellsModifiedDuringDrag.add(Pair(row, col))
+                                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                    viewModel.setCellState(row, col, target)
+                                                } else {
+                                                    dragActionState = null
+                                                    cellsModifiedDuringDrag.clear()
+                                                }
                                             }
                                         },
                                         onDrag = { change, _ ->
                                             change.consume()
-                                            if (dragActionState != null) {
+                                            val target = dragActionState
+                                            if (target != null) {
                                                 val cellWidthPx = (gridWidthDp.toPx()) / state.cols
                                                 val cellHeightPx = (gridWidthDp.toPx()) / state.rows
                                                 val gridX = change.position.x - 32.dp.toPx()
@@ -234,8 +292,11 @@ fun NonogramScreen(
                                                     val cellPair = Pair(row, col)
                                                     if (!cellsModifiedDuringDrag.contains(cellPair)) {
                                                         cellsModifiedDuringDrag.add(cellPair)
-                                                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        viewModel.setCellState(row, col, dragActionState!!)
+                                                        val current = state.playerGrid[row][col]
+                                                        if (current != CellState.CROSSED) {
+                                                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                                            viewModel.setCellState(row, col, target)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -251,6 +312,7 @@ fun NonogramScreen(
                                     )
                                 }
                         ) {
+                            val gridBorderColor = MaterialTheme.colorScheme.onSurface
                             for (r in 0 until state.rows) {
                                 Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                     // Left Clues
@@ -259,40 +321,120 @@ fun NonogramScreen(
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        state.rowClues[r].forEachIndexed { index, clue ->
-                                            Text(text = clue.toString(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                            if (index < state.rowClues[r].size - 1) Spacer(modifier = Modifier.width(2.dp))
+                                        val rowCells = state.playerGrid[r]
+                                        val clues = state.rowClues[r]
+                                        clues.forEachIndexed { index, clue ->
+                                            val satisfied = isClueSatisfied(rowCells, index, clues)
+                                            Text(
+                                                text = clue.toString(),
+                                                fontSize = 10.sp,
+                                                fontWeight = if (satisfied) FontWeight.Normal else FontWeight.Bold,
+                                                color = if (satisfied) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f) else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (index < clues.size - 1) Spacer(modifier = Modifier.width(2.dp))
                                         }
                                         Spacer(modifier = Modifier.width(2.dp))
                                     }
 
-                                    // Grid Cells
-                                    for (c in 0 until state.cols) {
-                                        val cellState = state.playerGrid[r][c]
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight()
-                                                .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .animateEntrance(delayMillis = (r * state.cols + c) * 10),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (cellState == CellState.FILLED) {
+                                    // Grid Cells Container for Row r with Canvas Drawing Overlay for borders
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .drawWithContent {
+                                                drawContent()
+                                                val cols = state.cols
+                                                if (cols > 0) {
+                                                    val cellWidth = size.width / cols
+                                                    val thinColor = gridBorderColor.copy(alpha = 0.25f)
+                                                    val thickColor = gridBorderColor.copy(alpha = 0.85f)
+                                                    val thinStroke = 0.75.dp.toPx()
+                                                    val thickStroke = 2.5.dp.toPx()
+
+                                                    // Thin / Thick Vertical line after each col except last
+                                                    for (c in 1 until cols) {
+                                                        val x = c * cellWidth
+                                                        val isFiveLine = c % 5 == 0
+                                                        drawLine(
+                                                            color = if (isFiveLine) thickColor else thinColor,
+                                                            start = Offset(x, 0f),
+                                                            end = Offset(x, size.height),
+                                                            strokeWidth = if (isFiveLine) thickStroke else thinStroke
+                                                        )
+                                                    }
+
+                                                    // Horizontal line at bottom of row r
+                                                    val isFiveRow = (r + 1) % 5 == 0 && (r + 1) < state.rows
+                                                    drawLine(
+                                                        color = if (isFiveRow) thickColor else thinColor,
+                                                        start = Offset(0f, size.height),
+                                                        end = Offset(size.width, size.height),
+                                                        strokeWidth = if (isFiveRow) thickStroke else thinStroke
+                                                    )
+
+                                                    // Top thick outer border if r == 0
+                                                    if (r == 0) {
+                                                        drawLine(
+                                                            color = thickColor,
+                                                            start = Offset(0f, 0f),
+                                                            end = Offset(size.width, 0f),
+                                                            strokeWidth = thickStroke
+                                                        )
+                                                    }
+                                                    // Bottom thick outer border if r == state.rows - 1
+                                                    if (r == state.rows - 1) {
+                                                        drawLine(
+                                                            color = thickColor,
+                                                            start = Offset(0f, size.height),
+                                                            end = Offset(size.width, size.height),
+                                                            strokeWidth = thickStroke
+                                                        )
+                                                    }
+                                                    // Left thick outer border
+                                                    drawLine(
+                                                        color = thickColor,
+                                                        start = Offset(0f, 0f),
+                                                        end = Offset(0f, size.height),
+                                                        strokeWidth = thickStroke
+                                                    )
+                                                    // Right thick outer border
+                                                    drawLine(
+                                                        color = thickColor,
+                                                        start = Offset(size.width, 0f),
+                                                        end = Offset(size.width, size.height),
+                                                        strokeWidth = thickStroke
+                                                    )
+                                                }
+                                            }
+                                    ) {
+                                        Row(modifier = Modifier.fillMaxSize()) {
+                                            for (c in 0 until state.cols) {
+                                                val cellState = state.playerGrid[r][c]
                                                 Box(
                                                     modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .background(MaterialTheme.colorScheme.onSurface)
-                                                        .animatePiecePlacement(trigger = cellState)
-                                                )
-                                            } else if (cellState == CellState.CROSSED) {
-                                                Text(
-                                                    text = "X",
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.animatePiecePlacement(trigger = cellState)
-                                                )
+                                                        .weight(1f)
+                                                        .fillMaxHeight()
+                                                        .background(MaterialTheme.colorScheme.surface)
+                                                        .animateEntrance(delayMillis = (r * state.cols + c) * 10),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (cellState == CellState.FILLED) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxSize()
+                                                                .background(MaterialTheme.colorScheme.onSurface)
+                                                                .animatePiecePlacement(trigger = cellState)
+                                                        )
+                                                    } else if (cellState == CellState.CROSSED) {
+                                                        Text(
+                                                            text = "X",
+                                                            color = MaterialTheme.colorScheme.error,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            modifier = Modifier.animatePiecePlacement(trigger = cellState)
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -342,6 +484,6 @@ fun NonogramScreen(
             }
         }
 
-        Text("Tip: Click a cell again to make it empty.", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+        Text("Tip: Tap a cell to cycle Empty -> Filled -> Cross (X) -> Empty.", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
     }
 }
