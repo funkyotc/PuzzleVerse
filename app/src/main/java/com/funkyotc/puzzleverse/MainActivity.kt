@@ -276,7 +276,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Cube Shooter",
                 navController = navController,
                 puzzlesByDifficulty = CubeShooterPregenerated.LEVELS_BY_DIFFICULTY,
-                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Pictures"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/cubeshooter/puzzle/${puzzle.id}") }
             )
         }

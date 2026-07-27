@@ -117,6 +117,27 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                             navController.navigate("game/minesweeper/hard")
                         }
                     }
+                    "cubeshooter" -> {
+                        MenuCard(text = "Easy") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/cubeshooter/easy")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Medium") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/cubeshooter/medium")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Hard") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/cubeshooter/hard")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Pictures") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/cubeshooter/pictures")
+                        }
+                    }
                     else -> {
                         MenuCard(text = "Play Standard") {
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
