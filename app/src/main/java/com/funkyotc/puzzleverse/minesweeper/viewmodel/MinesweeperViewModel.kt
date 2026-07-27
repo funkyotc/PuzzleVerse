@@ -16,7 +16,7 @@ class MinesweeperViewModel(
     private val mode: String? = "standard"
 ) : ViewModel() {
     private val difficulty = when (mode?.lowercase()) {
-        "easy" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.EASY
+        "easy", "daily" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.EASY
         "hard" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.HARD
         else -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.MEDIUM
     }
