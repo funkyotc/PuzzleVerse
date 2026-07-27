@@ -120,8 +120,8 @@ fun ArrowEscapeGrid(
                 }
 
                 val cellSize = minOf(cellWidth, cellHeight)
-                val strokeWidth = cellSize * 0.40f
-                val arrowHeadSize = cellSize * 0.65f
+                val strokeWidth = cellSize * 0.22f
+                val arrowHeadSize = cellSize * 0.72f
                 
                 // Determine direction of the line segment entering the head
                 val headDir = if (arrow.segments.size > 1) {
