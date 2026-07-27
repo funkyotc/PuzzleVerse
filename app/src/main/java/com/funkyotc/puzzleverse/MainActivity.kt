@@ -27,6 +27,8 @@ import com.funkyotc.puzzleverse.ui.screens.bonza.BonzaScreen
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
 import com.funkyotc.puzzleverse.constellations.ui.ConstellationsScreen
+import com.funkyotc.puzzleverse.core.data.SaveStateRepository
+import com.funkyotc.puzzleverse.core.data.LocalSaveStateRepository
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.settings.ui.SettingsScreen
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
@@ -94,10 +96,14 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val settingsRepository = remember { SettingsRepository(context) }
             val streakRepository = remember { StreakRepository(context) }
+            val saveStateRepository = remember { SaveStateRepository(context) }
             val activeTheme by settingsRepository.activeTheme.collectAsState(initial = "default")
 
             PuzzleVerseTheme(activeTheme = activeTheme) {
-                CompositionLocalProvider(LocalSoundManager provides soundManager) {
+                CompositionLocalProvider(
+                    LocalSoundManager provides soundManager,
+                    LocalSaveStateRepository provides saveStateRepository
+                ) {
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         PuzzleVerseNavHost(settingsRepository = settingsRepository, streakRepository = streakRepository) {
                             isLoading = false
@@ -164,6 +170,13 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
+            val saveStateRepo = LocalSaveStateRepository.current
+
+            if (gameId != null) {
+                androidx.compose.runtime.LaunchedEffect(gameId, mode) {
+                    saveStateRepo.saveGameState(gameId, mode ?: "standard")
+                }
+            }
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
@@ -203,6 +216,14 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
+            val saveStateRepo = LocalSaveStateRepository.current
+
+            if (gameId != null) {
+                androidx.compose.runtime.LaunchedEffect(gameId, mode) {
+                    saveStateRepo.clearSaveState(gameId)
+                    saveStateRepo.saveGameState(gameId, mode ?: "standard")
+                }
+            }
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)

@@ -13,26 +13,35 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.runtime.remember
-import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.core.data.LocalSaveStateRepository
+import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 data class Game(val id: String, val name: String)
@@ -72,6 +83,9 @@ val games = listOf(
 @Composable
 fun HomeScreen(navController: NavController, streakRepository: StreakRepository) {
     val soundManager = LocalSoundManager.current
+    val saveStateRepository = LocalSaveStateRepository.current
+    val savedGameIds by saveStateRepository.savedGameIds.collectAsState()
+    var selectedResumeGame by remember { mutableStateOf<Game?>(null) }
 
     Scaffold(
         topBar = {
@@ -118,7 +132,13 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                                 .width(160.dp)
                                 .height(90.dp)
                         ) {
-                            GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted, enabled = !isDailyCompleted) {
+                            GameCard(
+                                game = game,
+                                streak = streak.count,
+                                isDailyCompleted = isDailyCompleted,
+                                hasSaveState = false,
+                                enabled = !isDailyCompleted
+                            ) {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 navController.navigate("game/${game.id}/daily")
                             }
@@ -139,36 +159,117 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                 val streak = streakRepository.getStreak(game.id)
                 val today = com.funkyotc.puzzleverse.core.todayEpochDay()
                 val isDailyCompleted = streak.lastCompletedEpochDay == today
+                val hasSave = savedGameIds.contains(game.id)
 
                 Box(
-                    modifier = Modifier
-                        .height(90.dp)
+                    modifier = Modifier.height(90.dp)
                 ) {
-                    GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
+                    GameCard(
+                        game = game,
+                        streak = streak.count,
+                        isDailyCompleted = isDailyCompleted,
+                        hasSaveState = hasSave
+                    ) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                        navController.navigate("gameDetail/${game.id}")
+                        if (hasSave) {
+                            selectedResumeGame = game
+                        } else {
+                            navController.navigate("gameDetail/${game.id}")
+                        }
                     }
                 }
             }
+        }
+
+        if (selectedResumeGame != null) {
+            val gameToResume = selectedResumeGame!!
+            val saveMeta = saveStateRepository.getSaveState(gameToResume.id)
+            val modeTitle = saveMeta?.mode?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } ?: "Standard"
+
+            AlertDialog(
+                onDismissRequest = { selectedResumeGame = null },
+                title = { Text("Resume ${gameToResume.name}?") },
+                text = { Text("You have a saved $modeTitle game in progress. Would you like to resume your game or clear the saved progress?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val targetGame = selectedResumeGame!!
+                            selectedResumeGame = null
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            val mode = saveMeta?.mode ?: "standard"
+                            navController.navigate("game/${targetGame.id}/$mode")
+                        }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Resume")
+                        }
+                    }
+                },
+                dismissButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = {
+                                val targetGame = selectedResumeGame!!
+                                selectedResumeGame = null
+                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                                saveStateRepository.clearSaveState(targetGame.id)
+                                navController.navigate("gameDetail/${targetGame.id}")
+                            }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Text("Clear")
+                            }
+                        }
+                        TextButton(
+                            onClick = { selectedResumeGame = null }
+                        ) {
+                            Text("Cancel")
+                        }
+                    }
+                }
+            )
         }
     }
 }
 
 @Composable
-fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, enabled: Boolean = true, onClick: () -> Unit) {
+fun GameCard(
+    game: Game,
+    streak: Int,
+    isDailyCompleted: Boolean,
+    hasSaveState: Boolean = false,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
+
+    val containerColor = when {
+        isDailyCompleted -> MaterialTheme.colorScheme.primaryContainer
+        hasSaveState -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
     androidx.compose.material3.ElevatedCard(
         modifier = Modifier
             .fillMaxSize()
             .animateTapFeedback(interactionSource)
-            .clickable(interactionSource = interactionSource, indication = androidx.compose.foundation.LocalIndication.current, enabled = enabled, onClick = onClick),
-        colors = if (isDailyCompleted) {
-            CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        } else {
-            CardDefaults.elevatedCardColors()
-        }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                enabled = enabled,
+                onClick = onClick
+            ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = containerColor
+        )
     ) {
         Box(
             modifier = Modifier.padding(8.dp),
@@ -186,7 +287,28 @@ fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, enabled: Boolea
                     maxLines = 1,
                     softWrap = false
                 )
-                if (isDailyCompleted) {
+
+                if (hasSaveState && !isDailyCompleted) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Bookmark,
+                            contentDescription = "Saved Game",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "In Progress",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            maxLines = 1,
+                            fontSize = 11.sp
+                        )
+                    }
+                } else if (isDailyCompleted) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -207,6 +329,7 @@ fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, enabled: Boolea
                         )
                     }
                 }
+
                 if (streak > 0) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
