@@ -62,8 +62,11 @@ class ArrowEscapeGenerator {
             // Check if spawn point is empty
             if (grid[headY][headX] != 0) continue
 
-            // Determine target length of the arrow (6 to 16 segments for longer curling tails)
-            val targetLength = random.nextInt(6, 16)
+            // Scale target length and min length dynamically based on grid size
+            val minGridDim = minOf(width, height)
+            val minLen = if (minGridDim <= 10) 5 else (minGridDim * 0.35).toInt()
+            val maxLen = if (minGridDim <= 10) 15 else (minGridDim * 0.9).toInt()
+            val targetLength = random.nextInt(minLen + 1, maxOf(minLen + 2, maxLen))
             
             val segments = mutableListOf<Coordinate>()
             var currentX = headX
@@ -73,9 +76,9 @@ class ArrowEscapeGenerator {
             segments.add(Coordinate(currentX, currentY))
 
             for (i in 1 until targetLength) {
-                // High turn probability for serpentine curling (45% chance)
+                // High turn probability for serpentine curling (58% chance)
                 var tryDir = currentDir
-                if (random.nextFloat() < 0.45f) {
+                if (random.nextFloat() < 0.58f) {
                     val turnOptions = listOf(
                         Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT
                     ).filter { it != currentDir && it != currentDir.opposite }
@@ -108,8 +111,8 @@ class ArrowEscapeGenerator {
                 segments.add(Coordinate(currentX, currentY))
             }
 
-            // Require minimum length of 4 segments for satisfying curling arrows
-            if (segments.size < 4) continue
+            // Require minimum length for satisfying long curling arrows
+            if (segments.size < minLen) continue
 
             // Assign to grid
             val arrowId = nextId++

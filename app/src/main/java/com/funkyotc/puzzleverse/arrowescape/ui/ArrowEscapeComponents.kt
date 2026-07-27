@@ -119,15 +119,23 @@ fun ArrowEscapeGrid(
                     bumpOffsetY = arrow.direction.dy * bumpMagnitude * wave
                 }
 
-                val path = Path()
+                val cellSize = minOf(cellWidth, cellHeight)
+                val strokeWidth = cellSize * 0.42f
+                val arrowHeadSize = cellSize * 0.72f
                 
-                // Start at tail, go to head
+                val path = Path()
                 val points = arrow.segments.reversed()
                 
                 for (i in points.indices) {
                     val pt = points[i]
-                    val cx = pt.x * cellWidth + cellWidth / 2f + bumpOffsetX
-                    val cy = pt.y * cellHeight + cellHeight / 2f + bumpOffsetY
+                    var cx = pt.x * cellWidth + cellWidth / 2f + bumpOffsetX
+                    var cy = pt.y * cellHeight + cellHeight / 2f + bumpOffsetY
+                    
+                    // For the head segment (the last point in reversed list), offset slightly backward along direction
+                    if (i == points.lastIndex) {
+                        cx -= arrow.direction.dx * arrowHeadSize * 0.15f
+                        cy -= arrow.direction.dy * arrowHeadSize * 0.15f
+                    }
                     
                     if (i == 0) {
                         path.moveTo(cx, cy)
@@ -137,7 +145,6 @@ fun ArrowEscapeGrid(
                 }
                 
                 val color = colorPalette[arrow.color % colorPalette.size]
-                val strokeWidth = minOf(cellWidth, cellHeight) * 0.48f
                 
                 drawPath(
                     path = path,
@@ -149,54 +156,54 @@ fun ArrowEscapeGrid(
                     )
                 )
 
-                // Draw the head pointer (contained within cell bounds with subtle tone shift)
+                // Draw the prominent head pointer
                 val head = arrow.head
                 val hx = head.x * cellWidth + cellWidth / 2f + bumpOffsetX
                 val hy = head.y * cellHeight + cellHeight / 2f + bumpOffsetY
                 
-                val arrowHeadSize = strokeWidth * 0.75f
                 val headPath = Path()
+                val hs = arrowHeadSize
                 
-                // Subtle color shift (15% darker tone of same hue)
+                // Rich tone shift for high visibility
                 val tipColor = Color(
-                    red = color.red * 0.82f,
-                    green = color.green * 0.82f,
-                    blue = color.blue * 0.82f,
+                    red = (color.red * 0.70f).coerceIn(0f, 1f),
+                    green = (color.green * 0.70f).coerceIn(0f, 1f),
+                    blue = (color.blue * 0.70f).coerceIn(0f, 1f),
                     alpha = 1f
                 )
+                val outlineColor = Color.Black.copy(alpha = 0.35f)
                 
-                // Calculate points based on direction (tip stays within cell boundary)
                 when (arrow.direction) {
                     Direction.UP -> {
-                        headPath.moveTo(hx, hy - arrowHeadSize * 0.8f)
-                        headPath.lineTo(hx - arrowHeadSize * 0.9f, hy + arrowHeadSize * 0.5f)
-                        headPath.lineTo(hx, hy + arrowHeadSize * 0.1f)
-                        headPath.lineTo(hx + arrowHeadSize * 0.9f, hy + arrowHeadSize * 0.5f)
+                        headPath.moveTo(hx, hy - hs * 0.48f)
+                        headPath.lineTo(hx - hs * 0.48f, hy + hs * 0.38f)
+                        headPath.lineTo(hx, hy + hs * 0.12f)
+                        headPath.lineTo(hx + hs * 0.48f, hy + hs * 0.38f)
                     }
                     Direction.DOWN -> {
-                        headPath.moveTo(hx, hy + arrowHeadSize * 0.8f)
-                        headPath.lineTo(hx - arrowHeadSize * 0.9f, hy - arrowHeadSize * 0.5f)
-                        headPath.lineTo(hx, hy - arrowHeadSize * 0.1f)
-                        headPath.lineTo(hx + arrowHeadSize * 0.9f, hy - arrowHeadSize * 0.5f)
+                        headPath.moveTo(hx, hy + hs * 0.48f)
+                        headPath.lineTo(hx - hs * 0.48f, hy - hs * 0.38f)
+                        headPath.lineTo(hx, hy - hs * 0.12f)
+                        headPath.lineTo(hx + hs * 0.48f, hy - hs * 0.38f)
                     }
                     Direction.LEFT -> {
-                        headPath.moveTo(hx - arrowHeadSize * 0.8f, hy)
-                        headPath.lineTo(hx + arrowHeadSize * 0.5f, hy - arrowHeadSize * 0.9f)
-                        headPath.lineTo(hx + arrowHeadSize * 0.1f, hy)
-                        headPath.lineTo(hx + arrowHeadSize * 0.5f, hy + arrowHeadSize * 0.9f)
+                        headPath.moveTo(hx - hs * 0.48f, hy)
+                        headPath.lineTo(hx + hs * 0.38f, hy - hs * 0.48f)
+                        headPath.lineTo(hx + hs * 0.12f, hy)
+                        headPath.lineTo(hx + hs * 0.38f, hy + hs * 0.48f)
                     }
                     Direction.RIGHT -> {
-                        headPath.moveTo(hx + arrowHeadSize * 0.8f, hy)
-                        headPath.lineTo(hx - arrowHeadSize * 0.5f, hy - arrowHeadSize * 0.9f)
-                        headPath.lineTo(hx - arrowHeadSize * 0.1f, hy)
-                        headPath.lineTo(hx - arrowHeadSize * 0.5f, hy + arrowHeadSize * 0.9f)
+                        headPath.moveTo(hx + hs * 0.48f, hy)
+                        headPath.lineTo(hx - hs * 0.38f, hy - hs * 0.48f)
+                        headPath.lineTo(hx - hs * 0.12f, hy)
+                        headPath.lineTo(hx - hs * 0.38f, hy + hs * 0.48f)
                     }
                 }
                 headPath.close()
-                drawPath(
-                    path = headPath,
-                    color = tipColor
-                )
+                
+                // Draw filled head and crisp outline
+                drawPath(path = headPath, color = tipColor)
+                drawPath(path = headPath, color = outlineColor, style = Stroke(width = cellSize * 0.04f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
         }
     }
