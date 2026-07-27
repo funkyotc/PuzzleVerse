@@ -148,6 +148,77 @@ class NonogramViewModel(
         }
     }
 
+    fun autoFillRowCrosses(r: Int): Boolean {
+        val st = _state.value
+        if (st.isWon || st.isGameOver || r !in 0 until st.rows) return false
+
+        val rowCells = st.playerGrid[r]
+        val clues = st.rowClues[r]
+        if (!isLineSatisfied(rowCells, clues)) return false
+
+        var updated = false
+        val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
+        for (c in 0 until st.cols) {
+            if (newPlayerGrid[r][c] == CellState.EMPTY) {
+                newPlayerGrid[r][c] = CellState.CROSSED
+                updated = true
+            }
+        }
+
+        if (updated) {
+            val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
+            _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+            checkAndSaveStreak(isWon)
+        }
+        return updated
+    }
+
+    fun autoFillColCrosses(c: Int): Boolean {
+        val st = _state.value
+        if (st.isWon || st.isGameOver || c !in 0 until st.cols) return false
+
+        val colCells = st.playerGrid.map { it[c] }
+        val clues = st.colClues[c]
+        if (!isLineSatisfied(colCells, clues)) return false
+
+        var updated = false
+        val newPlayerGrid = st.playerGrid.map { it.toMutableList() }.toMutableList()
+        for (r in 0 until st.rows) {
+            if (newPlayerGrid[r][c] == CellState.EMPTY) {
+                newPlayerGrid[r][c] = CellState.CROSSED
+                updated = true
+            }
+        }
+
+        if (updated) {
+            val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
+            _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+            checkAndSaveStreak(isWon)
+        }
+        return updated
+    }
+
+    private fun isLineSatisfied(lineCells: List<CellState>, clues: List<Int>): Boolean {
+        val runs = mutableListOf<Int>()
+        var currentRun = 0
+        for (cell in lineCells) {
+            if (cell == CellState.FILLED) {
+                currentRun++
+            } else if (currentRun > 0) {
+                runs.add(currentRun)
+                currentRun = 0
+            }
+        }
+        if (currentRun > 0) {
+            runs.add(currentRun)
+        }
+
+        if (clues.size == 1 && clues[0] == 0) {
+            return runs.isEmpty()
+        }
+        return runs == clues
+    }
+
     private fun checkWin(player: List<List<CellState>>, solution: List<List<Boolean>>, rows: Int, cols: Int): Boolean {
         for (r in 0 until rows) {
             for (c in 0 until cols) {

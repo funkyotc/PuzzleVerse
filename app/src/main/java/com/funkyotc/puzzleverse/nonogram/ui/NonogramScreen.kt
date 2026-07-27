@@ -207,7 +207,14 @@ fun NonogramScreen(
                                 val colCells = state.playerGrid.map { it[c] }
                                 val clues = state.colClues[c]
                                 Column(
-                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clickable {
+                                            if (viewModel.autoFillColCrosses(c)) {
+                                                soundManager.playSound(SoundManager.SOUND_ID_PENCIL_ERASE)
+                                            }
+                                        },
                                     verticalArrangement = Arrangement.Bottom,
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
@@ -317,7 +324,14 @@ fun NonogramScreen(
                                 Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                     // Left Clues
                                     Row(
-                                        modifier = Modifier.width(32.dp).fillMaxHeight(),
+                                        modifier = Modifier
+                                            .width(32.dp)
+                                            .fillMaxHeight()
+                                            .clickable {
+                                                if (viewModel.autoFillRowCrosses(r)) {
+                                                    soundManager.playSound(SoundManager.SOUND_ID_PENCIL_ERASE)
+                                                }
+                                            },
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
