@@ -147,13 +147,16 @@ class FlowFreeViewModel(
     }
 
     private fun checkWin(paths: List<FlowPath>, dots: List<ColorDot>, rows: Int, cols: Int): Boolean {
-        // 1. All paths must touch BOTH start and end
+        // 1. All paths must connect BOTH start and end
         for (d in dots) {
             val p = paths.find { it.colorId == d.colorId } ?: return false
             if (!p.path.contains(d.start) || !p.path.contains(d.end)) return false
         }
 
-        // Grid coverage is optional; all dot connections are sufficient to complete!
+        // 2. All grid cells must be covered by paths (100% grid coverage)
+        val totalCoveredCells = paths.sumOf { it.path.size }
+        if (totalCoveredCells != rows * cols) return false
+
         if (mode == "daily" && streakRepository != null) {
             val today = todayEpochDay()
             val streak = streakRepository.getStreak("flowfree")
