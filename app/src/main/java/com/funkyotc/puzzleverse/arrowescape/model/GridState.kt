@@ -18,14 +18,13 @@ class GridState(
 
     fun canMove(arrowId: Int): Boolean {
         val arrow = arrows[arrowId] ?: return false
-        for (segment in arrow.segments) {
-            val nextPos = segment.move(arrow.direction)
-            if (nextPos.x in 0 until width && nextPos.y in 0 until height) {
-                val occupant = grid[nextPos.y][nextPos.x]
-                if (occupant != 0 && occupant != arrowId) {
-                    return false
-                }
+        var checkPos = arrow.head.move(arrow.direction)
+        while (checkPos.x in 0 until width && checkPos.y in 0 until height) {
+            val occupant = grid[checkPos.y][checkPos.x]
+            if (occupant != 0 && occupant != arrowId) {
+                return false
             }
+            checkPos = checkPos.move(arrow.direction)
         }
         return true
     }
