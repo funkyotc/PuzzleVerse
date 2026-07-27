@@ -598,7 +598,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 gameName = "Arrow Escape",
                 navController = navController,
                 puzzlesByDifficulty = com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY,
-                difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert", "Master"),
                 onPuzzleClick = { puzzle -> navController.navigate("game/arrowescape/puzzle/${puzzle.id}") }
             )
         }

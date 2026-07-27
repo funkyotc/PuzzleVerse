@@ -45,7 +45,14 @@ class ArrowEscapeViewModel(
         }
         
         // Determine grid size based on puzzle
-        val width = if (difficulty == "Easy") 10 else if (difficulty == "Medium") 20 else 30
+        val width = when (difficulty) {
+            "Easy" -> 10
+            "Medium" -> 20
+            "Hard" -> 30
+            "Expert" -> 40
+            "Master" -> 50
+            else -> 10
+        }
         val height = width
 
         gridState = GridState(width, height, arrows)
