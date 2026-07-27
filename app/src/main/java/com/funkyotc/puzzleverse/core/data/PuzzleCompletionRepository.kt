@@ -1,10 +1,16 @@
 package com.funkyotc.puzzleverse.core.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 
-class PuzzleCompletionRepository(context: Context, gameName: String) {
-    private val prefs = context.getSharedPreferences("${gameName}PuzzleCompletion", Context.MODE_PRIVATE)
+class PuzzleCompletionRepository(
+    context: Context? = null,
+    gameName: String = "",
+    prefs: SharedPreferences? = null
+) {
+    private val prefs: SharedPreferences = prefs ?: context?.getSharedPreferences("${gameName}PuzzleCompletion", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
 
     fun isCompleted(puzzleId: String): Boolean = prefs.getBoolean(puzzleId, false)
 

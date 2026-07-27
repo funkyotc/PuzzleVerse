@@ -23,9 +23,9 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class HexaSortViewModel(
-    context: Context,
-    private val mode: String?,
-    private val forceNewGame: Boolean,
+    context: Context? = null,
+    private val mode: String? = null,
+    private val forceNewGame: Boolean = false,
     private val streakRepository: StreakRepository,
     private val puzzleId: String? = null
 ) : ViewModel() {
@@ -238,6 +238,17 @@ class HexaSortViewModel(
     private fun onWin(state: HexaSortState) {
         stopTimer()
         clearSavedState()
+        if (mode == "daily") {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("hexasort")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
         viewModelScope.launch {
             _events.emit(HexaSortEvent.Won(state.score))
         }

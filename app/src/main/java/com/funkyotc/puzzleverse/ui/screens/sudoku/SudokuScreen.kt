@@ -147,6 +147,7 @@ fun SudokuScreen(
             title = "Congratulations!",
             message = "You solved the puzzle!",
             mode = mode,
+            gameId = "sudoku",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.remember
 import com.funkyotc.puzzleverse.core.ui.animateTapFeedback
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.CardDefaults
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
@@ -61,7 +64,8 @@ val games = listOf(
     Game("chess", "Chess"),
     Game("hashi", "Hashi"),
     Game("arrowescape", "Arrow Escape"),
-    Game("tangrams", "Tangrams")
+    Game("tangrams", "Tangrams"),
+    Game("blockpuzzle", "Block Puzzle")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,7 +107,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    val dailyGames = games.filter { it.id !in listOf("flowfree", "kakuro", "nonogram", "tfe") }
+                    val dailyGames = games
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = com.funkyotc.puzzleverse.core.todayEpochDay()
@@ -140,7 +144,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     modifier = Modifier
                         .height(90.dp)
                 ) {
-                    GameCard(game = game, streak = 0, isDailyCompleted = isDailyCompleted) {
+                    GameCard(game = game, streak = streak.count, isDailyCompleted = isDailyCompleted) {
                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                         navController.navigate("gameDetail/${game.id}")
                     }
@@ -182,10 +186,37 @@ fun GameCard(game: Game, streak: Int, isDailyCompleted: Boolean, enabled: Boolea
                     maxLines = 1,
                     softWrap = false
                 )
+                if (isDailyCompleted) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = "Completed Today",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Completed Today",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
                 if (streak > 0) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Whatshot, contentDescription = "Streak", tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            imageVector = Icons.Filled.Whatshot,
+                            contentDescription = "Streak",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
                         Text(text = "$streak", style = MaterialTheme.typography.bodyMedium)
                     }
                 }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.flowfree.data.ColorDot
 import com.funkyotc.puzzleverse.flowfree.data.FlowDifficulty
 import com.funkyotc.puzzleverse.flowfree.data.FlowPath
@@ -166,6 +167,17 @@ class FlowFreeViewModel(
         }
 
         // Grid coverage is optional; all dot connections are sufficient to complete!
+        if (mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("flowfree")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
         return true
     }
 }

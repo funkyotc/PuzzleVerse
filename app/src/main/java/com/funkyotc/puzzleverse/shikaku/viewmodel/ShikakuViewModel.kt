@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import com.funkyotc.puzzleverse.core.todayEpochDay
 
 class ShikakuViewModel(
-    context: Context,
+    context: Context? = null,
     private val mode: String? = "standard",
     private val forceNewGame: Boolean = false,
     private val streakRepository: StreakRepository? = null,

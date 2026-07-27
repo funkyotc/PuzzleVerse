@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.tfe.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.tfe.data.Direction
 import com.funkyotc.puzzleverse.tfe.data.TfeState
@@ -170,6 +171,18 @@ class TfeViewModel(
         }
         val isWon = st.tiles.any { it.value >= 2048 }
         _state.update { it.copy(isGameOver = !canMove, isWon = isWon) }
+
+        if (isWon && mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("tfe")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
     }
 }
 

@@ -6,23 +6,31 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 
 @Composable
 fun GameHowToDialog(
@@ -88,9 +96,14 @@ fun GameEndDialog(
     onMainMenuClick: () -> Unit,
     onPlayAgainClick: (() -> Unit)? = null,
     onNextPuzzleClick: (() -> Unit)? = null,
-    onDismissRequest: () -> Unit = {}
+    onDismissRequest: () -> Unit = {},
+    streakCount: Int? = null,
+    gameId: String? = null
 ) {
     val soundManager = LocalSoundManager.current
+    val context = LocalContext.current
+    val streakRepo = remember { StreakRepository(context) }
+    val effectiveStreak = streakCount ?: (if (gameId != null) streakRepo.getStreak(gameId).count else null)
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -108,7 +121,55 @@ fun GameEndDialog(
             }
         },
         text = {
-            Text(text = message)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (isWon && mode == "daily") {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Daily Challenge Completed",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Column {
+                                Text(
+                                    text = "Daily Challenge Completed!",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                if (effectiveStreak != null && effectiveStreak > 0) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Whatshot,
+                                            contentDescription = "Streak",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Streak: $effectiveStreak ${if (effectiveStreak == 1) "day" else "days"}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Text(text = message)
+            }
         },
         confirmButton = {
             Column(

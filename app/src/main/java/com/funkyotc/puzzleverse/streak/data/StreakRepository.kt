@@ -1,12 +1,19 @@
 package com.funkyotc.puzzleverse.streak.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 
-class StreakRepository(context: Context) {
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 
-    private val sharedPreferences = context.getSharedPreferences("StreakPrefs", Context.MODE_PRIVATE)
+class StreakRepository(
+    context: Context? = null,
+    sharedPreferences: SharedPreferences? = null
+) {
+    private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("StreakPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
     private val gson = Gson()
 
     fun getStreak(gameId: String): Streak {
@@ -22,4 +29,20 @@ class StreakRepository(context: Context) {
         val streakJson = gson.toJson(streak)
         sharedPreferences.edit { putString(streak.gameId, streakJson) }
     }
+
+    fun isCompletedToday(gameId: String, today: Long = com.funkyotc.puzzleverse.core.todayEpochDay()): Boolean {
+        return getStreak(gameId).isCompletedToday(today)
+    }
+
+    fun recordDailyCompletion(gameId: String, today: Long = com.funkyotc.puzzleverse.core.todayEpochDay()): Streak {
+        val streak = getStreak(gameId)
+        if (streak.lastCompletedEpochDay == today) {
+            return streak
+        }
+        val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1
+        val updated = streak.copy(count = newCount, lastCompletedEpochDay = today)
+        saveStreak(updated)
+        return updated
+    }
 }
+

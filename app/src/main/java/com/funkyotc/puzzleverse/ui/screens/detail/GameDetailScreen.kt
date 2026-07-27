@@ -29,6 +29,13 @@ import androidx.navigation.NavController
 import com.funkyotc.puzzleverse.LocalSoundManager
 import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import java.util.Locale
 
@@ -294,11 +301,81 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val today = com.funkyotc.puzzleverse.core.todayEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-            if (gameId !in listOf("flowfree", "kakuro", "nonogram")) {
-                Spacer(modifier = Modifier.height(16.dp))
-                MenuCard(text = if (isDailyCompleted) "Daily Challenge (Completed)" else "Daily Challenge", enabled = !isDailyCompleted) {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/$gameId/daily")
+            Spacer(modifier = Modifier.height(16.dp))
+            DailyChallengeMenuCard(
+                streakCount = streak.count,
+                isDailyCompleted = isDailyCompleted
+            ) {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                navController.navigate("game/$gameId/daily")
+            }
+        }
+    }
+}
+
+@Composable
+fun DailyChallengeMenuCard(
+    streakCount: Int,
+    isDailyCompleted: Boolean,
+    onClick: () -> Unit
+) {
+    androidx.compose.material3.ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !isDailyCompleted,
+        onClick = onClick,
+        colors = if (isDailyCompleted) {
+            CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            )
+        } else {
+            CardDefaults.elevatedCardColors()
+        }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Daily Challenge",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (isDailyCompleted) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = "Completed Today",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Completed Today",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            if (streakCount > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Filled.Whatshot,
+                        contentDescription = "Streak",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$streakCount",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }

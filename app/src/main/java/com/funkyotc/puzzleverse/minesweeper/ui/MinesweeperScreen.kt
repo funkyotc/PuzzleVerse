@@ -73,12 +73,13 @@ fun MinesweeperScreen(
         )
     }
 
-    if (state.isGameOver) {
+    if (state.isGameOver && !state.isWon) {
         GameEndDialog(
             isWon = false,
             title = "Game Over",
             message = "You hit a mine!",
             mode = mode,
+            gameId = "minesweeper",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )
@@ -90,6 +91,7 @@ fun MinesweeperScreen(
             title = "You Win!",
             message = "You found all the safe tiles!",
             mode = mode,
+            gameId = "minesweeper",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )

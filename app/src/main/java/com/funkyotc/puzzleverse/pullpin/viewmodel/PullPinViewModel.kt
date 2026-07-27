@@ -230,10 +230,12 @@ class PullPinViewModel(
         if (mode == "daily" && streakRepository != null) {
             val streak = streakRepository.getStreak("pullpin")
             val today = todayEpochDay()
-            val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1
-            streakRepository.saveStreak(
-                streak.copy(count = newCount, lastCompletedEpochDay = today)
-            )
+            if (streak.lastCompletedEpochDay != today) {
+                val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1
+                streakRepository.saveStreak(
+                    streak.copy(count = newCount, lastCompletedEpochDay = today)
+                )
+            }
         }
         if (mode == "puzzle" && puzzleId != null && completionRepo != null) {
             completionRepo!!.markCompleted(puzzleId)

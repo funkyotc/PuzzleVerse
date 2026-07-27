@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.constellations.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.constellations.data.Cell
 import com.funkyotc.puzzleverse.constellations.data.CellState
 import com.funkyotc.puzzleverse.constellations.data.ConstellationsPuzzle
@@ -18,6 +19,7 @@ import com.funkyotc.puzzleverse.core.todayEpochDay
 import kotlin.random.Random
 
 class ConstellationsViewModel(
+    private val streakRepository: StreakRepository? = null,
     private val mode: String?,
     private val puzzleId: String? = null
 ) : ViewModel() {
@@ -243,15 +245,30 @@ class ConstellationsViewModel(
         }
 
         timerJob?.cancel()
+        if (mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("constellations")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
         _isGameWon.value = true
     }
 }
 
-class ConstellationsViewModelFactory(private val mode: String?, private val puzzleId: String? = null) : ViewModelProvider.Factory {
+class ConstellationsViewModelFactory(
+    private val streakRepository: StreakRepository,
+    private val mode: String?,
+    private val puzzleId: String? = null
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ConstellationsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ConstellationsViewModel(mode, puzzleId) as T
+            return ConstellationsViewModel(streakRepository, mode, puzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

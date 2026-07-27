@@ -1,13 +1,20 @@
 package com.funkyotc.puzzleverse.settings.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 
-class SettingsRepository(context: Context) {
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 
-    private val sharedPreferences = context.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE)
+class SettingsRepository(
+    context: Context? = null,
+    prefs: SharedPreferences? = null
+) {
+    private val sharedPreferences: SharedPreferences = prefs ?: context?.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
 
     private val _activeTheme = MutableStateFlow(sharedPreferences.getString("active_theme", "default") ?: "default")
     val activeTheme: Flow<String> = _activeTheme

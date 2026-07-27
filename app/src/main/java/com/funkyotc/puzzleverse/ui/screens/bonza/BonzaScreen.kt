@@ -150,6 +150,7 @@ fun BonzaScreen(
             title = "Congratulations!",
             message = "You solved the puzzle!",
             mode = mode,
+            gameId = "bonza",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

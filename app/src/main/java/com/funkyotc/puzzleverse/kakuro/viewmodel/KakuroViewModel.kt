@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.kakuro.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.kakuro.data.CellType
 import com.funkyotc.puzzleverse.kakuro.data.Clue
@@ -60,6 +61,17 @@ class KakuroViewModel(
         
         val won = checkWin(newGrid, st.rows, st.cols)
         _state.update { it.copy(grid = newGrid, isWon = won) }
+        if (won && mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("kakuro")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
     }
     
     private fun checkWin(grid: List<List<KakuroCell>>, rows: Int, cols: Int): Boolean {

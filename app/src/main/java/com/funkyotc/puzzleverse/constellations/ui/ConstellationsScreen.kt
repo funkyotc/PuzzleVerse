@@ -66,7 +66,7 @@ fun ConstellationsScreen(
     puzzleId: String? = null,
     settingsRepository: SettingsRepository,
     streakRepository: StreakRepository,
-    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(mode, puzzleId))
+    constellationsViewModel: ConstellationsViewModel = viewModel(factory = ConstellationsViewModelFactory(streakRepository, mode, puzzleId))
 ) {
     val puzzle by constellationsViewModel.puzzle.collectAsState()
     val soundManager = LocalSoundManager.current
@@ -100,16 +100,6 @@ fun ConstellationsScreen(
             soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             if (mode == "puzzle" && puzzleId != null) {
                 completionRepo.markCompleted(puzzleId)
-            } else if (mode == "daily") {
-                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
-                val streak = streakRepository.getStreak("constellations")
-                if (streak.lastCompletedEpochDay != today) {
-                    val newStreak = streak.copy(
-                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                        lastCompletedEpochDay = today
-                    )
-                    streakRepository.saveStreak(newStreak)
-                }
             }
         }
     }
@@ -146,6 +136,7 @@ fun ConstellationsScreen(
             title = "Congratulations!",
             message = "You solved the puzzle!",
             mode = mode,
+            gameId = "constellations",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

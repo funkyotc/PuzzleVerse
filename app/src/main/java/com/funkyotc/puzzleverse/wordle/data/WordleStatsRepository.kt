@@ -4,8 +4,15 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
-class WordleStatsRepository(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("wordle_stats", Context.MODE_PRIVATE)
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
+
+class WordleStatsRepository(
+    context: Context? = null,
+    prefs: SharedPreferences? = null
+) {
+    private val prefs: SharedPreferences = prefs ?: context?.getSharedPreferences("wordle_stats", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
 
     fun getGamesPlayed(): Int = prefs.getInt("games_played", 0)
     fun getGamesWon(): Int = prefs.getInt("games_won", 0)

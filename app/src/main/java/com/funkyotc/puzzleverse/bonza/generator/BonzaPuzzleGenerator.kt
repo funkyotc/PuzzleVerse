@@ -9,7 +9,7 @@ import com.funkyotc.puzzleverse.bonza.data.ConnectionDirection
 import com.funkyotc.puzzleverse.bonza.data.WordFragment
 import kotlin.random.Random
 
-class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme>) {
+class BonzaPuzzleGenerator(private val puzzleThemes: List<BonzaPuzzleTheme> = emptyList()) {
 
     fun generate(seed: Long = Random.nextLong()): BonzaPuzzle {
         val random = Random(seed)

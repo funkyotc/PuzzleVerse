@@ -1,12 +1,19 @@
 package com.funkyotc.puzzleverse.chess.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 
-class ChessRepository(context: Context) {
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 
-    private val sharedPreferences = context.getSharedPreferences("ChessPrefs", Context.MODE_PRIVATE)
+class ChessRepository(
+    context: Context? = null,
+    sharedPreferences: SharedPreferences? = null
+) {
+    private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("ChessPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
     private val gson = Gson()
 
     fun savePuzzleState(state: ChessState, key: String) {

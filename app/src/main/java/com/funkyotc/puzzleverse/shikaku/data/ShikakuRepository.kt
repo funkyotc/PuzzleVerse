@@ -1,12 +1,19 @@
 package com.funkyotc.puzzleverse.shikaku.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 
-class ShikakuRepository(context: Context) {
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 
-    private val sharedPreferences = context.getSharedPreferences("ShikakuPrefs", Context.MODE_PRIVATE)
+class ShikakuRepository(
+    context: Context? = null,
+    sharedPreferences: SharedPreferences? = null
+) {
+    private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("ShikakuPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
     private val gson = Gson()
 
     fun saveBoard(board: ShikakuBoard, key: String = board.puzzleId) {

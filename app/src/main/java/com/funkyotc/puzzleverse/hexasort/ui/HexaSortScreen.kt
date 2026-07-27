@@ -185,17 +185,6 @@ fun HexaSortScreen(
                     soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
                     if (mode == "puzzle" && puzzleId != null) {
                         com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository(context, "Hexa Sort").markCompleted(puzzleId)
-                    } else if (mode == "daily" && !streakUpdated) {
-                        streakUpdated = true
-                        val today = com.funkyotc.puzzleverse.core.todayEpochDay()
-                        val streak = streakRepository.getStreak("hexasort")
-                        if (streak.lastCompletedEpochDay != today) {
-                            val newStreak = streak.copy(
-                                count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                                lastCompletedEpochDay = today
-                            )
-                            streakRepository.saveStreak(newStreak)
-                        }
                     }
                 }
                 is HexaSortEvent.GameOver -> {

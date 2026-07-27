@@ -57,7 +57,7 @@ fun TangramsScreen(
     viewModel: TangramsViewModel? = null
 ) {
     val context = LocalContext.current
-    val vm = viewModel ?: viewModel(factory = TangramsViewModelFactory(context, mode, puzzleId))
+    val vm = viewModel ?: viewModel(factory = TangramsViewModelFactory(context, streakRepository, mode, puzzleId))
     
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -91,16 +91,6 @@ fun TangramsScreen(
             soundManager.playSound(SoundManager.SOUND_ID_VICTORY)
             if (mode == "puzzle" && currentPuzzleId.isNotEmpty()) {
                 completionRepo.markCompleted(currentPuzzleId)
-            } else if (mode == "daily") {
-                val today = com.funkyotc.puzzleverse.core.todayEpochDay()
-                val streak = streakRepository.getStreak("tangrams")
-                if (streak.lastCompletedEpochDay != today) {
-                    val newStreak = streak.copy(
-                        count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
-                        lastCompletedEpochDay = today
-                    )
-                    streakRepository.saveStreak(newStreak)
-                }
             }
         }
     }

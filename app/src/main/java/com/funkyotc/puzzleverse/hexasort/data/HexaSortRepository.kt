@@ -1,11 +1,19 @@
 package com.funkyotc.puzzleverse.hexasort.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 
-class HexaSortRepository(context: Context) {
-    private val prefs = context.getSharedPreferences("HexaSortPrefs", Context.MODE_PRIVATE)
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
+
+class HexaSortRepository(
+    context: Context? = null,
+    prefs: SharedPreferences? = null
+) {
+    private val prefs: SharedPreferences = prefs ?: context?.getSharedPreferences("HexaSortPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
     private val gson = Gson()
 
     fun saveGrid(grid: List<List<Int?>>, key: String) {

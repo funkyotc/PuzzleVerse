@@ -206,6 +206,7 @@ fun WordleScreen(
                         title = "Magnificent!",
                         message = "You discovered the word correctly!",
                         mode = mode,
+                        gameId = "wordle",
                         onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
                         onPlayAgainClick = { viewModel.startNewGame() }
                     )
@@ -215,6 +216,7 @@ fun WordleScreen(
                         title = "Game Over",
                         message = "The correct word was ${state.solution}",
                         mode = mode,
+                        gameId = "wordle",
                         onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
                         onPlayAgainClick = { viewModel.startNewGame() }
                     )

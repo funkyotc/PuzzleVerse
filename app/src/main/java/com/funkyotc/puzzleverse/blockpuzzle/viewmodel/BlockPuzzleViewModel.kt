@@ -3,6 +3,7 @@ package com.funkyotc.puzzleverse.blockpuzzle.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.blockpuzzle.data.BlockPuzzleState
 import com.funkyotc.puzzleverse.blockpuzzle.data.BoxShape
 import com.funkyotc.puzzleverse.blockpuzzle.data.BoxType
@@ -97,6 +98,18 @@ class BlockPuzzleViewModel(
             recentlyClearedCols = colsToClear,
             flashId = if (linesCleared > 0) System.currentTimeMillis() else it.flashId
         ) }
+
+        if (mode == "daily" && streakRepository != null && _state.value.score >= 300) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("blockpuzzle")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
         
         // Check check game over
         checkGameOver()

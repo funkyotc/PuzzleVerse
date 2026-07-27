@@ -43,7 +43,8 @@ class HashiViewModel(
         val p = if (mode == "puzzle" && puzzleId != null) {
             HashiPregenerated.getPuzzle(puzzleId)
         } else if (mode == "daily") {
-            HashiPregenerated.MEDIUM_PUZZLES.firstOrNull() // Simplified for demo
+            val puzzles = HashiPregenerated.MEDIUM_PUZZLES
+            if (puzzles.isNotEmpty()) puzzles[(todayEpochDay() % puzzles.size).toInt()] else null
         } else {
             HashiPregenerated.EASY_PUZZLES.randomOrNull()
         }

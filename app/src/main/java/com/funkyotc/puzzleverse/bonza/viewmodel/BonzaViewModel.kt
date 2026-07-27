@@ -20,12 +20,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 class BonzaViewModel(
-    context: Context,
-    private val mode: String?,
-    private val puzzleId: String?,
-    private val forceNewGame: Boolean,
+    context: Context? = null,
+    private val mode: String? = "standard",
+    private val puzzleId: String? = null,
+    private val forceNewGame: Boolean = false,
     private val streakRepository: StreakRepository,
-    private val puzzleGenerator: BonzaPuzzleGenerator
+    private val puzzleGenerator: BonzaPuzzleGenerator = BonzaPuzzleGenerator()
 ) : ViewModel() {
 
     private val _isGameWon = MutableStateFlow(false)

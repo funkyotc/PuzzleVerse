@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.tangrams.data.TangramsPregenerated
 import com.funkyotc.puzzleverse.tangrams.engine.PieceType
 import com.funkyotc.puzzleverse.tangrams.engine.SvgPuzzleParser
@@ -22,9 +24,10 @@ import kotlinx.coroutines.launch
 import kotlin.math.hypot
 
 class TangramsViewModel(
-    private val context: Context,
-    private val mode: String?,
-    private val initialPuzzleId: String?
+    private val context: Context? = null,
+    private val streakRepository: StreakRepository? = null,
+    private val mode: String? = null,
+    private val initialPuzzleId: String? = null
 ) : ViewModel() {
 
     private val _pieces = MutableStateFlow<List<TangramPiece>>(emptyList())
@@ -77,7 +80,7 @@ class TangramsViewModel(
 
         viewModelScope.launch {
             try {
-                val svgText = context.assets.open(puzzleInfo.assetFileName).bufferedReader().use { it.readText() }
+                val svgText = context?.assets?.open(puzzleInfo.assetFileName)?.bufferedReader()?.use { it.readText() } ?: return@launch
                 val result = SvgPuzzleParser.createSolidSilhouette(svgText, screenWidth, screenHeight)
                 _targetSilhouette.value = result.path
                 calculatedPieceScale = result.pieceScaleFactor
@@ -311,6 +314,17 @@ class TangramsViewModel(
 
     fun checkVictory() {
         val solved = TangramValidator.isPuzzleSolved(_pieces.value, _targetSilhouette.value)
+        if (solved && !_isPuzzleSolved.value && mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("tangrams")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
         _isPuzzleSolved.value = solved
     }
 
@@ -339,13 +353,14 @@ class TangramsViewModel(
 
 class TangramsViewModelFactory(
     private val context: Context,
+    private val streakRepository: StreakRepository,
     private val mode: String?,
     private val initialPuzzleId: String?
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TangramsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TangramsViewModel(context, mode, initialPuzzleId) as T
+            return TangramsViewModel(context, streakRepository, mode, initialPuzzleId) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

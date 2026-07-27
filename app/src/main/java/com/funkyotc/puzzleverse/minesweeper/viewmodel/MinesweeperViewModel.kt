@@ -3,6 +3,7 @@ package com.funkyotc.puzzleverse.minesweeper.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.minesweeper.data.MineCell
 import com.funkyotc.puzzleverse.minesweeper.data.MinesweeperState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -215,7 +216,19 @@ class MinesweeperViewModel(
                 if (!grid[r][c].isRevealed) unrevealed++
             }
         }
-        return unrevealed == totalMines
+        val isWon = unrevealed == totalMines
+        if (isWon && mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("minesweeper")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
+        return isWon
     }
 }
 

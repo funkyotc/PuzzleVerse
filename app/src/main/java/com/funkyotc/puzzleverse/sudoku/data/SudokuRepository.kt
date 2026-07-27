@@ -1,13 +1,20 @@
 package com.funkyotc.puzzleverse.sudoku.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.gson.Gson
 import java.lang.Exception
 
-class SudokuRepository(context: Context) {
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 
-    private val sharedPreferences = context.getSharedPreferences("SudokuPrefs", Context.MODE_PRIVATE)
+class SudokuRepository(
+    context: Context? = null,
+    sharedPreferences: SharedPreferences? = null
+) {
+    private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("SudokuPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
+
+
     private val gson = Gson()
 
     fun saveBoard(board: SudokuBoard, key: String) {

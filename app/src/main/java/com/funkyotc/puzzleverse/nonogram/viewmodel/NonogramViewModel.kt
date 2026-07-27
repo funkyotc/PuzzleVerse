@@ -3,6 +3,7 @@ package com.funkyotc.puzzleverse.nonogram.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.nonogram.data.CellState
 import com.funkyotc.puzzleverse.nonogram.data.NonogramState
@@ -98,6 +99,7 @@ class NonogramViewModel(
         val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
 
         _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+        checkAndSaveStreak(isWon)
     }
 
     fun setCellState(r: Int, c: Int, newState: CellState) {
@@ -110,6 +112,21 @@ class NonogramViewModel(
 
         val isWon = checkWin(newPlayerGrid, st.solutionGrid, st.rows, st.cols)
         _state.update { it.copy(playerGrid = newPlayerGrid, isWon = isWon) }
+        checkAndSaveStreak(isWon)
+    }
+
+    private fun checkAndSaveStreak(isWon: Boolean) {
+        if (isWon && mode == "daily" && streakRepository != null) {
+            val today = todayEpochDay()
+            val streak = streakRepository.getStreak("nonogram")
+            if (streak.lastCompletedEpochDay != today) {
+                val newStreak = streak.copy(
+                    count = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1,
+                    lastCompletedEpochDay = today
+                )
+                streakRepository.saveStreak(newStreak)
+            }
+        }
     }
 
     private fun checkWin(player: List<List<CellState>>, solution: List<List<Boolean>>, rows: Int, cols: Int): Boolean {
