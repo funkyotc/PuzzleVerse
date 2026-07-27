@@ -80,6 +80,9 @@ class CubeShooterViewModel(
         )
     }
 
+    private var nextEntityId = 0L
+    private fun nextId(prefix: String): String = "${prefix}_${nextEntityId++}"
+
     fun dispatchFromSource(colIndex: Int) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
@@ -97,7 +100,7 @@ class CubeShooterViewModel(
         updatedSourceColumns[colIndex].removeAt(column.lastIndex)
 
         val transition = TankTransition(
-            id = java.util.UUID.randomUUID().toString(),
+            id = nextId("trans"),
             tank = tankToDispatch,
             fromCol = colIndex
         )
@@ -123,7 +126,7 @@ class CubeShooterViewModel(
         updatedStorage.removeAt(index)
 
         val transition = TankTransition(
-            id = java.util.UUID.randomUUID().toString(),
+            id = nextId("trans"),
             tank = tankToDispatch,
             fromTraySlot = index
         )
@@ -223,7 +226,7 @@ class CubeShooterViewModel(
                     val tankCoord = getTrackCellCoordinates(bottomMiddleIndex, cols, rows)
                     updatedProjectiles.add(
                         Projectile(
-                            id = java.util.UUID.randomUUID().toString(),
+                            id = nextId("proj"),
                             startCol = tankCoord.second.toFloat(),
                             startRow = tankCoord.first.toFloat(),
                             endCol = tc + 2f,
@@ -291,7 +294,7 @@ class CubeShooterViewModel(
                 val tc = (p.endCol - 2f).toInt()
                 val mutGrid = currentGrid ?: level.grid.map { it.toMutableList() }.toMutableList().also { currentGrid = it }
                 mutGrid[tr][tc] = null
-                cubesRemaining = mutGrid.sumOf { r -> r.count { it != null } }
+                cubesRemaining = (cubesRemaining - 1).coerceAtLeast(0)
                 score += 10
                 updatedFadingCubes.add(FadingCube(tr, tc, p.color, 0f))
             } else {
@@ -309,7 +312,7 @@ class CubeShooterViewModel(
             if (newPos >= bottomMiddleIndex + loopLen) {
                 if (trackTank.tank.ammo > 0) {
                     newReturns.add(TankReturn(
-                        id = java.util.UUID.randomUUID().toString(),
+                        id = nextId("ret"),
                         tank = trackTank.tank
                     ))
                 }
@@ -334,7 +337,7 @@ class CubeShooterViewModel(
                                 val tankCoord = getTrackCellCoordinates(cellIdx, cols, rows)
                                 updatedProjectiles.add(
                                     Projectile(
-                                        id = java.util.UUID.randomUUID().toString(),
+                                        id = nextId("proj"),
                                         startCol = tankCoord.second.toFloat(),
                                         startRow = tankCoord.first.toFloat(),
                                         endCol = tc + 2f,
@@ -448,6 +451,16 @@ class CubeShooterViewModel(
         }
     }
 
+    private fun isTargeted(r: Int, c: Int, projectiles: List<Projectile>): Boolean {
+        for (i in projectiles.indices) {
+            val p = projectiles[i]
+            if ((p.endRow - 2f).toInt() == r && (p.endCol - 2f).toInt() == c) {
+                return true
+            }
+        }
+        return false
+    }
+
     private fun findFirstCube(
         grid: List<List<Int?>>,
         startRow: Int,
@@ -457,29 +470,25 @@ class CubeShooterViewModel(
         rows: Int,
         projectiles: List<Projectile>
     ): Pair<Int?, Int?> {
-        val targeted = projectiles.map {
-            Pair((it.endRow - 2f).toInt(), (it.endCol - 2f).toInt())
-        }.toSet()
-
         when (direction) {
             "DOWN" -> {
                 for (r in 0 until rows) {
-                    if (grid[r][startCol] != null && !targeted.contains(Pair(r, startCol))) return Pair(r, startCol)
+                    if (grid[r][startCol] != null && !isTargeted(r, startCol, projectiles)) return Pair(r, startCol)
                 }
             }
             "LEFT" -> {
                 for (c in cols - 1 downTo 0) {
-                    if (grid[startRow][c] != null && !targeted.contains(Pair(startRow, c))) return Pair(startRow, c)
+                    if (grid[startRow][c] != null && !isTargeted(startRow, c, projectiles)) return Pair(startRow, c)
                 }
             }
             "UP" -> {
                 for (r in rows - 1 downTo 0) {
-                    if (grid[r][startCol] != null && !targeted.contains(Pair(r, startCol))) return Pair(r, startCol)
+                    if (grid[r][startCol] != null && !isTargeted(r, startCol, projectiles)) return Pair(r, startCol)
                 }
             }
             "RIGHT" -> {
                 for (c in 0 until cols) {
-                    if (grid[startRow][c] != null && !targeted.contains(Pair(startRow, c))) return Pair(startRow, c)
+                    if (grid[startRow][c] != null && !isTargeted(startRow, c, projectiles)) return Pair(startRow, c)
                 }
             }
         }

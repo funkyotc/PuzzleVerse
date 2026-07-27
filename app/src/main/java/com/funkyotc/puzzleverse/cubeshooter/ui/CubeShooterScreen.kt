@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import androidx.compose.runtime.key
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.graphicsLayer
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -211,113 +213,110 @@ fun CubeShooterScreen(
                     maxHeight / totalRows
                 )
 
-                Box(modifier = Modifier.wrapContentSize()) {
-                    // 0. Unified continuous background route Canvas
+                val density = LocalDensity.current
+                val cellSizePx = with(density) { cellSize.toPx() }
+                val tankSize = 56.dp
+                val tankSizePx = with(density) { tankSize.toPx() }
+                val edgeBumpPx = with(density) { 15.dp.toPx() }
+
+                Box(
+                    modifier = Modifier.size(cellSize * totalCols, cellSize * totalRows)
+                ) {
+                    // Unified Canvas for track path, grid cubes, fading cubes, and projectiles
                     val pathTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     val pathIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                     val themeBgColor = MaterialTheme.colorScheme.background
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                        val trackPathWidth = (cols + 3) * cellSize.toPx()
-                        val trackPathHeight = (rows + 3) * cellSize.toPx()
-                        val left = 0.5f * cellSize.toPx()
-                        val top = 0.5f * cellSize.toPx()
 
-                        // Draw thick background lane line
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        val trackPathWidth = (cols + 3) * cellSizePx
+                        val trackPathHeight = (rows + 3) * cellSizePx
+                        val left = 0.5f * cellSizePx
+                        val top = 0.5f * cellSizePx
+
+                        // 1. Draw thick background lane line
                         drawRoundRect(
                             color = pathTrackColor,
                             topLeft = Offset(left, top),
                             size = Size(trackPathWidth, trackPathHeight),
-                            cornerRadius = CornerRadius(cellSize.toPx() * 0.4f, cellSize.toPx() * 0.4f),
-                            style = Stroke(width = cellSize.toPx() * 0.55f)
+                            cornerRadius = CornerRadius(cellSizePx * 0.4f, cellSizePx * 0.4f),
+                            style = Stroke(width = cellSizePx * 0.55f)
                         )
 
-                        // Draw thin glowing center guideline
+                        // 2. Draw thin glowing center guideline
                         drawRoundRect(
                             color = pathIndicatorColor,
                             topLeft = Offset(left, top),
                             size = Size(trackPathWidth, trackPathHeight),
-                            cornerRadius = CornerRadius(cellSize.toPx() * 0.4f, cellSize.toPx() * 0.4f),
+                            cornerRadius = CornerRadius(cellSizePx * 0.4f, cellSizePx * 0.4f),
                             style = Stroke(width = 2.5f.dp.toPx())
                         )
 
-                        // Draw visual gap at the start/end point (bottom middle of the track)
-                        val gapWidth = cellSize.toPx() * 1.2f
-                        val gapHeight = cellSize.toPx() * 0.8f
+                        // 3. Draw visual gap at the start/end point (bottom middle of the track)
+                        val gapWidth = cellSizePx * 1.2f
+                        val gapHeight = cellSizePx * 0.8f
                         drawRect(
                             color = themeBgColor,
                             topLeft = Offset(left + trackPathWidth / 2f - gapWidth / 2f, top + trackPathHeight - gapHeight / 2f),
                             size = Size(gapWidth, gapHeight)
                         )
-                    }
 
-                    // 1. Static Grid: Active cubes
-                    Column(
-                        modifier = Modifier.wrapContentSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        for (r in 0 until totalRows) {
-                            Row(modifier = Modifier.wrapContentSize()) {
-                                for (c in 0 until totalCols) {
-                                    val isTrack = isTrackCell(r, c, cols, rows)
-                                    val isCube = r in 2..rows + 1 && c in 2..cols + 1
+                        // 4. Draw active grid cubes
+                        val cornerRadiusPx = 4.dp.toPx()
+                        val insetPx = 1.dp.toPx()
+                        val cubeWidthPx = cellSizePx - 2 * insetPx
 
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .padding(1.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (isTrack) {
-                                            // Empty content so it acts as a transparent layout spacing placeholder
-                                        } else if (isCube) {
-                                            val cubeColorId = state.level.grid[r - 2][c - 2]
-                                            if (cubeColorId != null) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .background(getComposeColor(cubeColorId))
-                                                        .animatePiecePlacement(trigger = cubeColorId)
-                                                )
-                                            } else {
-                                                // Check for Fading/Exploding Cubes
-                                                val fadingCube = state.fadingCubes.find { it.row == r - 2 && it.col == c - 2 }
-                                                if (fadingCube != null) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .scale(1f - fadingCube.progress)
-                                                            .alpha(1f - fadingCube.progress)
-                                                            .clip(RoundedCornerShape(4.dp))
-                                                            .background(getComposeColor(fadingCube.color))
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                        for (r in 0 until rows) {
+                            val rowList = state.level.grid[r]
+                            for (c in 0 until cols) {
+                                val cubeColorId = rowList[c] ?: continue
+                                val leftPx = (c + 2) * cellSizePx + insetPx
+                                val topPx = (r + 2) * cellSizePx + insetPx
+
+                                drawRoundRect(
+                                    color = getComposeColor(cubeColorId),
+                                    topLeft = Offset(leftPx, topPx),
+                                    size = Size(cubeWidthPx, cubeWidthPx),
+                                    cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                                )
                             }
                         }
-                    }
 
-                    // 2. Projectiles Canvas (Lasers / Bullets)
-                    Canvas(modifier = Modifier.matchParentSize()) {
-                        state.projectiles.forEach { p ->
+                        // 5. Draw fading/exploding cubes
+                        for (i in state.fadingCubes.indices) {
+                            val fadingCube = state.fadingCubes[i]
+                            val scale = (1f - fadingCube.progress).coerceIn(0f, 1f)
+                            val alpha = (1f - fadingCube.progress).coerceIn(0f, 1f)
+                            val baseLeft = (fadingCube.col + 2) * cellSizePx + insetPx
+                            val baseTop = (fadingCube.row + 2) * cellSizePx + insetPx
+                            val baseSize = cellSizePx - 2 * insetPx
+                            val scaledSize = baseSize * scale
+                            val offsetShift = (baseSize - scaledSize) / 2f
+
+                            drawRoundRect(
+                                color = getComposeColor(fadingCube.color).copy(alpha = alpha),
+                                topLeft = Offset(baseLeft + offsetShift, baseTop + offsetShift),
+                                size = Size(scaledSize, scaledSize),
+                                cornerRadius = CornerRadius(cornerRadiusPx * scale, cornerRadiusPx * scale)
+                            )
+                        }
+
+                        // 6. Draw laser projectiles
+                        for (i in state.projectiles.indices) {
+                            val p = state.projectiles[i]
                             val currCol = p.startCol + (p.endCol - p.startCol) * p.progress
                             val currRow = p.startRow + (p.endRow - p.startRow) * p.progress
 
-                            val x = (currCol + 0.5f) * cellSize.toPx()
-                            val y = (currRow + 0.5f) * cellSize.toPx()
+                            val x = (currCol + 0.5f) * cellSizePx
+                            val y = (currRow + 0.5f) * cellSizePx
 
                             drawCircle(
                                 color = getComposeColor(p.color),
-                                radius = cellSize.toPx() * 0.28f,
+                                radius = cellSizePx * 0.28f,
                                 center = Offset(x, y)
                             )
 
-                            val startX = (p.startCol + 0.5f) * cellSize.toPx()
-                            val startY = (p.startRow + 0.5f) * cellSize.toPx()
+                            val startX = (p.startCol + 0.5f) * cellSizePx
+                            val startY = (p.startRow + 0.5f) * cellSizePx
                             drawLine(
                                 color = getComposeColor(p.color).copy(alpha = 0.6f * (1f - p.progress)),
                                 start = Offset(startX, startY),
@@ -327,10 +326,8 @@ fun CubeShooterScreen(
                         }
                     }
 
-                    // 3. Smoothly Animated Tanks Overlay
+                    // Smoothly Animated Tanks Overlay (Positioned via draw-phase translation)
                     val loopLen = 2 * (cols + rows + 4)
-                    val tankSize = 56.dp
-                    val edgeBump = 15f
                     state.track.forEach { trackTank ->
                         val pos = trackTank.position
                         val idx1 = pos.toInt() % loopLen
@@ -346,17 +343,17 @@ fun CubeShooterScreen(
                         val sideR = coord1.first
                         val sideC = coord1.second
                         val bumpX = when {
-                            sideC == 0 -> -edgeBump
-                            sideC == cols + 3 -> edgeBump
+                            sideC == 0 -> -edgeBumpPx
+                            sideC == cols + 3 -> edgeBumpPx
                             else -> 0f
                         }
                         val bumpY = when {
-                            sideR == 0 -> -edgeBump
-                            sideR == rows + 3 -> edgeBump
+                            sideR == 0 -> -edgeBumpPx
+                            sideR == rows + 3 -> edgeBumpPx
                             else -> 0f
                         }
-                        val xOffset = c * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpX
-                        val yOffset = r * cellSize.value + (cellSize.value - tankSize.value) / 2f + bumpY
+                        val xOffsetPx = c * cellSizePx + (cellSizePx - tankSizePx) / 2f + bumpX
+                        val yOffsetPx = r * cellSizePx + (cellSizePx - tankSizePx) / 2f + bumpY
 
                         val angle = when {
                             sideR == 0 -> 180f         // Top edge: points DOWN
@@ -366,24 +363,32 @@ fun CubeShooterScreen(
                             else -> 0f
                         }
 
-                        TankView(
-                            colorId = trackTank.tank.color,
-                            ammo = trackTank.tank.ammo,
-                            size = tankSize,
-                            angle = angle,
-                            modifier = Modifier
-                                .offset(x = xOffset.dp, y = yOffset.dp)
-                                .padding(1.dp)
-                        )
+                        key(trackTank.tank) {
+                            TankView(
+                                colorId = trackTank.tank.color,
+                                ammo = trackTank.tank.ammo,
+                                size = tankSize,
+                                angle = angle,
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        translationX = xOffsetPx
+                                        translationY = yOffsetPx
+                                    }
+                                    .padding(1.dp)
+                            )
+                        }
                     }
 
-                    // 4. Track entry position marker (matches TrackTank top-left positioning)
+                    // Track entry position marker (matches TrackTank top-left positioning)
                     val middleColEntry = (cols + 3) / 2
-                    val entryXOff = middleColEntry * cellSize.value + (cellSize.value - tankSize.value) / 2f
-                    val entryYOff = (rows + 3) * cellSize.value + (cellSize.value - tankSize.value) / 2f + edgeBump
+                    val entryXOffPx = middleColEntry * cellSizePx + (cellSizePx - tankSizePx) / 2f
+                    val entryYOffPx = (rows + 3) * cellSizePx + (cellSizePx - tankSizePx) / 2f + edgeBumpPx
                     Box(
                         modifier = Modifier
-                            .offset(x = entryXOff.dp, y = entryYOff.dp)
+                            .graphicsLayer {
+                                translationX = entryXOffPx
+                                translationY = entryYOffPx
+                            }
                             .size(1.dp)
                             .onGloballyPositioned { trackEntryRootPos = it.positionInRoot() }
                     )
