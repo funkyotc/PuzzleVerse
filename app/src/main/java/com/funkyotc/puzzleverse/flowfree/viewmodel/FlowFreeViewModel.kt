@@ -2,7 +2,6 @@ package com.funkyotc.puzzleverse.flowfree.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.flowfree.data.ColorDot
@@ -12,12 +11,10 @@ import com.funkyotc.puzzleverse.flowfree.data.FlowFreeState
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePuzzleLibrary
 import com.funkyotc.puzzleverse.flowfree.data.Point
 import com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class FlowFreeViewModel(
     private val streakRepository: StreakRepository? = null,
@@ -26,9 +23,6 @@ class FlowFreeViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow(FlowFreeState())
     val state: StateFlow<FlowFreeState> = _state.asStateFlow()
-
-    private val _isGenerating = MutableStateFlow(false)
-    val isGenerating: StateFlow<Boolean> = _isGenerating.asStateFlow()
 
     private val _difficulty = MutableStateFlow(FlowDifficulty.EASY)
     val difficulty: StateFlow<FlowDifficulty> = _difficulty.asStateFlow()
@@ -43,42 +37,35 @@ class FlowFreeViewModel(
     }
 
     fun startNewGame() {
-        viewModelScope.launch(Dispatchers.Default) {
-            _isGenerating.value = true
-
-            if (puzzleId != null) {
-                // Load specific puzzle by ID
-                val pregen = FlowFreePregenerated.getPuzzleById(puzzleId)
-                if (pregen != null) {
-                    _state.value = FlowFreeState(
-                        rows = pregen.size,
-                        cols = pregen.size,
-                        dots = pregen.dots,
-                        paths = emptyList(),
-                        isWon = false
-                    )
-                    _isGenerating.value = false
-                    return@launch
-                }
+        if (puzzleId != null) {
+            // Load specific puzzle by ID
+            val pregen = FlowFreePregenerated.getPuzzleById(puzzleId)
+            if (pregen != null) {
+                _state.value = FlowFreeState(
+                    rows = pregen.size,
+                    cols = pregen.size,
+                    dots = pregen.dots,
+                    paths = emptyList(),
+                    isWon = false
+                )
+                return
             }
-
-            val puzzle = if (mode == "daily") {
-                val seed = com.funkyotc.puzzleverse.core.todayEpochDay()
-                FlowFreePuzzleLibrary.getDailyPuzzle(seed)
-            } else {
-                FlowFreePuzzleLibrary.getRandomPuzzle(_difficulty.value)
-            }
-
-            _state.value = FlowFreeState(
-                rows = puzzle.size,
-                cols = puzzle.size,
-                dots = puzzle.dots,
-                paths = emptyList(),
-                isWon = false
-            )
-
-            _isGenerating.value = false
         }
+
+        val puzzle = if (mode == "daily") {
+            val seed = todayEpochDay()
+            FlowFreePuzzleLibrary.getDailyPuzzle(seed)
+        } else {
+            FlowFreePuzzleLibrary.getRandomPuzzle(_difficulty.value)
+        }
+
+        _state.value = FlowFreeState(
+            rows = puzzle.size,
+            cols = puzzle.size,
+            dots = puzzle.dots,
+            paths = emptyList(),
+            isWon = false
+        )
     }
 
     fun startPath(colorId: Int, r: Int, c: Int) {

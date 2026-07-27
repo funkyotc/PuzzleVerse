@@ -52,7 +52,6 @@ fun FlowFreeScreen(
 ) {
     val soundManager = LocalSoundManager.current
     val state by viewModel.state.collectAsState()
-    val isGenerating by viewModel.isGenerating.collectAsState()
     val currentDifficulty by viewModel.difficulty.collectAsState()
     var showHowToDialog by remember { mutableStateOf(false) }
     var showNewGameDialog by remember { mutableStateOf(false) }
@@ -187,20 +186,6 @@ fun FlowFreeScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            if (isGenerating) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Generating puzzle...", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            } else {
                 var gridWidth by remember { mutableStateOf(0f) }
                 var gridHeight by remember { mutableStateOf(0f) }
                 var activeColorId by remember { mutableStateOf<Int?>(null) }
@@ -321,7 +306,6 @@ fun FlowFreeScreen(
                         }
                     }
                 }
-            }
         }
     }
 }
