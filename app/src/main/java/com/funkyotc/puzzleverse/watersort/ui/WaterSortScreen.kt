@@ -54,18 +54,18 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 private val WATER_COLORS = listOf(
-    Color(0xFFE53935), // Red
-    Color(0xFF1E88E5), // Blue
-    Color(0xFF43A047), // Green
-    Color(0xFFFBC02D), // Yellow
-    Color(0xFFFF6F00), // Orange
-    Color(0xFF8E24AA), // Purple
-    Color(0xFF00ACC1), // Cyan
-    Color(0xFFD81B60), // Pink
-    Color(0xFF6D4C41), // Brown
-    Color(0xFF3949AB), // Indigo
-    Color(0xFF00BCD4), // Teal
-    Color(0xFF78909C), // Blue Gray
+    Color(0xFFFF2A4B), // Red (Vivid Crimson)
+    Color(0xFF1E60FF), // Blue (Royal Blue)
+    Color(0xFF00B050), // Green (Emerald Green)
+    Color(0xFFFFE600), // Yellow (Lemon Yellow)
+    Color(0xFFFF7A00), // Orange (Vivid Orange)
+    Color(0xFFA020F0), // Purple (Electric Violet)
+    Color(0xFF00E5FF), // Cyan (Neon Aqua)
+    Color(0xFFFF2A85), // Pink (Hot Magenta Pink)
+    Color(0xFF8B4513), // Brown (Saddle Brown)
+    Color(0xFF4A148C), // Indigo (Deep Midnight Indigo)
+    Color(0xFF006666), // Teal (Deep Forest Teal)
+    Color(0xFFA3E635), // Lime (Chartreuse Lime)
 )
 
 private val GLASS_COLOR = Color.White.copy(alpha = 0.15f)
