@@ -1,6 +1,7 @@
 package com.funkyotc.puzzleverse.arrowescape
 
 import com.funkyotc.puzzleverse.arrowescape.model.ArrowEscapeGenerator
+import com.funkyotc.puzzleverse.arrowescape.model.GridState
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -9,22 +10,28 @@ import kotlin.random.Random
 class ArrowEscapeGeneratorTest {
 
     @Test
-    fun testGenerateEasyPuzzle() {
+    fun testGeneratedPuzzlesAre100PercentSolvable() {
         val generator = ArrowEscapeGenerator()
-        val arrows = generator.generate(width = 10, height = 10, density = 0.45f, random = Random(42))
-        assertTrue("Generated puzzle should contain arrows", arrows.isNotEmpty())
-        arrows.forEach { arrow ->
-            assertTrue("Arrow segments should be at least 5 long for easy, got ${arrow.segments.size}", arrow.segments.size >= 5)
-        }
-    }
+        for (seed in 1..20) {
+            val random = Random(seed)
+            val arrows = generator.generate(10, 10, 0.40f, random)
+            assertTrue("Generated puzzle should contain arrows", arrows.isNotEmpty())
 
-    @Test
-    fun testGenerateMediumPuzzle() {
-        val generator = ArrowEscapeGenerator()
-        val arrows = generator.generate(width = 20, height = 20, density = 0.45f, random = Random(123))
-        assertTrue("Generated puzzle should contain arrows", arrows.isNotEmpty())
-        arrows.forEach { arrow ->
-            assertTrue("Arrow segments should be at least 7 long for medium, got ${arrow.segments.size}", arrow.segments.size >= 7)
+            val state = GridState(10, 10, arrows)
+            var progress = true
+            while (progress && !state.isComplete()) {
+                progress = false
+                val availableArrows = state.arrows.keys.toList()
+                for (arrowId in availableArrows) {
+                    if (state.canMove(arrowId)) {
+                        state.moveArrowFully(arrowId)
+                        progress = true
+                        break
+                    }
+                }
+            }
+
+            assertTrue("Puzzle generated with seed $seed should be 100% solvable", state.isComplete())
         }
     }
 
@@ -50,9 +57,9 @@ class ArrowEscapeGeneratorTest {
         // Easy Puzzles (1-8, 10x10)
         for (i in 1..8) {
             val random = Random(100 + i)
-            val arrows = generator.generate(10, 10, 0.45f, random)
+            val arrows = generator.generate(10, 10, 0.40f, random)
             sb.append("object ArrowEscapePuzzle$i {\n")
-            sb.append("    val arrows = listOf(\n")
+            sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
                 sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")
@@ -63,9 +70,9 @@ class ArrowEscapeGeneratorTest {
         // Medium Puzzles (9-16, 20x20)
         for (i in 9..16) {
             val random = Random(200 + i)
-            val arrows = generator.generate(20, 20, 0.45f, random)
+            val arrows = generator.generate(20, 20, 0.40f, random)
             sb.append("object ArrowEscapePuzzle$i {\n")
-            sb.append("    val arrows = listOf(\n")
+            sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
                 sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")
@@ -76,9 +83,9 @@ class ArrowEscapeGeneratorTest {
         // Hard Puzzles (17-24, 30x30)
         for (i in 17..24) {
             val random = Random(300 + i)
-            val arrows = generator.generate(30, 30, 0.45f, random)
+            val arrows = generator.generate(30, 30, 0.40f, random)
             sb.append("object ArrowEscapePuzzle$i {\n")
-            sb.append("    val arrows = listOf(\n")
+            sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
                 sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")

@@ -86,20 +86,7 @@ class ArrowEscapeViewModel(
 
         val arrow = state.arrows[arrowId] ?: return
 
-        // Check if path is clear to the edge
-        var isBlocked = false
-        var checkPos = arrow.head.move(arrow.direction)
-        
-        while (checkPos.x in 0 until state.width && checkPos.y in 0 until state.height) {
-            val gridOccupant = state.getGridArray()[checkPos.y][checkPos.x]
-            if (gridOccupant != 0 && gridOccupant != arrowId) {
-                isBlocked = true
-                break
-            }
-            checkPos = checkPos.move(arrow.direction)
-        }
-
-        if (isBlocked) {
+        if (!state.canMove(arrowId)) {
             onBump()
         } else {
             // Move it out

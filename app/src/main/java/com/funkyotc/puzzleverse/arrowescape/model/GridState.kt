@@ -18,16 +18,16 @@ class GridState(
 
     fun canMove(arrowId: Int): Boolean {
         val arrow = arrows[arrowId] ?: return false
-        val nextPos = arrow.head.move(arrow.direction)
-
-        // Can move if it goes off screen
-        if (nextPos.x !in 0 until width || nextPos.y !in 0 until height) {
-            return true
+        for (segment in arrow.segments) {
+            val nextPos = segment.move(arrow.direction)
+            if (nextPos.x in 0 until width && nextPos.y in 0 until height) {
+                val occupant = grid[nextPos.y][nextPos.x]
+                if (occupant != 0 && occupant != arrowId) {
+                    return false
+                }
+            }
         }
-
-        // Can move if the next cell is empty, or occupied by itself (which shouldn't happen right in front of the head but just in case)
-        val occupant = grid[nextPos.y][nextPos.x]
-        return occupant == 0 || occupant == arrowId
+        return true
     }
 
     /**

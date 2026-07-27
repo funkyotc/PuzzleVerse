@@ -120,9 +120,26 @@ fun ArrowEscapeGrid(
                 }
 
                 val cellSize = minOf(cellWidth, cellHeight)
-                val strokeWidth = cellSize * 0.42f
-                val arrowHeadSize = cellSize * 0.72f
+                val strokeWidth = cellSize * 0.40f
+                val arrowHeadSize = cellSize * 0.65f
                 
+                // Determine direction of the line segment entering the head
+                val headDir = if (arrow.segments.size > 1) {
+                    val h = arrow.segments[0]
+                    val n = arrow.segments[1]
+                    val dx = h.x - n.x
+                    val dy = h.y - n.y
+                    when {
+                        dx == 0 && dy < 0 -> Direction.UP
+                        dx == 0 && dy > 0 -> Direction.DOWN
+                        dx < 0 && dy == 0 -> Direction.LEFT
+                        dx > 0 && dy == 0 -> Direction.RIGHT
+                        else -> arrow.direction
+                    }
+                } else {
+                    arrow.direction
+                }
+
                 val path = Path()
                 val points = arrow.segments.reversed()
                 
@@ -131,10 +148,10 @@ fun ArrowEscapeGrid(
                     var cx = pt.x * cellWidth + cellWidth / 2f + bumpOffsetX
                     var cy = pt.y * cellHeight + cellHeight / 2f + bumpOffsetY
                     
-                    // For the head segment (the last point in reversed list), offset slightly backward along direction
+                    // For the head segment (the last point in reversed list), offset slightly backward along headDir
                     if (i == points.lastIndex) {
-                        cx -= arrow.direction.dx * arrowHeadSize * 0.15f
-                        cy -= arrow.direction.dy * arrowHeadSize * 0.15f
+                        cx -= headDir.dx * arrowHeadSize * 0.15f
+                        cy -= headDir.dy * arrowHeadSize * 0.15f
                     }
                     
                     if (i == 0) {
@@ -156,7 +173,7 @@ fun ArrowEscapeGrid(
                     )
                 )
 
-                // Draw the prominent head pointer
+                // Draw the prominent head pointer aligned with headDir
                 val head = arrow.head
                 val hx = head.x * cellWidth + cellWidth / 2f + bumpOffsetX
                 val hy = head.y * cellHeight + cellHeight / 2f + bumpOffsetY
@@ -164,39 +181,39 @@ fun ArrowEscapeGrid(
                 val headPath = Path()
                 val hs = arrowHeadSize
                 
-                // Rich tone shift for high visibility
+                // High contrast tone shift for head visibility
                 val tipColor = Color(
-                    red = (color.red * 0.70f).coerceIn(0f, 1f),
-                    green = (color.green * 0.70f).coerceIn(0f, 1f),
-                    blue = (color.blue * 0.70f).coerceIn(0f, 1f),
+                    red = (color.red * 0.65f).coerceIn(0f, 1f),
+                    green = (color.green * 0.65f).coerceIn(0f, 1f),
+                    blue = (color.blue * 0.65f).coerceIn(0f, 1f),
                     alpha = 1f
                 )
-                val outlineColor = Color.Black.copy(alpha = 0.35f)
+                val outlineColor = Color.Black.copy(alpha = 0.40f)
                 
-                when (arrow.direction) {
+                when (headDir) {
                     Direction.UP -> {
-                        headPath.moveTo(hx, hy - hs * 0.48f)
-                        headPath.lineTo(hx - hs * 0.48f, hy + hs * 0.38f)
-                        headPath.lineTo(hx, hy + hs * 0.12f)
-                        headPath.lineTo(hx + hs * 0.48f, hy + hs * 0.38f)
+                        headPath.moveTo(hx, hy - hs * 0.45f)
+                        headPath.lineTo(hx - hs * 0.42f, hy + hs * 0.35f)
+                        headPath.lineTo(hx, hy + hs * 0.10f)
+                        headPath.lineTo(hx + hs * 0.42f, hy + hs * 0.35f)
                     }
                     Direction.DOWN -> {
-                        headPath.moveTo(hx, hy + hs * 0.48f)
-                        headPath.lineTo(hx - hs * 0.48f, hy - hs * 0.38f)
-                        headPath.lineTo(hx, hy - hs * 0.12f)
-                        headPath.lineTo(hx + hs * 0.48f, hy - hs * 0.38f)
+                        headPath.moveTo(hx, hy + hs * 0.45f)
+                        headPath.lineTo(hx - hs * 0.42f, hy - hs * 0.35f)
+                        headPath.lineTo(hx, hy - hs * 0.10f)
+                        headPath.lineTo(hx + hs * 0.42f, hy - hs * 0.35f)
                     }
                     Direction.LEFT -> {
-                        headPath.moveTo(hx - hs * 0.48f, hy)
-                        headPath.lineTo(hx + hs * 0.38f, hy - hs * 0.48f)
-                        headPath.lineTo(hx + hs * 0.12f, hy)
-                        headPath.lineTo(hx + hs * 0.38f, hy + hs * 0.48f)
+                        headPath.moveTo(hx - hs * 0.45f, hy)
+                        headPath.lineTo(hx + hs * 0.35f, hy - hs * 0.42f)
+                        headPath.lineTo(hx + hs * 0.10f, hy)
+                        headPath.lineTo(hx + hs * 0.35f, hy + hs * 0.42f)
                     }
                     Direction.RIGHT -> {
-                        headPath.moveTo(hx + hs * 0.48f, hy)
-                        headPath.lineTo(hx - hs * 0.38f, hy - hs * 0.48f)
-                        headPath.lineTo(hx - hs * 0.12f, hy)
-                        headPath.lineTo(hx - hs * 0.38f, hy + hs * 0.48f)
+                        headPath.moveTo(hx + hs * 0.45f, hy)
+                        headPath.lineTo(hx - hs * 0.35f, hy - hs * 0.42f)
+                        headPath.lineTo(hx - hs * 0.10f, hy)
+                        headPath.lineTo(hx - hs * 0.35f, hy + hs * 0.42f)
                     }
                 }
                 headPath.close()
