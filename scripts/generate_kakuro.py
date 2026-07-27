@@ -1,231 +1,354 @@
 import os
 import json
+import glob
 import random
-import numpy as np
-import copy
 
-class KakuroGenerator:
-    def __init__(self, size):
+class KakuroSolver:
+    """
+    Solves a Kakuro grid with given clues to count number of valid solutions.
+    Uses MRV and Min/Max Sum Pruning for high performance.
+    """
+    def __init__(self, size, white_cells, h_runs, v_runs):
         self.size = size
-        self.grid = np.zeros((size, size), dtype=int)
-        self.values = {}
+        self.white_cells = white_cells
+        self.h_runs = h_runs
+        self.v_runs = v_runs
 
-    def generate(self):
-        # 1. Start with a filled valid grid
-        # We fill grid[1:, 1:] with numbers 1-9 such that no row/col has duplicates.
-        self.grid.fill(1)
-        self.grid[0, :] = 0
-        self.grid[:, 0] = 0
-        
-        white_cells = [(r, c) for r in range(1, self.size) for c in range(1, self.size)]
-        
-        # Simple backtracking to fill the grid
-        self.values = {}
-        def fill_latin(idx):
-            if idx == len(white_cells): return True
-            r, c = white_cells[idx]
-            used = set()
-            for i in range(1, self.size):
-                if (r, i) in self.values: used.add(self.values[(r, i)])
-                if (i, c) in self.values: used.add(self.values[(i, c)])
-            nums = [n for n in range(1, min(10, self.size)) if n not in used]
-            random.shuffle(nums)
-            for n in nums:
-                self.values[(r, c)] = n
-                if fill_latin(idx + 1): return True
-                del self.values[(r, c)]
+    def count_solutions(self, limit=2):
+        assignment = {}
+        solutions = 0
+
+        def min_possible_sum(k, available_nums):
+            if k == 0: return 0
+            if len(available_nums) < k: return 999
+            return sum(available_nums[:k])
+
+        def max_possible_sum(k, available_nums):
+            if k == 0: return 0
+            if len(available_nums) < k: return -999
+            return sum(available_nums[-k:])
+
+        def get_candidates(cell):
+            h_info = self.h_runs[cell]
+            v_info = self.v_runs[cell]
+
+            h_cells, h_target = h_info['cells'], h_info['clue']
+            v_cells, v_target = v_info['cells'], v_info['clue']
+
+            h_used = {assignment[p] for p in h_cells if p in assignment}
+            v_used = {assignment[p] for p in v_cells if p in assignment}
+
+            h_sum = sum(assignment[p] for p in h_cells if p in assignment)
+            v_sum = sum(assignment[p] for p in v_cells if p in assignment)
+
+            h_unfilled = sum(1 for p in h_cells if p not in assignment) - 1
+            v_unfilled = sum(1 for p in v_cells if p not in assignment) - 1
+
+            h_avail = [n for n in range(1, 10) if n not in h_used]
+            v_avail = [n for n in range(1, 10) if n not in v_used]
+
+            candidates = []
+            for num in range(1, 10):
+                if num in h_used or num in v_used:
+                    continue
+
+                rem_h = h_target - (h_sum + num)
+                if rem_h < 0:
+                    continue
+                rem_h_avail = [n for n in h_avail if n != num]
+                if rem_h < min_possible_sum(h_unfilled, rem_h_avail) or rem_h > max_possible_sum(h_unfilled, rem_h_avail):
+                    continue
+
+                rem_v = v_target - (v_sum + num)
+                if rem_v < 0:
+                    continue
+                rem_v_avail = [n for n in v_avail if n != num]
+                if rem_v < min_possible_sum(v_unfilled, rem_v_avail) or rem_v > max_possible_sum(v_unfilled, rem_v_avail):
+                    continue
+
+                candidates.append(num)
+            return candidates
+
+        def backtrack():
+            nonlocal solutions
+            if solutions >= limit:
+                return
+
+            unassigned = [c for c in self.white_cells if c not in assignment]
+            if not unassigned:
+                solutions += 1
+                return
+
+            best_cell = None
+            best_candidates = None
+            for cell in unassigned:
+                cands = get_candidates(cell)
+                if best_candidates is None or len(cands) < len(best_candidates):
+                    best_cell = cell
+                    best_candidates = cands
+                    if len(best_candidates) == 0:
+                        break
+
+            if not best_candidates:
+                return
+
+            for num in best_candidates:
+                assignment[best_cell] = num
+                backtrack()
+                del assignment[best_cell]
+                if solutions >= limit:
+                    return
+
+        backtrack()
+        return solutions
+
+
+def create_puzzle_from_mask(mask):
+    size = len(mask)
+    white_cells = []
+    for r in range(size):
+        for c in range(size):
+            if mask[r][c] == 'W':
+                white_cells.append((r, c))
+
+    h_runs_by_cell = {}
+    for r in range(size):
+        c = 0
+        while c < size:
+            if mask[r][c] == 'W':
+                start_c = c
+                while c < size and mask[r][c] == 'W':
+                    c += 1
+                run_cells = [(r, i) for i in range(start_c, c)]
+                clue_cell = (r, start_c - 1)
+                for cell in run_cells:
+                    h_runs_by_cell[cell] = {'clue_pos': clue_cell, 'cells': run_cells}
+            else:
+                c += 1
+
+    v_runs_by_cell = {}
+    for c in range(size):
+        r = 0
+        while r < size:
+            if mask[r][c] == 'W':
+                start_r = r
+                while r < size and mask[r][c] == 'W':
+                    r += 1
+                run_cells = [(i, c) for i in range(start_r, r)]
+                clue_cell = (start_r - 1, c)
+                for cell in run_cells:
+                    v_runs_by_cell[cell] = {'clue_pos': clue_cell, 'cells': run_cells}
+            else:
+                r += 1
+
+    for cell in white_cells:
+        if cell not in h_runs_by_cell or cell not in v_runs_by_cell:
+            return None
+        if not (2 <= len(h_runs_by_cell[cell]['cells']) <= 9):
+            return None
+        if not (2 <= len(v_runs_by_cell[cell]['cells']) <= 9):
+            return None
+
+    assignment = {}
+
+    def get_fill_candidates(cell):
+        h_cells = h_runs_by_cell[cell]['cells']
+        v_cells = v_runs_by_cell[cell]['cells']
+
+        h_used = {assignment[p] for p in h_cells if p in assignment}
+        v_used = {assignment[p] for p in v_cells if p in assignment}
+
+        return [n for n in range(1, 10) if n not in h_used and n not in v_used]
+
+    def fill_numbers():
+        unassigned = [c for c in white_cells if c not in assignment]
+        if not unassigned:
+            return True
+
+        best_cell = None
+        best_candidates = None
+        for cell in unassigned:
+            cands = get_fill_candidates(cell)
+            if best_candidates is None or len(cands) < len(best_candidates):
+                best_cell = cell
+                best_candidates = cands
+                if len(best_candidates) == 0:
+                    break
+
+        if not best_candidates:
             return False
 
-        if not fill_latin(0):
-            return None, None
-            
-        # 2. Strategically remove numbers (turn them into black cells)
-        best_grid = copy.deepcopy(self.grid)
-        
-        for attempt in range(50):
-            self.grid = copy.deepcopy(best_grid)
-            
-            cells = list(white_cells)
-            random.shuffle(cells)
-            
-            placed_black = 0
-            target_black = int(self.size * self.size * 0.35)
-            
-            for (r, c) in cells:
-                if placed_black >= target_black:
-                    break
-                if self.grid[r, c] == 1:
-                    r_sym, c_sym = self.size - r, self.size - c
-                    self.grid[r, c] = 0
-                    if 1 <= r_sym < self.size and 1 <= c_sym < self.size:
-                        self.grid[r_sym, c_sym] = 0
-                    placed_black += 2
+        random.shuffle(best_candidates)
+        for n in best_candidates:
+            assignment[best_cell] = n
+            if fill_numbers():
+                return True
+            del assignment[best_cell]
 
-            # Clean up runs of length 1
-            changed = True
-            while changed:
-                changed = False
-                for r in range(1, self.size):
-                    for c in range(1, self.size):
-                        if self.grid[r, c] == 1:
-                            h_len = len(self.get_run(r, c, (0, 1)))
-                            v_len = len(self.get_run(r, c, (1, 0)))
-                            if h_len < 2 or v_len < 2:
-                                self.grid[r, c] = 0
-                                changed = True
-            
-            # 3. Calculate hints based on remaining filled cells
-            clues = self.calculate_clues()
-            
-            # 4. Check for unique solvability
-            if self.is_uniquely_solvable(clues):
-                return self.values, clues
-                
-        return None, None
+        return False
 
-    def get_run(self, r, c, delta):
-        dr, dc = delta
-        run = []
-        cr, cc = r, c
-        while 0 <= cr - dr < self.size and 0 <= cc - dc < self.size and self.grid[cr - dr, cc - dc] == 1:
-            cr -= dr
-            cc -= dc
-        while 0 <= cr < self.size and 0 <= cc < self.size and self.grid[cr, cc] == 1:
-            run.append((cr, cc))
-            cr += dr
-            cc += dc
-        return run
+    for attempt in range(200):
+        assignment.clear()
+        if not fill_numbers():
+            continue
 
-    def calculate_clues(self):
-        clues = {}
-        for r in range(self.size):
-            for c in range(self.size):
-                if self.grid[r, c] == 0:
-                    h_clue = None
-                    if c + 1 < self.size and self.grid[r, c+1] == 1:
-                        h_run = self.get_run(r, c+1, (0, 1))
-                        h_clue = sum(self.values[p] for p in h_run)
-                    
-                    v_clue = None
-                    if r + 1 < self.size and self.grid[r+1, c] == 1:
-                        v_run = self.get_run(r+1, c, (1, 0))
-                        v_clue = sum(self.values[p] for p in v_run)
-                    
-                    if h_clue or v_clue:
-                        clues[(r, c)] = {"h": h_clue, "v": v_clue}
-        return clues
+        h_run_clues = {}
+        for cell, info in h_runs_by_cell.items():
+            clue_pos = info['clue_pos']
+            if clue_pos not in h_run_clues:
+                h_run_clues[clue_pos] = sum(assignment[p] for p in info['cells'])
 
-    def is_uniquely_solvable(self, clues):
-        white_cells = [(r, c) for r in range(self.size) for c in range(self.size) if self.grid[r, c] == 1]
-        
-        cell_runs = {}
-        for (r, c) in white_cells:
-            cc = c
-            while cc > 0 and self.grid[r, cc-1] == 1: cc -= 1
-            h_start = cc
-            cc = c
-            while cc < self.size-1 and self.grid[r, cc+1] == 1: cc += 1
-            h_end = cc
-            
-            rr = r
-            while rr > 0 and self.grid[rr-1, c] == 1: rr -= 1
-            v_start = rr
-            rr = r
-            while rr < self.size-1 and self.grid[rr+1, c] == 1: rr += 1
-            v_end = rr
-            
-            h_c = clues.get((r, h_start-1), {}).get("h")
-            v_c = clues.get((v_start-1, c), {}).get("v")
-            
-            cell_runs[(r, c)] = {
-                "h_cells": [(r, i) for i in range(h_start, h_end+1)],
-                "v_cells": [(i, c) for i in range(v_start, v_end+1)],
-                "h_clue": h_c,
-                "v_clue": v_c
+        v_run_clues = {}
+        for cell, info in v_runs_by_cell.items():
+            clue_pos = info['clue_pos']
+            if clue_pos not in v_run_clues:
+                v_run_clues[clue_pos] = sum(assignment[p] for p in info['cells'])
+
+        solver_h_runs = {}
+        for cell, info in h_runs_by_cell.items():
+            solver_h_runs[cell] = {
+                'cells': info['cells'],
+                'clue': h_run_clues[info['clue_pos']]
             }
-            
-        solver_values = {}
-        
-        def solve(idx):
-            if idx == len(white_cells):
-                return 1
-            
-            r, c = white_cells[idx]
-            info = cell_runs[(r, c)]
-            
-            used_h = set()
-            sum_h = 0
-            unfilled_h = 0
-            for p in info["h_cells"]:
-                if p in solver_values:
-                    used_h.add(solver_values[p])
-                    sum_h += solver_values[p]
-                else:
-                    unfilled_h += 1
-                    
-            used_v = set()
-            sum_v = 0
-            unfilled_v = 0
-            for p in info["v_cells"]:
-                if p in solver_values:
-                    used_v.add(solver_values[p])
-                    sum_v += solver_values[p]
-                else:
-                    unfilled_v += 1
-                    
-            h_target = info["h_clue"]
-            v_target = info["v_clue"]
-            
-            count = 0
-            for n in range(1, 10):
-                if n in used_h or n in used_v: continue
-                if h_target is not None:
-                    if sum_h + n > h_target: continue
-                    if unfilled_h == 1 and sum_h + n != h_target: continue
-                if v_target is not None:
-                    if sum_v + n > v_target: continue
-                    if unfilled_v == 1 and sum_v + n != v_target: continue
-                
-                solver_values[(r, c)] = n
-                count += solve(idx + 1)
-                del solver_values[(r, c)]
-                if count > 1: return count
-            return count
-            
-        solutions = solve(0)
-        return solutions == 1
+
+        solver_v_runs = {}
+        for cell, info in v_runs_by_cell.items():
+            solver_v_runs[cell] = {
+                'cells': info['cells'],
+                'clue': v_run_clues[info['clue_pos']]
+            }
+
+        solver = KakuroSolver(size, white_cells, solver_h_runs, solver_v_runs)
+        s_count = solver.count_solutions(limit=2)
+
+        if s_count == 1:
+            grid_json = []
+            for r in range(size):
+                row_data = []
+                for c in range(size):
+                    cell_pos = (r, c)
+                    if mask[r][c] == 'W':
+                        row_data.append({
+                            "type": "PLAYER_INPUT",
+                            "val": assignment[cell_pos],
+                            "row": r,
+                            "col": c
+                        })
+                    else:
+                        h_clue = h_run_clues.get(cell_pos)
+                        v_clue = v_run_clues.get(cell_pos)
+                        if h_clue is not None or v_clue is not None:
+                            row_data.append({
+                                "type": "CLUE",
+                                "clue": {
+                                    "horizontalSum": h_clue,
+                                    "verticalSum": v_clue
+                                },
+                                "row": r,
+                                "col": c
+                            })
+                        else:
+                            row_data.append({
+                                "type": "BLACK",
+                                "row": r,
+                                "col": c
+                            })
+                grid_json.append(row_data)
+
+            return grid_json
+
+    return None
+
+
+MASKS_EASY_5x5 = [
+    [
+        ". . C C .",
+        ". C W W .",
+        "C W W W .",
+        "C W W W .",
+        ". C W W ."
+    ],
+    [
+        ". C C . .",
+        "C W W C .",
+        "C W W W C",
+        ". C W W W",
+        ". . C W W"
+    ]
+]
+
+MASKS_MEDIUM_6x6 = [
+    [
+        ". . C C . .",
+        ". C W W C .",
+        "C W W W W C",
+        "C W W W W C",
+        ". C W W C .",
+        ". . C C . ."
+    ],
+    [
+        ". C C . C .",
+        "C W W C W W",
+        "C W W W W C",
+        ". C W W W C",
+        "C W W C W W",
+        ". C C . C ."
+    ]
+]
+
+MASKS_HARD_7x7 = [
+    [
+        ". . C C C . .",
+        ". C W W W C .",
+        "C W W W W W C",
+        "C W W . C W W",
+        "C W W W W W C",
+        ". C W W W C .",
+        ". . C C C . ."
+    ],
+    [
+        ". C C . C C .",
+        "C W W C W W .",
+        "C W W W W W C",
+        ". C W W W C .",
+        "C W W W W W C",
+        ". C W W C W W",
+        ". C C . C C ."
+    ]
+]
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, "output", "kakuro")
     os.makedirs(output_dir, exist_ok=True)
-    
-    configs = [(5, "Easy", 15), (7, "Medium", 10), (9, "Hard", 10)]
-    
-    for size, diff, count in configs:
-        for i in range(count):
-            gen = KakuroGenerator(size)
-            values, clues = None, None
-            while values is None:
-                values, clues = gen.generate()
-            
-            grid_data = []
-            for r in range(size):
-                row = []
-                for c in range(size):
-                    if gen.grid[r, c] == 0:
-                        if (r, c) in clues:
-                            row.append({"type": "CLUE", "clue": {"horizontalSum": clues[(r, c)]["h"], "verticalSum": clues[(r, c)]["v"]}, "row": r, "col": c})
-                        else:
-                            row.append({"type": "BLACK", "row": r, "col": c})
-                    else:
-                        row.append({"type": "PLAYER_INPUT", "val": values[(r, c)], "row": r, "col": c})
-                grid_data.append(row)
-                
-            p = {"difficulty": diff, "size": size, "grid": grid_data}
-            with open(os.path.join(output_dir, f"{diff}_{i+1}.json"), "w") as f:
-                json.dump(p, f, indent=2)
-            print(f"Generated Kakuro {diff} {i+1}")
+
+    for old_file in glob.glob(os.path.join(output_dir, "*.json")):
+        try:
+            os.remove(old_file)
+        except Exception:
+            pass
+
+    configs = [
+        ("Easy", MASKS_EASY_5x5, 15),
+        ("Medium", MASKS_MEDIUM_6x6, 10),
+        ("Hard", MASKS_HARD_7x7, 10)
+    ]
+
+    for diff, masks, count in configs:
+        generated = 0
+        attempts = 0
+        while generated < count:
+            attempts += 1
+            mask_raw = random.choice(masks)
+            mask = [row.split() for row in mask_raw]
+            grid_data = create_puzzle_from_mask(mask)
+            if grid_data is not None:
+                generated += 1
+                p = {"difficulty": diff, "size": len(mask), "grid": grid_data}
+                filepath = os.path.join(output_dir, f"{diff.lower()}_{generated}.json")
+                with open(filepath, "w") as f:
+                    json.dump(p, f, indent=2)
+                print(f"Generated Kakuro {diff} {generated}/{count} (Attempt {attempts})")
 
 if __name__ == "__main__":
     main()

@@ -74,8 +74,19 @@ class KakuroViewModel(
         }
     }
     
-    private fun checkWin(grid: List<List<KakuroCell>>, rows: Int, cols: Int): Boolean {
-        // Find player inputs and clues dynamically
+    fun checkWin(grid: List<List<KakuroCell>>, rows: Int, cols: Int): Boolean {
+        var hasPlayerInput = false
+        for (r in 0 until rows) {
+            for (c in 0 until cols) {
+                val cell = grid[r][c]
+                if (cell.type == CellType.PLAYER_INPUT) {
+                    hasPlayerInput = true
+                    if (cell.playerValue == null || cell.playerValue !in 1..9) return false
+                }
+            }
+        }
+        if (!hasPlayerInput) return false
+
         for (r in 0 until rows) {
             for (c in 0 until cols) {
                 val cell = grid[r][c]
