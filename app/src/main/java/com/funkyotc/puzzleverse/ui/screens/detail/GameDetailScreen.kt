@@ -137,6 +137,11 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             navController.navigate("game/cubeshooter/pictures")
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Hard Pictures") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/cubeshooter/hard_pictures")
+                        }
                     }
                     else -> {
                         MenuCard(text = "Play Standard") {

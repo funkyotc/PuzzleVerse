@@ -39,6 +39,7 @@ class CubeShooterViewModel(
                     "medium" -> "Medium"
                     "hard" -> "Hard"
                     "pictures" -> "Pictures"
+                    "hard pictures", "hard_pictures", "hardpictures" -> "Hard Pictures"
                     else -> null
                 }
                 if (diffName != null) {
