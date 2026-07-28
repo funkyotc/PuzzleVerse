@@ -58,13 +58,56 @@ class HexaStackGenTest {
         HexaStackGenerator.debug = false
     }
 
+    /**
+     * Reports how often generated levels also pass the STRICT greedy player (any group
+     * order, first-fit cells — the LogicTest winnability player), to decide whether
+     * strict-passing seeds are cheap enough to bias generation toward.
+     */
+    @Test
+    fun strictGreedyStats() {
+        val configs = listOf(
+            "Easy" to HexaStackGenerator.Config(radius = 2, numColors = 3, targetFraction = 0.6),
+            "Medium" to HexaStackGenerator.Config(radius = 2, numColors = 4, targetFraction = 0.65),
+            "Hard" to HexaStackGenerator.Config(radius = 3, numColors = 4, targetFraction = 0.65),
+            "Expert" to HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.7),
+        )
+        for ((name, config) in configs) {
+            var strict = 0
+            var total = 0
+            var seed = 1000L
+            while (total < 30) {
+                seed += 977
+                val level = HexaStackGenerator.generate("s", name, config, seed) ?: continue
+                total++
+                if (strictGreedyWins(level)) strict++
+            }
+            println("[$name] strict-greedy pass rate: $strict/$total")
+        }
+    }
+
+    private fun strictGreedyWins(level: HexaStackLevel): Boolean {
+        var s = HexaStackLogic.initialState(level)
+        var guard = 0
+        while (!s.isWon && !s.isGameOver && guard++ < 10_000) {
+            val slot = s.tray.indexOfFirst { it != null } ?: -1
+            if (slot < 0) return false
+            val top = s.tray[slot]!!.last()
+            val empties = level.cells.filter { it !in s.cells }
+            val target = empties.firstOrNull { c ->
+                c.neighbors().any { n -> s.cells[n]?.lastOrNull() == top }
+            } ?: empties.firstOrNull() ?: return false
+            s = HexaStackLogic.placeAndResolve(s, slot, target) ?: return false
+        }
+        return s.isWon
+    }
+
     @Test
     fun generateSampleLevels() {
         val configs = listOf(
-            Triple("Easy", HexaStackGenerator.Config(radius = 2, numColors = 3, targetFraction = 0.6), 20),
-            Triple("Medium", HexaStackGenerator.Config(radius = 2, numColors = 4, targetFraction = 0.65), 20),
-            Triple("Hard", HexaStackGenerator.Config(radius = 3, numColors = 4, targetFraction = 0.65), 15),
-            Triple("Expert", HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.7), 15),
+            Triple("Easy", HexaStackGenerator.Config(radius = 2, numColors = 3, targetFraction = 0.6, requireStrict = true), 20),
+            Triple("Medium", HexaStackGenerator.Config(radius = 2, numColors = 4, targetFraction = 0.65, requireStrict = true), 20),
+            Triple("Hard", HexaStackGenerator.Config(radius = 3, numColors = 4, targetFraction = 0.65, requireStrict = true), 15),
+            Triple("Expert", HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.7, requireStrict = true), 15),
         )
         val out = java.io.File("build/hexastack-levels.txt")
         out.parentFile.mkdirs()

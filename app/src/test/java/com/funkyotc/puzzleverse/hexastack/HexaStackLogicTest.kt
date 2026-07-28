@@ -252,13 +252,15 @@ class HexaStackLogicTest {
 
     @Test
     fun everyPregeneratedLevelIsWinnableByGreedyPlayer() {
-        // Mirror the generator's verification: a simple greedy auto-player that always
-        // places the first tray group onto an empty cell adjacent to a same-top-color
-        // stack when possible, otherwise any empty cell. The generator only emits levels
-        // this strategy beats.
+        // Stronger than the generator's scripted replay: a simple greedy auto-player that
+        // places the FIRST tray group adjacent to a matching top when possible, otherwise
+        // any empty cell — and crucially must be able to place EVERY deck group this way.
+        // That matches real play: no scripted order, every group the game deals must be
+        // placeable somewhere without stranding the level.
         for (puzzle in HexaStackPregenerated.ALL_PUZZLES) {
             val level = puzzle.toLevel()
             var s = logic.initialState(level)
+            var placed = 0
             var guard = 0
             while (!s.isWon && !s.isGameOver && guard++ < 10_000) {
                 val slot = s.tray.indexOfFirst { it != null }
@@ -270,9 +272,11 @@ class HexaStackLogicTest {
                 } ?: empties.firstOrNull()
                 checkNotNull(target) { "${puzzle.id}: no empty cell while live" }
                 s = logic.placeAndResolve(s, slot, target)!!
+                placed++
             }
             assertTrue(
-                "${puzzle.id}: greedy player failed (score=${s.score}, target=${level.scoreTarget}, gameOver=${s.isGameOver})",
+                "${puzzle.id}: greedy player failed after $placed placements " +
+                    "(score=${s.score}, target=${level.scoreTarget}, gameOver=${s.isGameOver})",
                 s.isWon
             )
         }
@@ -290,5 +294,30 @@ class HexaStackLogicTest {
             }
             assertNotNull(HexaStackPregenerated.getPuzzleById(puzzle.id))
         }
+    }
+
+    @Test
+    fun pregeneratedLevelsHaveMixedColorChunks() {
+        // The decks should be visually varied: most multi-tile chunks carry 2-3 color
+        // layers (chunks of the first color phase are mono — color 0 has no predecessor
+        // color to layer underneath), and no chunk exceeds 3 layers.
+        var multiTile = 0
+        var mixed = 0
+        for (puzzle in HexaStackPregenerated.ALL_PUZZLES) {
+            for ((i, group) in puzzle.spawnDeck.withIndex()) {
+                if (group.size >= 2) {
+                    multiTile++
+                    if (group.toSet().size >= 2) mixed++
+                }
+                assertTrue(
+                    "${puzzle.id} deck[$i] has ${group.toSet().size} colors (max 3)",
+                    group.toSet().size in 1..3
+                )
+            }
+        }
+        assertTrue(
+            "only $mixed/$multiTile multi-tile chunks are mixed",
+            mixed * 2 >= multiTile // >=50% of multi-tile chunks are mixed
+        )
     }
 }

@@ -521,16 +521,18 @@ fun HexaStackScreen(
             }
         }
 
-        // Drag ghost overlay (follows the finger, drawn over the whole screen)
+        // Drag ghost overlay (follows the finger, drawn over the whole screen).
+        // The ghost floats well above the finger so the player can see the stack.
         state?.let { s ->
             if (dragSlot >= 0) {
                 val group = s.tray.getOrNull(dragSlot)
                 if (group != null) {
                     val ghostR = with(LocalDensity.current) { 26.dp.toPx() }
+                    val fingerOffset = with(LocalDensity.current) { 112.dp.toPx() }
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val rootX = trayBounds.left + dragPosition.x
                         val rootY = trayBounds.top + dragPosition.y
-                        withTransform({ translate(rootX, rootY - ghostR * 2.2f) }) {
+                        withTransform({ translate(rootX, rootY - fingerOffset) }) {
                             drawHexStack(Offset.Zero, group, ghostR, ghostR * 0.16f, popping = false)
                         }
                     }
