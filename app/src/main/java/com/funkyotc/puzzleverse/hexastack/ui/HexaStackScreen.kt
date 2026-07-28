@@ -28,6 +28,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -196,6 +199,12 @@ fun HexaStackScreen(
     var trayBounds by remember { mutableStateOf(Rect.Zero) }
     val textMeasurer = rememberTextMeasurer()
 
+    // Moving tile animation state
+    class MovingTileState(val start: Offset, val end: Offset, val colorIdx: Int) {
+        var progress by mutableStateOf(0f)
+    }
+    val movingTiles = remember { mutableStateListOf<MovingTileState>() }
+
     var dragSlot by remember { mutableStateOf(-1) }
     var dragPosition by remember { mutableStateOf(Offset.Zero) }
     var hoverCoord by remember { mutableStateOf<AxialCoord?>(null) }
@@ -220,6 +229,50 @@ fun HexaStackScreen(
                     if (event.tiles >= 14) {
                         soundManager.playSound(SoundManager.SOUND_ID_TRIUMPHANT_CHIME)
                     }
+                }
+                is HexaStackEvent.Moves -> {
+                    // handled by a separate LaunchedEffect for animations
+                }
+            }
+        }
+    }
+
+    // Collect move events and animate moving tiles
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            if (event is HexaStackEvent.Moves) {
+                val s = state ?: return@collect
+                if (boardSize.width == 0) return@collect
+                val metrics = boardMetrics(s.level.cells, boardSize.width.toFloat(), boardSize.height.toFloat())
+                val tileH = metrics.r * 0.14f
+                // Simulate destination heights so tiles land stacked properly
+                val heights = s.cells.mapValues { it.value.size }.toMutableMap()
+                val perTileMs = 160
+                val tileStaggerMs = 40
+                val stackStaggerMs = 120
+                for (move in event.moves) {
+                    val fromCenter = metrics.centers[move.from] ?: continue
+                    val toCenter = metrics.centers[move.to] ?: continue
+                    val fromStackSize = s.cells[move.from]?.size ?: 0
+                    for ((idx, colorIdx) in move.tiles.withIndex()) {
+                        val layerIndex = fromStackSize - move.tiles.size + idx
+                        val startY = fromCenter.y - layerIndex * tileH
+                        val destLayer = heights.getOrDefault(move.to, 0)
+                        val endY = toCenter.y - destLayer * tileH
+                        val mt = MovingTileState(Offset(fromCenter.x, startY), Offset(toCenter.x, endY), colorIdx)
+                        movingTiles.add(mt)
+                        // Stagger between tiles within this stack
+                        if (idx > 0) delay(tileStaggerMs.toLong())
+                        val anim = Animatable(0f)
+                        anim.animateTo(1f, tween(durationMillis = perTileMs)) {
+                            mt.progress = value
+                        }
+                        heights[move.to] = heights.getOrDefault(move.to, 0) + 1
+                    }
+                    // Small cleanup & stagger
+                    delay(40)
+                    repeat(move.tiles.size) { if (movingTiles.isNotEmpty()) movingTiles.removeAt(0) }
+                    delay(stackStaggerMs.toLong())
                 }
             }
         }
@@ -430,6 +483,30 @@ fun HexaStackScreen(
                         for ((coord, tiles) in entries) {
                             val center = metrics.centers[coord] ?: continue
                             drawHexStack(center, tiles, metrics.r, tileH, s.poppingCoords.contains(coord))
+                        }
+
+                        // Moving tiles overlay (animated transfers)
+                        for (mt in movingTiles) {
+                            val cx = mt.start.x + (mt.end.x - mt.start.x) * mt.progress
+                            val cy = mt.start.y + (mt.end.y - mt.start.y) * mt.progress
+                            val scaleY = kotlin.math.cos(mt.progress * PI.toFloat())
+                            val base = paletteColors[mt.colorIdx.coerceIn(0, paletteColors.lastIndex)]
+                            // Side shading
+                            val side = createHexPath(cx, cy + tileH * 0.55f, metrics.r * 0.92f)
+                            withTransform({ scale(1f, scaleY, Offset(cx, cy)) }) {
+                                drawPath(side, base.darken(0.35f), alpha = 0.9f, style = Fill)
+                            }
+                            // Top face
+                            val top = createHexPath(cx, cy, metrics.r * 0.92f)
+                            val brush = Brush.linearGradient(
+                                colors = listOf(base.lighten(0.3f), base),
+                                start = Offset(cx - metrics.r, cy - metrics.r),
+                                end = Offset(cx + metrics.r, cy + metrics.r)
+                            )
+                            withTransform({ scale(1f, scaleY, Offset(cx, cy)) }) {
+                                drawPath(top, brush, alpha = 1f, style = Fill)
+                                drawPath(top, Color.White.copy(alpha = 0.3f), style = Stroke(width = 1.2f))
+                            }
                         }
 
                         // 4. Particles

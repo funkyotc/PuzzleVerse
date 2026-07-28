@@ -147,26 +147,42 @@ class HexaStackViewModel(
      * Place the tray group in [traySlot] at [coord]. Returns false if the move is illegal.
      * Emits Placed/Popped events for sounds, then re-evaluates win/loss after a short
      * pop-animation window so the UI can flash popping stacks before finishing.
+     * When merges occur, emits a Moves event with a recorded sequence of transfers so
+     * the UI can animate them before the final resolved state is applied.
      */
     fun place(traySlot: Int, coord: AxialCoord) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
         if (currentState.poppingCoords.isNotEmpty()) return // ignore input mid-animation
 
-        val next = HexaStackLogic.placeAndResolve(currentState, traySlot, coord) ?: return
-        _state.value = next
+        // Use the new logic variant that returns recorded moves
+        val placeWithMoves = HexaStackLogic.placeAndResolveWithMoves(currentState, traySlot, coord) ?: return
+        val (resolvedState, moves) = placeWithMoves
 
+        // Estimate animation duration so ViewModel delays applying the resolved state until UI finishes
+        val perTileMs = 160   // translation + flip overlap
+        val tileStaggerMs = 40
+        val stackStaggerMs = 120
+        val durationMs = moves.fold(0) { acc, m -> acc + perTileMs + (m.tiles.size - 1) * tileStaggerMs } + ((moves.size - 1) * stackStaggerMs)
+
+        // Emit placed sound then emit moves for UI animation
         viewModelScope.launch {
             _events.emit(HexaStackEvent.Placed)
-            if (next.lastPoppedTiles > 0) {
-                _events.emit(HexaStackEvent.Popped(next.lastPoppedTiles, next.score))
+            if (moves.isNotEmpty()) {
+                _events.emit(HexaStackEvent.Moves(moves))
+                // wait for UI to finish animations before applying resolved state
+                delay(durationMs.toLong())
             }
-        }
+            // After animation completes, update state to resolved result and emit pop sound if any
+            _state.value = resolvedState
+            if (resolvedState.lastPoppedTiles > 0) {
+                _events.emit(HexaStackEvent.Popped(resolvedState.lastPoppedTiles, resolvedState.score))
+            }
 
-        if (next.poppingCoords.isEmpty()) {
-            afterResolve(next)
-        } else {
-            viewModelScope.launch {
+            if (resolvedState.poppingCoords.isEmpty()) {
+                afterResolve(resolvedState)
+            } else {
+                // keep the popping coords visible for the POP_ANIMATION_MS then settle
                 delay(POP_ANIMATION_MS)
                 val settled = _state.value?.copy(poppingCoords = emptySet()) ?: return@launch
                 _state.value = settled
@@ -223,6 +239,7 @@ sealed class HexaStackEvent {
     data object GameOver : HexaStackEvent()
     data object Placed : HexaStackEvent()
     data class Popped(val tiles: Int, val totalScore: Int) : HexaStackEvent()
+    data class Moves(val moves: List<com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.Move>) : HexaStackEvent()
 }
 
 class HexaStackViewModelFactory(
