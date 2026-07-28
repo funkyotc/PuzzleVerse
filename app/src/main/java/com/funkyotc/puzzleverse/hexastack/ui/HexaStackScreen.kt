@@ -528,7 +528,8 @@ fun HexaStackScreen(
                 val group = s.tray.getOrNull(dragSlot)
                 if (group != null) {
                     val ghostR = with(LocalDensity.current) { 26.dp.toPx() }
-                    val fingerOffset = with(LocalDensity.current) { 112.dp.toPx() }
+                    // Double the previous offset so the ghost sits much higher above the finger
+                    val fingerOffset = with(LocalDensity.current) { 224.dp.toPx() }
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val rootX = trayBounds.left + dragPosition.x
                         val rootY = trayBounds.top + dragPosition.y
