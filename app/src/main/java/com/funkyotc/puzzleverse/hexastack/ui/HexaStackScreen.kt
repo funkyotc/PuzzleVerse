@@ -415,6 +415,8 @@ fun HexaStackScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val ghostOffsetPx = with(LocalDensity.current) { 224.dp.toPx() }
+            val dropOffsetPx = with(LocalDensity.current) { 112.dp.toPx() }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -526,8 +528,7 @@ fun HexaStackScreen(
                 }
 
                 // Tray (drag source; explicit pointer tracking per AGENTS.md multi-touch gotcha)
-                val fingerOffsetPx = with(LocalDensity.current) { 224.dp.toPx() }
-                Box(
+Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(96.dp)
@@ -554,7 +555,7 @@ fun HexaStackScreen(
                                     dragPosition = c.position
                                     // Root coords = tray-local + tray origin in root; board-local = root - board origin
                                     val rootX = trayBounds.left + c.position.x
-                                    val rootY = trayBounds.top + c.position.y - fingerOffsetPx
+                                    val rootY = trayBounds.top + c.position.y - dropOffsetPx
                                     val boardLocal = Offset(rootX - boardBounds.left, rootY - boardBounds.top)
                                     val metrics = boardMetrics(
                                         s.level.cells,
@@ -606,12 +607,11 @@ fun HexaStackScreen(
                 val group = s.tray.getOrNull(dragSlot)
                 if (group != null) {
                     val ghostR = with(LocalDensity.current) { 26.dp.toPx() }
-                    // Double the previous offset so the ghost sits much higher above the finger
-                    val fingerOffset = with(LocalDensity.current) { 224.dp.toPx() }
+                    val ghostOffset = ghostOffsetPx
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val rootX = trayBounds.left + dragPosition.x
                         val rootY = trayBounds.top + dragPosition.y
-                        withTransform({ translate(rootX, rootY - fingerOffset) }) {
+                        withTransform({ translate(rootX, rootY - ghostOffset) }) {
                             drawHexStack(Offset.Zero, group, ghostR, ghostR * 0.16f, popping = false)
                         }
                     }
