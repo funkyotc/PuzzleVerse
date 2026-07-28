@@ -14,7 +14,7 @@ class ChessRepository(
     private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("ChessPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
     private val gson = Gson()
-    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, sharedPreferences)
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context)
 
     fun savePuzzleState(state: ChessState, key: String) {
         val json = gson.toJson(state)

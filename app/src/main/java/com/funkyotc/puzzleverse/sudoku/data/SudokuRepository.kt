@@ -15,7 +15,7 @@ class SudokuRepository(
     private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("SudokuPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
     private val gson = Gson()
-    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, sharedPreferences)
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context)
 
     fun saveBoard(board: SudokuBoard, key: String) {
         val boardJson = gson.toJson(board)

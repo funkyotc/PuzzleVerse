@@ -14,7 +14,7 @@ class HexaSortRepository(
     private val prefs: SharedPreferences = prefs ?: context?.getSharedPreferences("HexaSortPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
     private val gson = Gson()
-    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, prefs)
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context)
 
     fun saveGrid(grid: List<List<Int?>>, key: String) {
         val json = gson.toJson(grid)

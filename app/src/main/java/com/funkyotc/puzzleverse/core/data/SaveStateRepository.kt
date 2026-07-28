@@ -22,15 +22,23 @@ val LocalSaveStateRepository = staticCompositionLocalOf<SaveStateRepository> {
 }
 
 class SaveStateRepository(
-    context: Context? = null,
-    prefs: SharedPreferences? = null
+    context: Context? = null
 ) {
-    private val prefs: SharedPreferences = prefs
-        ?: context?.getSharedPreferences("PuzzleVerseSaveStates", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = context?.getSharedPreferences("PuzzleVerseSaveStates", Context.MODE_PRIVATE)
         ?: InMemorySharedPreferences()
 
     private val _savedGameIds = MutableStateFlow(loadSavedGameIds())
     val savedGameIds: StateFlow<Set<String>> = _savedGameIds.asStateFlow()
+
+    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "active_save_games" || key?.startsWith("save_") == true) {
+            _savedGameIds.value = loadSavedGameIds()
+        }
+    }
+
+    init {
+        prefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
 
     private fun loadSavedGameIds(): Set<String> {
         return try {

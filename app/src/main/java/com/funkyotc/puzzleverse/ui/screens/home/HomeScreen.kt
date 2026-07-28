@@ -200,7 +200,13 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                             selectedResumeGame = null
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             val mode = saveMeta?.mode ?: "standard"
-                            navController.navigate("game/${targetGame.id}/$mode")
+                            val puzzleId = saveMeta?.puzzleId
+                            val route = if (puzzleId != null) {
+                                "game/${targetGame.id}/puzzle/$puzzleId"
+                            } else {
+                                "game/${targetGame.id}/$mode"
+                            }
+                            navController.navigate(route)
                         }
                     ) {
                         Row(
