@@ -449,6 +449,7 @@ fun HexaStackScreen(
                 }
 
                 // Tray (drag source; explicit pointer tracking per AGENTS.md multi-touch gotcha)
+                val fingerOffsetPx = with(LocalDensity.current) { 224.dp.toPx() }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -456,15 +457,15 @@ fun HexaStackScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                         .onGloballyPositioned { trayBounds = it.boundsInRoot() }
                         .pointerInput(s.tray, s.isWon, s.isGameOver, boardSize, boardBounds) {
-                            if (s.isWon || s.isGameOver) return@pointerInput
-                            awaitEachGesture {
-                                val down = awaitFirstDown()
-                                val slot = hitTestTray(
-                                    down.position,
-                                    size.width.toFloat(),
-                                    size.height.toFloat(),
-                                    s.tray.size
-                                ) ?: return@awaitEachGesture
+                                    if (s.isWon || s.isGameOver) return@pointerInput
+                                    awaitEachGesture {
+                                        val down = awaitFirstDown()
+                                        val slot = hitTestTray(
+                                            down.position,
+                                            size.width.toFloat(),
+                                            size.height.toFloat(),
+                                            s.tray.size
+                                        ) ?: return@awaitEachGesture
                                 if (s.tray.getOrNull(slot) == null) return@awaitEachGesture
                                 dragSlot = slot
                                 dragPosition = down.position
@@ -476,7 +477,7 @@ fun HexaStackScreen(
                                     dragPosition = c.position
                                     // Root coords = tray-local + tray origin in root; board-local = root - board origin
                                     val rootX = trayBounds.left + c.position.x
-                                    val rootY = trayBounds.top + c.position.y
+                                    val rootY = trayBounds.top + c.position.y - fingerOffsetPx
                                     val boardLocal = Offset(rootX - boardBounds.left, rootY - boardBounds.top)
                                     val metrics = boardMetrics(
                                         s.level.cells,
