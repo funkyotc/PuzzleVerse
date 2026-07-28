@@ -155,7 +155,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val hasBrowsePuzzles = listOf(
                 "bonza", "flowfree", "kakuro", "nonogram", "constellations",
                 "hashi", "shikaku", "cubeshooter", "pullpin", "watersort",
-                "woodnuts", "hexasort", "chess", "tangrams", "arrowescape", "sudoku"
+                "woodnuts", "hexasort", "hexastack", "chess", "tangrams", "arrowescape", "sudoku"
             ).contains(gameId)
 
             if (hasBrowsePuzzles) {

@@ -74,6 +74,7 @@ val games = listOf(
     Game("watersort", "Water Sort"),
     Game("woodnuts", "Wood Screws"),
     Game("hexasort", "Hexa Sort"),
+    Game("hexastack", "Hexa Stack"),
     Game("chess", "Chess"),
     Game("hashi", "Hashi"),
     Game("arrowescape", "Arrow Escape"),
@@ -230,6 +231,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                                     "sudoku" -> com.funkyotc.puzzleverse.sudoku.data.SudokuRepository(context).saveBoard(com.funkyotc.puzzleverse.sudoku.data.SudokuBoard(emptyList()), "standard_sudoku_board")
                                     "shikaku" -> com.funkyotc.puzzleverse.shikaku.data.ShikakuRepository(context).clearBoard("standard")
                                     "hexasort" -> com.funkyotc.puzzleverse.hexasort.data.HexaSortRepository(context).removeKey("grid")
+                                    "hexastack" -> com.funkyotc.puzzleverse.hexastack.data.HexaStackRepository(context).removeKey("standard_hexastack_grid")
                                     "chess" -> com.funkyotc.puzzleverse.chess.data.ChessRepository(context).clearPuzzleState("chess_state")
                                 }
                                 navController.navigate("gameDetail/${targetGame.id}")

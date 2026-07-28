@@ -62,6 +62,8 @@ import com.funkyotc.puzzleverse.pullpin.ui.PullPinScreen
 import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
 import com.funkyotc.puzzleverse.hexasort.ui.HexaSortScreen
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated
+import com.funkyotc.puzzleverse.hexastack.ui.HexaStackScreen
+import com.funkyotc.puzzleverse.hexastack.data.HexaStackPregenerated
 import com.funkyotc.puzzleverse.chess.ui.ChessScreen
 import com.funkyotc.puzzleverse.chess.data.ChessPregenerated
 import com.funkyotc.puzzleverse.hashi.ui.HashiScreen
@@ -187,6 +189,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
+                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
                 "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
@@ -227,6 +230,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
                 "tangrams" -> TangramsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
@@ -509,6 +513,29 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val puzzleId = backStackEntry.arguments?.getString("puzzleId")
             HexaSortScreen(
+                navController = navController,
+                mode = "puzzle",
+                puzzleId = puzzleId,
+                streakRepository = streakRepository!!,
+                settingsRepository = settingsRepository!!
+            )
+        }
+        composable("hexastack/puzzles") {
+            PuzzleBrowserScreen(
+                title = "Hexa Stack Puzzles",
+                gameName = "Hexa Stack",
+                navController = navController,
+                puzzlesByDifficulty = HexaStackPregenerated.LEVELS_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
+                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                onPuzzleClick = { puzzle -> navController.navigate("game/hexastack/puzzle/${puzzle.id}") }
+            )
+        }
+        composable(
+            "game/hexastack/puzzle/{puzzleId}",
+            arguments = listOf(navArgument("puzzleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val puzzleId = backStackEntry.arguments?.getString("puzzleId")
+            HexaStackScreen(
                 navController = navController,
                 mode = "puzzle",
                 puzzleId = puzzleId,
