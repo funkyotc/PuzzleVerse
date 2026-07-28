@@ -354,10 +354,17 @@ fun HexaStackScreen(
         onHowToClick = { showHowToDialog = true },
         onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
-        Column(
+        // Outer Box: the drag ghost must overlay the content, not participate in
+        // Column layout (a fillMaxSize Canvas inside the Column would collapse the
+        // weighted board and shove the tray to the top while dragging).
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -511,21 +518,25 @@ fun HexaStackScreen(
                     }
                 }
 
-                // Drag ghost overlay (follows the finger, drawn over the whole screen)
-                if (dragSlot >= 0) {
-                    val group = s.tray.getOrNull(dragSlot)
-                    if (group != null) {
-                        val ghostR = with(LocalDensity.current) { 26.dp.toPx() }
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val rootX = trayBounds.left + dragPosition.x
-                            val rootY = trayBounds.top + dragPosition.y
-                            withTransform({ translate(rootX, rootY - ghostR * 2.2f) }) {
-                                drawHexStack(Offset.Zero, group, ghostR, ghostR * 0.16f, popping = false)
-                            }
+            }
+        }
+
+        // Drag ghost overlay (follows the finger, drawn over the whole screen)
+        state?.let { s ->
+            if (dragSlot >= 0) {
+                val group = s.tray.getOrNull(dragSlot)
+                if (group != null) {
+                    val ghostR = with(LocalDensity.current) { 26.dp.toPx() }
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val rootX = trayBounds.left + dragPosition.x
+                        val rootY = trayBounds.top + dragPosition.y
+                        withTransform({ translate(rootX, rootY - ghostR * 2.2f) }) {
+                            drawHexStack(Offset.Zero, group, ghostR, ghostR * 0.16f, popping = false)
                         }
                     }
                 }
             }
+        }
         }
     }
 }
