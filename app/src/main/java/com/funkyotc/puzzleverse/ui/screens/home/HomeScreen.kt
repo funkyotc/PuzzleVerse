@@ -83,6 +83,7 @@ val games = listOf(
 @Composable
 fun HomeScreen(navController: NavController, streakRepository: StreakRepository) {
     val soundManager = LocalSoundManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val saveStateRepository = LocalSaveStateRepository.current
     val savedGameIds by saveStateRepository.savedGameIds.collectAsState()
     var selectedResumeGame by remember { mutableStateOf<Game?>(null) }
@@ -217,6 +218,12 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                                 selectedResumeGame = null
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                                 saveStateRepository.clearSaveState(targetGame.id)
+                                when (targetGame.id) {
+                                    "sudoku" -> com.funkyotc.puzzleverse.sudoku.data.SudokuRepository(context).saveBoard(com.funkyotc.puzzleverse.sudoku.data.SudokuBoard(emptyList()), "standard_sudoku_board")
+                                    "shikaku" -> com.funkyotc.puzzleverse.shikaku.data.ShikakuRepository(context).clearBoard("standard")
+                                    "hexasort" -> com.funkyotc.puzzleverse.hexasort.data.HexaSortRepository(context).removeKey("grid")
+                                    "chess" -> com.funkyotc.puzzleverse.chess.data.ChessRepository(context).clearPuzzleState("chess_state")
+                                }
                                 navController.navigate("gameDetail/${targetGame.id}")
                             }
                         ) {

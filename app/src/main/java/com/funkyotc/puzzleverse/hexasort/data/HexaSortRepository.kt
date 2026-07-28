@@ -13,12 +13,18 @@ class HexaSortRepository(
 ) {
     private val prefs: SharedPreferences = prefs ?: context?.getSharedPreferences("HexaSortPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
-
     private val gson = Gson()
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, prefs)
 
     fun saveGrid(grid: List<List<Int?>>, key: String) {
         val json = gson.toJson(grid)
         prefs.edit { putString(key, json) }
+        val hasTiles = grid.any { row -> row.any { cell -> cell != null } }
+        if (hasTiles) {
+            saveStateRepo.saveGameState("hexasort", mode = if (key.contains("daily")) "daily" else "standard")
+        } else {
+            saveStateRepo.clearSaveState("hexasort")
+        }
     }
 
     fun loadGrid(key: String): List<List<Int?>>? {
@@ -49,5 +55,8 @@ class HexaSortRepository(
 
     fun removeKey(key: String) {
         prefs.edit { remove(key) }
+        if (key.contains("grid")) {
+            saveStateRepo.clearSaveState("hexasort")
+        }
     }
 }

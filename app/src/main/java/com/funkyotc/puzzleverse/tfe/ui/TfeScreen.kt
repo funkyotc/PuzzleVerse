@@ -82,6 +82,7 @@ fun TfeScreen(
             title = "Game Over",
             message = "No more moves left. Score: ${state.score}",
             mode = mode,
+            gameId = "tfe",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )
@@ -93,6 +94,7 @@ fun TfeScreen(
             title = "You Win!",
             message = "You reached 2048! Score: ${state.score}",
             mode = mode,
+            gameId = "tfe",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )

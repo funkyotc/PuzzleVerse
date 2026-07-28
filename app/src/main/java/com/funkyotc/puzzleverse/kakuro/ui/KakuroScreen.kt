@@ -93,6 +93,7 @@ fun KakuroScreen(
             title = "You Win!",
             message = "You solved the Kakuro puzzle!",
             mode = mode,
+            gameId = "kakuro",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

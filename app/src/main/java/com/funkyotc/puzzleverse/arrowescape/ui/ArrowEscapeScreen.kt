@@ -71,6 +71,7 @@ fun ArrowEscapeScreen(
             title = "Puzzle Cleared!",
             message = "You have successfully untangled all the arrows.",
             mode = mode,
+            gameId = "arrowescape",
             onMainMenuClick = {
                 navController.navigate("home") { popUpTo(0) }
             },

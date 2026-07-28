@@ -81,6 +81,7 @@ fun BlockPuzzleScreen(
             title = "Game Over",
             message = "No more space for the blocks. Final Score: ${state.score}",
             mode = mode,
+            gameId = "blockpuzzle",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )

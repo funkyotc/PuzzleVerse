@@ -102,6 +102,7 @@ fun FlowFreeScreen(
             title = "You Win!",
             message = "You connected all flows and filled the grid!",
             mode = mode,
+            gameId = "flowfree",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

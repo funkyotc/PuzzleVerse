@@ -137,6 +137,7 @@ fun NonogramScreen(
             title = "You Win!",
             message = "You solved the Nonogram!",
             mode = mode,
+            gameId = "nonogram",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

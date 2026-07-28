@@ -21,7 +21,7 @@ class GridState(
         var checkPos = arrow.head.move(arrow.direction)
         while (checkPos.x in 0 until width && checkPos.y in 0 until height) {
             val occupant = grid[checkPos.y][checkPos.x]
-            if (occupant != 0 && occupant != arrowId) {
+            if (occupant != 0) {
                 return false
             }
             checkPos = checkPos.move(arrow.direction)

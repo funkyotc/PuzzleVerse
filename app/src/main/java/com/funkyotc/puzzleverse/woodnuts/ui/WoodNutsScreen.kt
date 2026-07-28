@@ -126,6 +126,7 @@ fun WoodNutsScreen(
             title = "Victory!",
             message = "All planks removed in ${state.moves} moves!",
             mode = mode,
+            gameId = "woodnuts",
             onMainMenuClick = {
                 showVictoryDialog = false
                 if (mode == "puzzle") {

@@ -103,7 +103,14 @@ fun GameEndDialog(
     val soundManager = LocalSoundManager.current
     val context = LocalContext.current
     val streakRepo = remember { StreakRepository(context) }
+    val saveStateRepo = remember { com.funkyotc.puzzleverse.core.data.SaveStateRepository(context) }
     val effectiveStreak = streakCount ?: (if (gameId != null) streakRepo.getStreak(gameId).count else null)
+
+    androidx.compose.runtime.LaunchedEffect(isWon, gameId) {
+        if (isWon && gameId != null) {
+            saveStateRepo.clearSaveState(gameId)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismissRequest,

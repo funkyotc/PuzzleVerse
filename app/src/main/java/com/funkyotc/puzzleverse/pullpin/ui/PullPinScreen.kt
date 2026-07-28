@@ -152,6 +152,7 @@ fun PullPinScreen(
                 title = "Victory!",
                 message = "All balls are safely in their cups!\nMoves: ${s.moves}",
                 mode = mode,
+                gameId = "pullpin",
                 onMainMenuClick = {
                     showWinDialog = false
                     navController.popBackStack()
@@ -169,6 +170,7 @@ fun PullPinScreen(
                 title = "Defeat!",
                 message = "${s.lostReason ?: "You ran out of pins or balls got stuck."}\n\nTap Retry to try again!",
                 mode = mode,
+                gameId = "pullpin",
                 onMainMenuClick = {
                     showLoseDialog = false
                     navController.popBackStack()

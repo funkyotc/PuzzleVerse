@@ -170,13 +170,6 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
-            val saveStateRepo = LocalSaveStateRepository.current
-
-            if (gameId != null) {
-                androidx.compose.runtime.LaunchedEffect(gameId, mode) {
-                    saveStateRepo.saveGameState(gameId, mode ?: "standard")
-                }
-            }
 
             when (gameId) {
                 "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)

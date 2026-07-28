@@ -140,6 +140,7 @@ fun WaterSortScreen(
             title = "Victory!",
             message = "Sorted in ${state.moves} moves!",
             mode = mode,
+            gameId = "watersort",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

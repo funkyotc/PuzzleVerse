@@ -14,27 +14,34 @@ class SudokuRepository(
 ) {
     private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("SudokuPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
-
     private val gson = Gson()
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, sharedPreferences)
 
     fun saveBoard(board: SudokuBoard, key: String) {
         val boardJson = gson.toJson(board)
         sharedPreferences.edit { putString(key, boardJson) }
+        if (board.cells.isEmpty()) {
+            saveStateRepo.clearSaveState("sudoku")
+        } else {
+            val hasMoves = board.cells.any { it.number != 0 }
+            if (hasMoves) {
+                val mode = if (key.contains("daily")) "daily" else "standard"
+                saveStateRepo.saveGameState("sudoku", mode = mode)
+            } else {
+                saveStateRepo.clearSaveState("sudoku")
+            }
+        }
     }
 
     fun loadBoard(key: String): SudokuBoard? {
         val boardJson = sharedPreferences.getString(key, null) ?: return null
         return try {
             val board = gson.fromJson(boardJson, SudokuBoard::class.java)
-            // This is a check to ensure the loaded board is valid.
-            // If the board data is from an old, incompatible version, this will throw an exception.
             if (board != null && board.cells.isNotEmpty()) {
                 board.getCell(0, 0)
             }
             board
         } catch (e: Exception) {
-            // If we catch an exception, it means the saved data is corrupt.
-            // We delete the bad data and return null to force a new board to be created.
             sharedPreferences.edit { remove(key) }
             null
         }

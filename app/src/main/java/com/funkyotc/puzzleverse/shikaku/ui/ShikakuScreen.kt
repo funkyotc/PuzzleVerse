@@ -121,6 +121,7 @@ fun ShikakuScreen(
             title = "You Win!",
             message = "You solved the Shikaku puzzle!",
             mode = mode,
+            gameId = "shikaku",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

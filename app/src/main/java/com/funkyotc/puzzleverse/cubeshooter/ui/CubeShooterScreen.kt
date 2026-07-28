@@ -144,6 +144,7 @@ fun CubeShooterScreen(
             title = "Victory!",
             message = "You cleared all cubes! Final Score: ${state.score}",
             mode = mode,
+            gameId = "cubeshooter",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()
@@ -162,6 +163,7 @@ fun CubeShooterScreen(
             title = "Game Over",
             message = "Storage tray overflowed. Try again!",
             mode = mode,
+            gameId = "cubeshooter",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
             onPlayAgainClick = { viewModel.startNewGame() }
         )

@@ -13,13 +13,20 @@ class ShikakuRepository(
 ) {
     private val sharedPreferences: SharedPreferences = sharedPreferences ?: context?.getSharedPreferences("ShikakuPrefs", Context.MODE_PRIVATE) ?: InMemorySharedPreferences()
 
-
     private val gson = Gson()
+    private val saveStateRepo = com.funkyotc.puzzleverse.core.data.SaveStateRepository(context, sharedPreferences)
 
     fun saveBoard(board: ShikakuBoard, key: String = board.puzzleId) {
         try {
             val json = gson.toJson(board)
             sharedPreferences.edit { putString("savedBoard_$key", json) }
+            val hasMoves = board.playerRectangles.isNotEmpty() || board.cells.any { it.rectangleId != null }
+            if (hasMoves) {
+                val mode = if (board.isDaily) "daily" else "standard"
+                saveStateRepo.saveGameState("shikaku", mode = mode, puzzleId = board.puzzleId)
+            } else {
+                saveStateRepo.clearSaveState("shikaku")
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -42,5 +49,6 @@ class ShikakuRepository(
 
     fun clearBoard(puzzleId: String) {
         sharedPreferences.edit { remove("savedBoard_$puzzleId") }
+        saveStateRepo.clearSaveState("shikaku")
     }
 }

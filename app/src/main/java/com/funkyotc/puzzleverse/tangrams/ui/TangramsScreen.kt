@@ -126,6 +126,7 @@ fun TangramsScreen(
             title = "Congratulations!",
             message = "You solved the $puzzleName Tangram!",
             mode = mode,
+            gameId = "tangrams",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()

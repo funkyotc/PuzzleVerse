@@ -28,7 +28,7 @@ class ArrowEscapeGenerator {
             }
         }
 
-        // Fallback: if density was too high for tight starter constraints, return best generated candidate that is solvable
+        // Fallback: return best generated candidate that is solvable
         for (fallbackSeed in 1..50) {
             val r = Random(random.nextInt() + fallbackSeed)
             val arrows = generateCandidate(width, height, density * 0.9f, minLen, maxLen, r)
@@ -64,7 +64,7 @@ class ArrowEscapeGenerator {
 
             val spawnDir = Direction.entries.random(random)
 
-            // Spawn head anywhere on grid edge or interior, as long as head & neck can fit
+            // Spawn head on grid edge or interior
             val headX: Int
             val headY: Int
             when (spawnDir) {
@@ -121,7 +121,8 @@ class ArrowEscapeGenerator {
 
                     if (nextX in 0 until width && nextY in 0 until height &&
                         grid[nextY][nextX] == 0 &&
-                        !segments.contains(Coordinate(nextX, nextY))
+                        !segments.contains(Coordinate(nextX, nextY)) &&
+                        !isOnFrontHeadRay(nextX, nextY, headX, headY, spawnDir, width, height)
                     ) {
                         currentX = nextX
                         currentY = nextY
@@ -147,6 +148,17 @@ class ArrowEscapeGenerator {
         }
 
         return arrows
+    }
+
+    private fun isOnFrontHeadRay(x: Int, y: Int, headX: Int, headY: Int, dir: Direction, width: Int, height: Int): Boolean {
+        var cx = headX + dir.dx
+        var cy = headY + dir.dy
+        while (cx in 0 until width && cy in 0 until height) {
+            if (cx == x && cy == y) return true
+            cx += dir.dx
+            cy += dir.dy
+        }
+        return false
     }
 
     private fun countStarterArrows(arrows: List<Arrow>, width: Int, height: Int): Int {

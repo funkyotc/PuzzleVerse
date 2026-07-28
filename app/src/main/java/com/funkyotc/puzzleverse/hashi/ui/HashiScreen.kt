@@ -93,6 +93,7 @@ fun HashiScreen(
             title = "You Win!",
             message = "You solved the Hashi puzzle!",
             mode = mode,
+            gameId = "hashi",
             onMainMenuClick = {
                 if (mode == "puzzle") {
                     navController.popBackStack()
