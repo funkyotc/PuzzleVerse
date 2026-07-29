@@ -19,11 +19,18 @@ object HexaStackLogic {
     const val POP_THRESHOLD = 10
     const val TRAY_SLOTS = 3
 
-    /** Result of a fully resolved placement. */
+    /** A discrete animation step in the resolution process. */
+    sealed class AnimStep {
+        data class Transfer(val from: AxialCoord, val to: AxialCoord, val tiles: List<Int>) : AnimStep()
+        data class Pop(val coord: AxialCoord, val count: Int, val color: Int) : AnimStep()
+    }
+
+    /** Result of a fully resolved placement with step-by-step animation instructions. */
     data class PlacementResult(
         val cells: Map<AxialCoord, List<Int>>,
         val poppedTiles: Int,
-        val poppingCoords: Set<AxialCoord>
+        val poppingCoords: Set<AxialCoord>,
+        val steps: List<AnimStep> = emptyList()
     )
 
     fun initialState(level: HexaStackLevel): HexaStackState {
@@ -113,9 +120,8 @@ object HexaStackLogic {
     }
 
     /**
-     * Resolve the board after a placement at [placedCoord]: primary merge onto the placed
-     * stack, then loop { pop all qualifying stacks; cascade-merge equal-top neighbors onto
-     * the highest stack } until stable.
+     * Resolve the board after a placement at [placedCoord]: continuously cycles pops and
+     * matching-color transfers until stable, recording step-by-step animation instructions.
      */
     fun resolve(
         cells: MutableMap<AxialCoord, MutableList<Int>>,
@@ -123,67 +129,75 @@ object HexaStackLogic {
     ): PlacementResult {
         var totalPopped = 0
         val poppingCoords = mutableSetOf<AxialCoord>()
-
-        if (placedCoord != null) {
-            primaryMerge(cells, placedCoord)
-        }
+        val steps = mutableListOf<AnimStep>()
+        val activeCoords = mutableListOf<AxialCoord>()
+        if (placedCoord != null) activeCoords.add(placedCoord)
 
         while (true) {
-            // Pop phase: every stack with >= POP_THRESHOLD contiguous same-color top tiles.
-            var poppedThisRound = 0
-            val toCheck = cells.keys.toList()
-            for (c in toCheck) {
+            var activity = false
+
+            // 1. Pop phase: check for stacks with >= POP_THRESHOLD same-color top tiles
+            val coordsToCheck = cells.keys.toList()
+            for (c in coordsToCheck) {
                 val stack = cells[c] ?: continue
                 val run = topRun(stack)
                 if (run >= POP_THRESHOLD) {
+                    val color = stack.last()
                     repeat(run) { stack.removeAt(stack.size - 1) }
-                    poppedThisRound += run
+                    totalPopped += run
                     poppingCoords.add(c)
+                    steps.add(AnimStep.Pop(c, run, color))
                     if (stack.isEmpty()) cells.remove(c)
+                    activity = true
                 }
             }
-            totalPopped += poppedThisRound
 
-            // Cascade phase: merge equal-top neighbors onto the highest stack, one pair at a time.
-            var merged: Boolean
-            do {
-                merged = cascadeStep(cells)
-            } while (merged)
+            // 2. Transfer phase: merge adjacent stacks with matching top color
+            val candidate = findBestMergeCandidate(cells, activeCoords)
+            if (candidate != null) {
+                val (fromCoord, toCoord) = candidate
+                val fromStack = cells[fromCoord] ?: continue
+                val toStack = cells[toCoord] ?: continue
+                val run = topRun(fromStack)
+                val tiles = fromStack.takeLast(run)
+                repeat(run) { fromStack.removeAt(fromStack.size - 1) }
+                toStack.addAll(tiles)
+                if (fromStack.isEmpty()) cells.remove(fromCoord)
 
-            if (poppedThisRound == 0) break
+                steps.add(AnimStep.Transfer(fromCoord, toCoord, tiles))
+                activeCoords.clear()
+                activeCoords.add(toCoord)
+                activity = true
+            }
+
+            if (!activity) break
         }
 
         return PlacementResult(
             cells = cells,
             poppedTiles = totalPopped,
-            poppingCoords = poppingCoords
+            poppingCoords = poppingCoords,
+            steps = steps
         )
     }
 
-    /** Transfer matching contiguous top tiles from neighbors onto the stack at [target]. */
-    private fun primaryMerge(cells: MutableMap<AxialCoord, MutableList<Int>>, target: AxialCoord) {
-        val targetStack = cells[target] ?: return
-        while (true) {
-            val topColor = targetStack.lastOrNull() ?: return
-            val donor = target.neighbors()
-                .mapNotNull { n -> cells[n]?.let { n to it } }
-                .firstOrNull { (_, stack) -> stack.lastOrNull() == topColor }
-                ?: return
-            val (donorCoord, donorStack) = donor
-            val run = topRun(donorStack)
-            val tiles = donorStack.takeLast(run)
-            repeat(run) { donorStack.removeAt(donorStack.size - 1) }
-            targetStack.addAll(tiles)
-            if (donorStack.isEmpty()) cells.remove(donorCoord)
+    private fun findBestMergeCandidate(
+        cells: Map<AxialCoord, List<Int>>,
+        activeCoords: List<AxialCoord>
+    ): Pair<AxialCoord, AxialCoord>? {
+        // Priority 1: Merges involving activeCoords (chain reaction)
+        for (active in activeCoords) {
+            val stack = cells[active] ?: continue
+            val topColor = stack.lastOrNull() ?: continue
+            for (n in active.neighbors()) {
+                val nStack = cells[n] ?: continue
+                if (nStack.lastOrNull() == topColor) {
+                    return if (nStack.size > stack.size) active to n else n to active
+                }
+            }
         }
-    }
 
-    /**
-     * One cascade step: find the adjacent stack pair with equal top colors where the taller
-     * stack is tallest overall, and move the shorter stack's contiguous top run onto it.
-     * Returns true if a merge happened.
-     */
-    private fun cascadeStep(cells: MutableMap<AxialCoord, MutableList<Int>>): Boolean {
+        // Priority 2: Any adjacent matching stacks on the board (taller receives)
         data class Candidate(val from: AxialCoord, val to: AxialCoord, val height: Int)
         var best: Candidate? = null
         for ((coord, stack) in cells) {
@@ -191,23 +205,14 @@ object HexaStackLogic {
             for (n in coord.neighbors()) {
                 val nStack = cells[n] ?: continue
                 if (nStack.lastOrNull() != top) continue
-                // Merge the shorter into the taller; ties merge coord into n deterministically.
                 val (from, to) = if (stack.size <= nStack.size) coord to n else n to coord
                 val height = maxOf(stack.size, nStack.size)
-                if (best == null || height > best!!.height) {
+                if (best == null || height > best.height) {
                     best = Candidate(from, to, height)
                 }
             }
         }
-        val c = best ?: return false
-        val fromStack = cells[c.from] ?: return false
-        val toStack = cells[c.to] ?: return false
-        val run = topRun(fromStack)
-        val tiles = fromStack.takeLast(run)
-        repeat(run) { fromStack.removeAt(fromStack.size - 1) }
-        toStack.addAll(tiles)
-        if (fromStack.isEmpty()) cells.remove(c.from)
-        return true
+        return best?.let { it.from to it.to }
     }
 
     /** Length of the contiguous same-color run at the top of [stack]. */
@@ -221,7 +226,7 @@ object HexaStackLogic {
         return run
     }
 
-    /** A discrete move of a contiguous run of tiles from one coord to another. */
+    /** A discrete move of a contiguous run of tiles from one coord to another (legacy compatibility). */
     data class Move(val from: AxialCoord, val to: AxialCoord, val tiles: List<Int>)
 
     data class PlacementResultWithMoves(
@@ -231,92 +236,13 @@ object HexaStackLogic {
         val moves: List<Move>
     )
 
-    /** Variant of resolve that records the sequence of transfers (moves) performed. */
-    private fun resolveWithMoves(
-        cells: MutableMap<AxialCoord, MutableList<Int>>,
-        placedCoord: AxialCoord?
-    ): PlacementResultWithMoves {
-        var totalPopped = 0
-        val poppingCoords = mutableSetOf<AxialCoord>()
-        val moves = mutableListOf<Move>()
-
-        if (placedCoord != null) {
-            // primary merge: record each donor->target transfer as a Move (tiles in donor order)
-            while (true) {
-                val targetStack = cells[placedCoord] ?: break
-                val topColor = targetStack.lastOrNull() ?: break
-                val donor = placedCoord.neighbors()
-                    .mapNotNull { n -> cells[n]?.let { n to it } }
-                    .firstOrNull { (_, stack) -> stack.lastOrNull() == topColor }
-                    ?: break
-                val (donorCoord, donorStack) = donor
-                val run = topRun(donorStack)
-                val tiles = donorStack.takeLast(run)
-                repeat(run) { donorStack.removeAt(donorStack.size - 1) }
-                targetStack.addAll(tiles)
-                if (donorStack.isEmpty()) cells.remove(donorCoord)
-                moves.add(Move(donorCoord, placedCoord, tiles))
-            }
-        }
-
-        while (true) {
-            // Pop phase
-            var poppedThisRound = 0
-            val toCheck = cells.keys.toList()
-            for (c in toCheck) {
-                val stack = cells[c] ?: continue
-                val run = topRun(stack)
-                if (run >= POP_THRESHOLD) {
-                    repeat(run) { stack.removeAt(stack.size - 1) }
-                    poppedThisRound += run
-                    poppingCoords.add(c)
-                    if (stack.isEmpty()) cells.remove(c)
-                }
-            }
-            totalPopped += poppedThisRound
-
-            // Cascade phase: record each cascade merge as a Move
-            var merged: Boolean
-            do {
-                // Find best candidate as in cascadeStep
-                data class Candidate(val from: AxialCoord, val to: AxialCoord, val height: Int)
-                var best: Candidate? = null
-                for ((coord, stack) in cells) {
-                    val top = stack.lastOrNull() ?: continue
-                    for (n in coord.neighbors()) {
-                        val nStack = cells[n] ?: continue
-                        if (nStack.lastOrNull() != top) continue
-                        val (from, to) = if (stack.size <= nStack.size) coord to n else n to coord
-                        val height = maxOf(stack.size, nStack.size)
-                        if (best == null || height > best!!.height) {
-                            best = Candidate(from, to, height)
-                        }
-                    }
-                }
-                val c = best
-                if (c == null) {
-                    merged = false
-                } else {
-                    val fromStack = cells[c.from] ?: break
-                    val toStack = cells[c.to] ?: break
-                    val run = topRun(fromStack)
-                    val tiles = fromStack.takeLast(run)
-                    repeat(run) { fromStack.removeAt(fromStack.size - 1) }
-                    toStack.addAll(tiles)
-                    if (fromStack.isEmpty()) cells.remove(c.from)
-                    moves.add(Move(c.from, c.to, tiles))
-                    merged = true
-                }
-            } while (merged)
-
-            if (poppedThisRound == 0) break
-        }
-
-        return PlacementResultWithMoves(cells = cells, poppedTiles = totalPopped, poppingCoords = poppingCoords, moves = moves)
+    fun placeAndResolveWithMoves(state: HexaStackState, traySlot: Int, coord: AxialCoord): Pair<HexaStackState, List<Move>>? {
+        val result = placeAndResolveWithSteps(state, traySlot, coord) ?: return null
+        val legacyMoves = result.second.filterIsInstance<AnimStep.Transfer>().map { Move(it.from, it.to, it.tiles) }
+        return Pair(result.first, legacyMoves)
     }
 
-    /** Variant of placeAndResolve that returns recorded Moves alongside the resolved state. */
-    fun placeAndResolveWithMoves(state: HexaStackState, traySlot: Int, coord: AxialCoord): Pair<HexaStackState, List<Move>>? {
+    fun placeAndResolveWithSteps(state: HexaStackState, traySlot: Int, coord: AxialCoord): Pair<HexaStackState, List<AnimStep>>? {
         if (state.isWon || state.isGameOver) return null
         if (traySlot !in 0 until TRAY_SLOTS) return null
         val group = state.tray[traySlot] ?: return null
@@ -325,19 +251,19 @@ object HexaStackLogic {
         val cells = state.cells.mapValues { it.value.toMutableList() }.toMutableMap()
         cells[coord] = group.toMutableList()
 
-        val resultWithMoves = resolveWithMoves(cells, placedCoord = coord)
+        val result = resolve(cells, placedCoord = coord)
 
         val newTray = state.tray.toMutableList()
         newTray[traySlot] = null
 
         val resolved = state.copy(
-            cells = resultWithMoves.cells.mapValues { it.value.toList() },
+            cells = result.cells.mapValues { it.value.toList() },
             tray = newTray,
-            score = state.score + resultWithMoves.poppedTiles * 10,
+            score = state.score + result.poppedTiles * 10,
             moves = state.moves + 1,
-            poppingCoords = resultWithMoves.poppingCoords,
-            lastPoppedTiles = resultWithMoves.poppedTiles
+            poppingCoords = result.poppingCoords,
+            lastPoppedTiles = result.poppedTiles
         )
-        return Pair(dealIfNeeded(resolved).let { finish(it) }, resultWithMoves.moves)
+        return Pair(dealIfNeeded(resolved).let { finish(it) }, result.steps)
     }
 }

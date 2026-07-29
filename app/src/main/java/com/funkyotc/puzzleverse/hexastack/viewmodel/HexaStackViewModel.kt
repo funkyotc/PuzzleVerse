@@ -150,45 +150,59 @@ class HexaStackViewModel(
      * When merges occur, emits a Moves event with a recorded sequence of transfers so
      * the UI can animate them before the final resolved state is applied.
      */
+    /**
+     * Place the tray group in [traySlot] at [coord].
+     * Emits Placed event, immediately updates state with placed stack, and emits Steps event
+     * for step-by-step 3D flip & pop animations before finalizing state.
+     */
     fun place(traySlot: Int, coord: AxialCoord) {
         val currentState = _state.value ?: return
         if (currentState.isWon || currentState.isGameOver) return
         if (currentState.poppingCoords.isNotEmpty()) return // ignore input mid-animation
 
-        // Use the new logic variant that returns recorded moves
-        val placeWithMoves = HexaStackLogic.placeAndResolveWithMoves(currentState, traySlot, coord) ?: return
-        val (resolvedState, moves) = placeWithMoves
+        val placeWithSteps = HexaStackLogic.placeAndResolveWithSteps(currentState, traySlot, coord) ?: return
+        val (resolvedState, steps) = placeWithSteps
 
-        // Estimate animation duration so ViewModel delays applying the resolved state until UI finishes
-        val perTileMs = 160   // translation + flip overlap
-        val tileStaggerMs = 40
-        val stackStaggerMs = 120
-        val durationMs = moves.fold(0) { acc, m -> acc + perTileMs + (m.tiles.size - 1) * tileStaggerMs } + ((moves.size - 1) * stackStaggerMs)
+        val group = currentState.tray[traySlot] ?: return
+        val tempCells = currentState.cells.mapValues { it.value.toMutableList() }.toMutableMap()
+        tempCells[coord] = group.toMutableList()
 
-        // Emit placed sound then emit moves for UI animation
+        val tempTray = currentState.tray.toMutableList()
+        tempTray[traySlot] = null
+
+        val placedState = currentState.copy(
+            cells = tempCells.mapValues { it.value.toList() },
+            tray = tempTray
+        )
+
+        _state.value = placedState
+
         viewModelScope.launch {
             _events.emit(HexaStackEvent.Placed)
-            if (moves.isNotEmpty()) {
-                _events.emit(HexaStackEvent.Moves(moves))
-                // wait for UI to finish animations before applying resolved state
-                delay(durationMs.toLong())
-            }
-            // After animation completes, update state to resolved result and emit pop sound if any
-            _state.value = resolvedState
-            if (resolvedState.lastPoppedTiles > 0) {
-                _events.emit(HexaStackEvent.Popped(resolvedState.lastPoppedTiles, resolvedState.score))
-            }
 
-            if (resolvedState.poppingCoords.isEmpty()) {
-                afterResolve(resolvedState)
+            if (steps.isNotEmpty()) {
+                val legacyMoves = steps.filterIsInstance<HexaStackLogic.AnimStep.Transfer>().map {
+                    HexaStackLogic.Move(it.from, it.to, it.tiles)
+                }
+                if (legacyMoves.isNotEmpty()) {
+                    _events.emit(HexaStackEvent.Moves(legacyMoves))
+                }
+                _events.emit(HexaStackEvent.Steps(steps, resolvedState))
             } else {
-                // keep the popping coords visible for the POP_ANIMATION_MS then settle
-                delay(POP_ANIMATION_MS)
-                val settled = _state.value?.copy(poppingCoords = emptySet()) ?: return@launch
-                _state.value = settled
-                afterResolve(settled)
+                _state.value = resolvedState
+                afterResolve(resolvedState)
             }
         }
+    }
+
+    fun onAnimationFinished(finalState: HexaStackState) {
+        _state.value = finalState
+        if (finalState.lastPoppedTiles > 0) {
+            viewModelScope.launch {
+                _events.emit(HexaStackEvent.Popped(finalState.lastPoppedTiles, finalState.score))
+            }
+        }
+        afterResolve(finalState)
     }
 
     private fun afterResolve(state: HexaStackState) {
@@ -240,6 +254,10 @@ sealed class HexaStackEvent {
     data object Placed : HexaStackEvent()
     data class Popped(val tiles: Int, val totalScore: Int) : HexaStackEvent()
     data class Moves(val moves: List<com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.Move>) : HexaStackEvent()
+    data class Steps(
+        val steps: List<com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep>,
+        val finalState: HexaStackState
+    ) : HexaStackEvent()
 }
 
 class HexaStackViewModelFactory(

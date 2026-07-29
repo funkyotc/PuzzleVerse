@@ -199,8 +199,26 @@ fun HexaStackScreen(
     var trayBounds by remember { mutableStateOf(Rect.Zero) }
     val textMeasurer = rememberTextMeasurer()
 
+    // Local animated board cells state to prevent tile duplication glitches
+    val visibleCells = remember { mutableMapOf<AxialCoord, MutableList<Int>>() }
+
+    // Sync visibleCells with state when idle
+    LaunchedEffect(state?.cells) {
+        val s = state ?: return@LaunchedEffect
+        visibleCells.clear()
+        s.cells.forEach { (coord, list) ->
+            visibleCells[coord] = list.toMutableList()
+        }
+    }
+
     // Moving tile animation state
-    class MovingTileState(val start: Offset, val end: Offset, val colorIdx: Int) {
+    class MovingTileState(
+        val start: Offset,
+        val end: Offset,
+        val colorIdx: Int,
+        val tileH: Float,
+        val r: Float
+    ) {
         var progress by mutableStateOf(0f)
     }
     val movingTiles = remember { mutableStateListOf<MovingTileState>() }
@@ -231,81 +249,99 @@ fun HexaStackScreen(
                     }
                 }
                 is HexaStackEvent.Moves -> {
-                    // handled by a separate LaunchedEffect for animations
+                    // handled via Steps for enhanced 3D animation sequence
                 }
-            }
-        }
-    }
+                is HexaStackEvent.Steps -> {
+                    val s = state ?: return@collect
+                    if (boardSize.width == 0) return@collect
+                    val metrics = boardMetrics(s.level.cells, boardSize.width.toFloat(), boardSize.height.toFloat())
+                    val tileH = metrics.r * 0.14f
 
-    // Collect move events and animate moving tiles
-    LaunchedEffect(Unit) {
-        viewModel.events.collect { event ->
-            if (event is HexaStackEvent.Moves) {
-                val s = state ?: return@collect
-                if (boardSize.width == 0) return@collect
-                val metrics = boardMetrics(s.level.cells, boardSize.width.toFloat(), boardSize.height.toFloat())
-                val tileH = metrics.r * 0.14f
-                // Simulate destination heights so tiles land stacked properly
-                val heights = s.cells.mapValues { it.value.size }.toMutableMap()
-                val perTileMs = 160
-                val tileStaggerMs = 40
-                val stackStaggerMs = 120
-                for (move in event.moves) {
-                    val fromCenter = metrics.centers[move.from] ?: continue
-                    val toCenter = metrics.centers[move.to] ?: continue
-                    val fromStackSize = s.cells[move.from]?.size ?: 0
-                    for ((idx, colorIdx) in move.tiles.withIndex()) {
-                        val layerIndex = fromStackSize - move.tiles.size + idx
-                        val startY = fromCenter.y - layerIndex * tileH
-                        val destLayer = heights.getOrDefault(move.to, 0)
-                        val endY = toCenter.y - destLayer * tileH
-                        val mt = MovingTileState(Offset(fromCenter.x, startY), Offset(toCenter.x, endY), colorIdx)
-                        movingTiles.add(mt)
-                        // Stagger between tiles within this stack
-                        if (idx > 0) delay(tileStaggerMs.toLong())
-                        val anim = Animatable(0f)
-                        anim.animateTo(1f, tween(durationMillis = perTileMs)) {
-                            mt.progress = value
+                    for (step in event.steps) {
+                        when (step) {
+                            is com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep.Transfer -> {
+                                val fromCenter = metrics.centers[step.from] ?: continue
+                                val toCenter = metrics.centers[step.to] ?: continue
+                                
+                                val fromStack = visibleCells[step.from] ?: mutableListOf()
+                                val fromStackSize = fromStack.size
+                                repeat(step.tiles.size) {
+                                    if (fromStack.isNotEmpty()) fromStack.removeAt(fromStack.lastIndex)
+                                }
+                                if (fromStack.isEmpty()) visibleCells.remove(step.from)
+
+                                val toStack = visibleCells.getOrPut(step.to) { mutableListOf() }
+                                val toBaseSize = toStack.size
+
+                                val perTileMs = 180
+                                val tileStaggerMs = 45
+
+                                for ((idx, colorIdx) in step.tiles.withIndex()) {
+                                    val startLayer = (fromStackSize - step.tiles.size + idx).coerceAtLeast(0)
+                                    val destLayer = toBaseSize + idx
+                                    val startY = fromCenter.y - startLayer * tileH
+                                    val endY = toCenter.y - destLayer * tileH
+
+                                    val mt = MovingTileState(
+                                        start = Offset(fromCenter.x, startY),
+                                        end = Offset(toCenter.x, endY),
+                                        colorIdx = colorIdx,
+                                        tileH = tileH,
+                                        r = metrics.r
+                                    )
+                                    movingTiles.add(mt)
+                                    if (idx > 0) delay(tileStaggerMs.toLong())
+
+                                    val anim = Animatable(0f)
+                                    anim.animateTo(1f, tween(durationMillis = perTileMs)) {
+                                        mt.progress = value
+                                    }
+                                }
+
+                                delay(perTileMs.toLong() + 30L)
+                                movingTiles.clear()
+                                toStack.addAll(step.tiles)
+                                soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
+                                delay(60L)
+                            }
+                            is com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep.Pop -> {
+                                val center = metrics.centers[step.coord]
+                                if (center != null) {
+                                    val baseColor = paletteColors[step.color.coerceIn(0, paletteColors.lastIndex)]
+                                    repeat(16) {
+                                        val angle = Random.nextFloat() * 2 * PI.toFloat()
+                                        val speed = Random.nextFloat() * 5f + 2f
+                                        particles.add(
+                                            PopParticle(
+                                                x = center.x, y = center.y,
+                                                vx = cos(angle) * speed, vy = sin(angle) * speed - 2f,
+                                                color = baseColor, alpha = 1f,
+                                                size = Random.nextFloat() * metrics.r * 0.15f + 4f, life = 1f
+                                            )
+                                        )
+                                    }
+                                    scoreTexts.add(
+                                        ScoreFloatText(
+                                            text = "+${step.count * 10}",
+                                            x = center.x, y = center.y - metrics.r,
+                                            currentYOffset = 0f, alpha = 1f, life = 1f
+                                        )
+                                    )
+                                    soundManager.playSound(SoundManager.SOUND_ID_MERGE_POP)
+                                }
+                                val stack = visibleCells[step.coord]
+                                if (stack != null) {
+                                    repeat(step.count) { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
+                                    if (stack.isEmpty()) visibleCells.remove(step.coord)
+                                }
+                                delay(220L)
+                            }
                         }
-                        heights[move.to] = heights.getOrDefault(move.to, 0) + 1
                     }
-                    // Small cleanup & stagger
-                    delay(40)
-                    repeat(move.tiles.size) { if (movingTiles.isNotEmpty()) movingTiles.removeAt(0) }
-                    delay(stackStaggerMs.toLong())
+
+                    viewModel.onAnimationFinished(event.finalState)
                 }
             }
-        }
-    }
-
-    // Spawn particles + floating score when pops occur
-    LaunchedEffect(state?.lastPoppedTiles, state?.moves) {
-        val s = state ?: return@LaunchedEffect
-        if (s.lastPoppedTiles <= 0 || boardSize.width == 0) return@LaunchedEffect
-        val metrics = boardMetrics(s.level.cells, boardSize.width.toFloat(), boardSize.height.toFloat())
-        for (coord in s.poppingCoords) {
-            val center = metrics.centers[coord] ?: continue
-            val topColor = s.cells[coord]?.lastOrNull() ?: 0
-            val baseColor = paletteColors[topColor.coerceIn(0, paletteColors.lastIndex)]
-            repeat(12) {
-                val angle = Random.nextFloat() * 2 * PI.toFloat()
-                val speed = Random.nextFloat() * 4f + 1f
-                particles.add(
-                    PopParticle(
-                        x = center.x, y = center.y,
-                        vx = cos(angle) * speed, vy = sin(angle) * speed - 1.5f,
-                        color = baseColor, alpha = 1f,
-                        size = Random.nextFloat() * metrics.r * 0.12f + 3f, life = 1f
-                    )
-                )
-            }
-            scoreTexts.add(
-                ScoreFloatText(
-                    text = "+${s.lastPoppedTiles * 10}",
-                    x = center.x, y = center.y - metrics.r,
-                    currentYOffset = 0f, alpha = 1f, life = 1f
-                )
-            )
         }
     }
 
@@ -407,9 +443,6 @@ fun HexaStackScreen(
         onHowToClick = { showHowToDialog = true },
         onNewGameClick = if (mode != "daily") { { showNewGameDialog = true } } else null
     ) { paddingValues ->
-        // Outer Box: the drag ghost must overlay the content, not participate in
-        // Column layout (a fillMaxSize Canvas inside the Column would collapse the
-        // weighted board and shove the tray to the top while dragging).
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -463,7 +496,7 @@ fun HexaStackScreen(
 
                         // 1. Empty cell outlines
                         for ((coord, center) in metrics.centers) {
-                            if (!s.cells.containsKey(coord)) {
+                            if (!visibleCells.containsKey(coord) || visibleCells[coord]?.isEmpty() == true) {
                                 val path = createHexPath(center.x, center.y, metrics.r * 0.92f)
                                 drawPath(path, Color.Gray.copy(alpha = 0.15f), style = Stroke(width = 1.5f))
                             }
@@ -471,7 +504,7 @@ fun HexaStackScreen(
 
                         // 2. Hover highlight while dragging
                         hoverCoord?.let { hc ->
-                            if (dragSlot >= 0 && !s.cells.containsKey(hc)) {
+                            if (dragSlot >= 0 && (!visibleCells.containsKey(hc) || visibleCells[hc]?.isEmpty() == true)) {
                                 metrics.centers[hc]?.let { center ->
                                     val path = createHexPath(center.x, center.y, metrics.r * 0.92f)
                                     drawPath(path, Color.White.copy(alpha = 0.25f), style = Fill)
@@ -480,43 +513,66 @@ fun HexaStackScreen(
                             }
                         }
 
-                        // 3. Stacks (sorted bottom-to-top so lower rows draw first)
-                        val entries = s.cells.entries.sortedBy { (coord, _) -> metrics.centers[coord]?.y ?: 0f }
+                        // 3. Stacks (rendered from visibleCells state)
+                        val entries = visibleCells.entries
+                            .filter { it.value.isNotEmpty() }
+                            .sortedBy { (coord, _) -> metrics.centers[coord]?.y ?: 0f }
                         for ((coord, tiles) in entries) {
                             val center = metrics.centers[coord] ?: continue
                             drawHexStack(center, tiles, metrics.r, tileH, s.poppingCoords.contains(coord))
                         }
 
-                        // Moving tiles overlay (animated transfers)
+                        // 4. Moving tiles overlay (3D parabolic arc flip animation)
                         for (mt in movingTiles) {
-                            val cx = mt.start.x + (mt.end.x - mt.start.x) * mt.progress
-                            val cy = mt.start.y + (mt.end.y - mt.start.y) * mt.progress
-                            val scaleY = kotlin.math.cos(mt.progress * PI.toFloat())
+                            val t = mt.progress
+                            val cx = mt.start.x + (mt.end.x - mt.start.x) * t
+                            val cyLinear = mt.start.y + (mt.end.y - mt.start.y) * t
+
+                            val dist = sqrt((mt.end.x - mt.start.x).let { it * it } + (mt.end.y - mt.start.y).let { it * it })
+                            val arcHeight = maxOf(metrics.r * 1.6f, dist * 0.38f)
+                            val elevation = arcHeight * 4f * t * (1f - t)
+                            val cy = cyLinear - elevation
+
+                            // Drop shadow on board surface
+                            val shadowR = metrics.r * 0.88f * (1f - (elevation / (arcHeight * 3.5f)))
+                            val shadowAlpha = (0.28f * (1f - (elevation / (arcHeight * 1.8f)))).coerceIn(0f, 0.28f)
+                            val shadowPath = createHexPath(cx, cyLinear, shadowR)
+                            drawPath(shadowPath, Color.Black.copy(alpha = shadowAlpha), style = Fill)
+
+                            // 3D flip angle & scaling
+                            val flipAngle = t * PI.toFloat()
+                            val cosVal = cos(flipAngle)
+                            val absScaleY = abs(cosVal).coerceAtLeast(0.06f)
+
                             val base = paletteColors[mt.colorIdx.coerceIn(0, paletteColors.lastIndex)]
-                            // Side shading
-                            val side = createHexPath(cx, cy + tileH * 0.55f, metrics.r * 0.92f)
-                            withTransform({ scale(1f, scaleY, Offset(cx, cy)) }) {
-                                drawPath(side, base.darken(0.35f), alpha = 0.9f, style = Fill)
+
+                            // Side shading (always offset downwards in screen space)
+                            val sideOffset = tileH * 0.55f * absScaleY
+                            val sidePath = createHexPath(cx, cy + sideOffset, metrics.r * 0.92f)
+                            withTransform({ scale(1f, absScaleY, Offset(cx, cy)) }) {
+                                drawPath(sidePath, base.darken(0.35f), alpha = 0.92f, style = Fill)
                             }
+
                             // Top face
-                            val top = createHexPath(cx, cy, metrics.r * 0.92f)
+                            val topPath = createHexPath(cx, cy, metrics.r * 0.92f)
+                            val lightenFactor = 0.25f + 0.15f * (elevation / arcHeight)
                             val brush = Brush.linearGradient(
-                                colors = listOf(base.lighten(0.3f), base),
+                                colors = listOf(base.lighten(lightenFactor), base),
                                 start = Offset(cx - metrics.r, cy - metrics.r),
                                 end = Offset(cx + metrics.r, cy + metrics.r)
                             )
-                            withTransform({ scale(1f, scaleY, Offset(cx, cy)) }) {
-                                drawPath(top, brush, alpha = 1f, style = Fill)
-                                drawPath(top, Color.White.copy(alpha = 0.3f), style = Stroke(width = 1.2f))
+                            withTransform({ scale(1f, absScaleY, Offset(cx, cy)) }) {
+                                drawPath(topPath, brush, alpha = 1f, style = Fill)
+                                drawPath(topPath, Color.White.copy(alpha = 0.35f), style = Stroke(width = 1.2f))
                             }
                         }
 
-                        // 4. Particles
+                        // 5. Particles
                         particles.forEach { p ->
                             drawCircle(color = p.color, radius = p.size * p.life, center = Offset(p.x, p.y), alpha = p.alpha)
                         }
 
-                        // 5. Floating score texts
+                        // 6. Floating score texts
                         scoreTexts.forEach { t ->
                             val layout = textMeasurer.measure(
                                 text = t.text,

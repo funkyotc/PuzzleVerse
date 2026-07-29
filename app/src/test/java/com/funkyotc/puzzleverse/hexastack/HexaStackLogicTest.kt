@@ -120,10 +120,9 @@ class HexaStackLogicTest {
     }
 
     @Test
-    fun popLeftoverRunOnNextPlacement() {
-        // A cascade merge on a pop-free resolve leaves a 10+ run unpopped (the loop
-        // exits after the pop-free round). The NEXT placement pops it, because that
-        // resolve's pop round sees the already-formed run.
+    fun cascadePopsImmediatelyWhenReachingThreshold() {
+        // A cascade merge that forms a 10+ run pops immediately in the same resolve step
+        // without waiting for a subsequent placement.
         val level = HexaStackLevel(
             "t", "Easy", 2, scoreTarget = 1000,
             initialStacks = mapOf(
@@ -133,31 +132,25 @@ class HexaStackLogicTest {
             spawnDeck = listOf(listOf(3), listOf(0), listOf(0))
         )
         val s0 = logic.initialState(level)
-        // First placement at (2,0) (isolated): the resolve's cascade merges the two
-        // twos stacks into a 10-run, but the pop-free first round already exited.
         val s1 = logic.placeAndResolve(s0, 0, AxialCoord(2, 0))!!
-        assertEquals(0, s1.lastPoppedTiles)
-        assertEquals(List(10) { 2 }, s1.cells[AxialCoord(0, 1)])
-        // The next placement triggers a fresh pop round that pops the leftover run.
-        val s2 = logic.placeAndResolve(s1, 1, AxialCoord(-2, 0))!!
-        assertEquals(10, s2.lastPoppedTiles)
-        assertEquals(100, s2.score)
+        assertEquals(10, s1.lastPoppedTiles)
+        assertEquals(100, s1.score)
+        assertTrue(AxialCoord(0, 1) !in s1.cells)
+        assertTrue(AxialCoord(0, 0) !in s1.cells)
     }
 
     @Test
     fun cascadeMergesEqualTopNeighbors() {
         // Two adjacent stacks with equal top colors (7 twos at (0,1), 3 twos at (0,0)).
-        // The cascade merges the shorter run onto the taller stack. NOTE: the merge
-        // happens after the first pop round finds nothing, and the resolve loop then
-        // exits — the resulting 10-run is NOT popped until a later placement triggers
-        // another pop round. (Cascades chain fully only when an initial pop occurred.)
+        // The cascade merges the shorter run onto the taller stack and pops the resulting 10-run.
         val cells = mutableMapOf<AxialCoord, MutableList<Int>>(
             AxialCoord(0, 1) to (List(7) { 2 }).toMutableList(),
             AxialCoord(0, 0) to (List(3) { 2 }).toMutableList()
         )
         val result = logic.resolve(cells, placedCoord = null)
-        assertEquals(0, result.poppedTiles)
-        assertEquals(listOf(List(10) { 2 }), result.cells.values.toList())
+        assertEquals(10, result.poppedTiles)
+        assertTrue(result.cells.isEmpty())
+        assertEquals(setOf(AxialCoord(0, 1)), result.poppingCoords)
     }
 
     @Test
