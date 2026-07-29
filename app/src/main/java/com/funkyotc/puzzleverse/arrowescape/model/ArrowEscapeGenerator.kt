@@ -11,9 +11,21 @@ class ArrowEscapeGenerator {
      */
     fun generate(width: Int, height: Int, density: Float, random: Random = Random): List<Arrow> {
         val minGridDim = minOf(width, height)
-        val minLen = if (minGridDim <= 10) 4 else (minGridDim * 0.35).toInt().coerceAtLeast(5)
-        val maxLen = if (minGridDim <= 10) 12 else (minGridDim * 0.8).toInt().coerceAtLeast(8)
-        val maxStarterArrows = if (minGridDim <= 10) 3 else 5
+        val minLen = 3
+        val maxLen = when {
+            minGridDim <= 10 -> 18
+            minGridDim <= 20 -> 45
+            minGridDim <= 30 -> 80
+            minGridDim <= 40 -> 120
+            else -> 160
+        }
+        val maxStarterArrows = when {
+            minGridDim <= 10 -> 4
+            minGridDim <= 20 -> 6
+            minGridDim <= 30 -> 8
+            minGridDim <= 40 -> 10
+            else -> 12
+        }
 
         var candidateAttempts = 0
         while (candidateAttempts < 100) {
@@ -31,7 +43,7 @@ class ArrowEscapeGenerator {
         // Fallback: return best generated candidate that is solvable
         for (fallbackSeed in 1..50) {
             val r = Random(random.nextInt() + fallbackSeed)
-            val arrows = generateCandidate(width, height, density * 0.9f, minLen, maxLen, r)
+            val arrows = generateCandidate(width, height, density * 0.90f, minLen, maxLen, r)
             if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height)) {
                 return arrows
             }
@@ -57,14 +69,14 @@ class ArrowEscapeGenerator {
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
         var attempts = 0
-        val maxAttempts = targetCells * 30
+        val maxAttempts = targetCells * 50
 
         while (filledCells < targetCells && attempts < maxAttempts) {
             attempts++
 
             val spawnDir = Direction.entries.random(random)
 
-            // Spawn head on grid edge or interior
+            // Spawn head anywhere on grid edge or interior
             val headX: Int
             val headY: Int
             when (spawnDir) {
