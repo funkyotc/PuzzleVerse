@@ -262,24 +262,26 @@ fun HexaStackScreen(
                             is com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep.Transfer -> {
                                 val fromCenter = metrics.centers[step.from] ?: continue
                                 val toCenter = metrics.centers[step.to] ?: continue
-                                
-                                val fromStack = visibleCells[step.from] ?: mutableListOf()
-                                val fromStackSize = fromStack.size
-                                repeat(step.tiles.size) {
-                                    if (fromStack.isNotEmpty()) fromStack.removeAt(fromStack.lastIndex)
-                                }
-                                if (fromStack.isEmpty()) visibleCells.remove(step.from)
 
-                                val toStack = visibleCells.getOrPut(step.to) { mutableListOf() }
-                                val toBaseSize = toStack.size
+                                val perTileMs = 150
+                                // Peel top-most tiles off donor stack first
+                                val tileSequence = step.tiles.asReversed()
 
-                                val perTileMs = 180
-                                val tileStaggerMs = 45
+                                for (colorIdx in tileSequence) {
+                                    val fromStack = visibleCells[step.from] ?: break
+                                    if (fromStack.isEmpty()) break
 
-                                for ((idx, colorIdx) in step.tiles.withIndex()) {
-                                    val startLayer = (fromStackSize - step.tiles.size + idx).coerceAtLeast(0)
-                                    val destLayer = toBaseSize + idx
+                                    // Top tile position on donor stack
+                                    val startLayer = fromStack.size - 1
                                     val startY = fromCenter.y - startLayer * tileH
+
+                                    // Peel top tile off donor stack
+                                    fromStack.removeAt(fromStack.lastIndex)
+                                    if (fromStack.isEmpty()) visibleCells.remove(step.from)
+
+                                    // Landing position on target stack
+                                    val toStack = visibleCells.getOrPut(step.to) { mutableListOf() }
+                                    val destLayer = toStack.size
                                     val endY = toCenter.y - destLayer * tileH
 
                                     val mt = MovingTileState(
@@ -290,19 +292,20 @@ fun HexaStackScreen(
                                         r = metrics.r
                                     )
                                     movingTiles.add(mt)
-                                    if (idx > 0) delay(tileStaggerMs.toLong())
 
                                     val anim = Animatable(0f)
                                     anim.animateTo(1f, tween(durationMillis = perTileMs)) {
                                         mt.progress = value
                                     }
+
+                                    movingTiles.remove(mt)
+                                    toStack.add(colorIdx)
+                                    soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
+
+                                    delay(25L)
                                 }
 
-                                delay(perTileMs.toLong() + 30L)
-                                movingTiles.clear()
-                                toStack.addAll(step.tiles)
-                                soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
-                                delay(60L)
+                                delay(40L)
                             }
                             is com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep.Pop -> {
                                 val center = metrics.centers[step.coord]
@@ -529,7 +532,9 @@ fun HexaStackScreen(
                             val cyLinear = mt.start.y + (mt.end.y - mt.start.y) * t
 
                             val dist = sqrt((mt.end.x - mt.start.x).let { it * it } + (mt.end.y - mt.start.y).let { it * it })
-                            val arcHeight = maxOf(metrics.r * 1.6f, dist * 0.38f)
+                            val maxBoardStackTiles = visibleCells.values.maxOfOrNull { it.size } ?: 0
+                            val maxBoardHeightPx = maxBoardStackTiles * mt.tileH
+                            val arcHeight = maxOf(mt.r * 2.5f, dist * 0.5f, maxBoardHeightPx + mt.r * 1.8f)
                             val elevation = arcHeight * 4f * t * (1f - t)
                             val cy = cyLinear - elevation
 
