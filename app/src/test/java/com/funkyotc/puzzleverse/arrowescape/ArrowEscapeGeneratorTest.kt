@@ -126,6 +126,22 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
+        // Test Puzzles (101-105: 100% density for sizes 10x10, 20x20, 30x30, 40x40, 50x50)
+        val testSizes = listOf(10, 20, 30, 40, 50)
+        for (i in testSizes.indices) {
+            val dim = testSizes[i]
+            val random = Random(600 + i)
+            val arrows = generator.generate(dim, dim, 1.00f, random)
+            sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val arrows = listOf<Arrow>(\n")
+            arrows.forEach { a ->
+                val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
+                sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")
+            }
+            sb.append("    )\n}\n\n")
+            puzzleIndex++
+        }
+
         sb.append("object ArrowEscapePregenerated {\n")
         sb.append("    val ALL_PUZZLES: List<ArrowEscapePuzzle> by lazy {\n")
         sb.append("        listOf(\n")
@@ -156,6 +172,11 @@ class ArrowEscapeGeneratorTest {
             sb.append("            ArrowEscapePuzzle(\"arrowescape_master_$formattedIndex\", \"Master\", ArrowEscapePuzzle$pIdx.arrows),\n")
             pIdx++
         }
+        for (i in 1..5) {
+            val formattedIndex = String.format("%03d", i)
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_test_$formattedIndex\", \"Test\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            pIdx++
+        }
 
         sb.append("        )\n")
         sb.append("    }\n\n")
@@ -168,6 +189,6 @@ class ArrowEscapeGeneratorTest {
         val targetPath = "src/main/java/com/funkyotc/puzzleverse/arrowescape/data/ArrowEscapePregenerated.kt"
         val file = File(targetPath)
         file.writeText(sb.toString())
-        println("Successfully updated ArrowEscapePregenerated.kt with 100 ultra-dense puzzles with long serpentine arrows (${file.length()} bytes)!")
+        println("Successfully updated ArrowEscapePregenerated.kt with 105 puzzles including 100% density Test puzzles (${file.length()} bytes)!")
     }
 }

@@ -28,7 +28,9 @@ class ArrowEscapeGenerator {
         }
 
         var candidateAttempts = 0
-        while (candidateAttempts < 100) {
+        val maxAttemptsCount = if (density >= 0.95f) 300 else 100
+
+        while (candidateAttempts < maxAttemptsCount) {
             candidateAttempts++
             val arrows = generateCandidate(width, height, density, minLen, maxLen, random)
             
@@ -41,9 +43,10 @@ class ArrowEscapeGenerator {
         }
 
         // Fallback: return best generated candidate that is solvable
-        for (fallbackSeed in 1..50) {
+        for (fallbackSeed in 1..100) {
             val r = Random(random.nextInt() + fallbackSeed)
-            val arrows = generateCandidate(width, height, density * 0.90f, minLen, maxLen, r)
+            val fallbackDensity = if (density >= 0.95f) 0.98f else density * 0.90f
+            val arrows = generateCandidate(width, height, fallbackDensity, minLen, maxLen, r)
             if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height)) {
                 return arrows
             }
@@ -69,7 +72,7 @@ class ArrowEscapeGenerator {
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
         var attempts = 0
-        val maxAttempts = targetCells * 50
+        val maxAttempts = targetCells * 100
 
         while (filledCells < targetCells && attempts < maxAttempts) {
             attempts++
@@ -148,7 +151,8 @@ class ArrowEscapeGenerator {
                 if (!added) break
             }
 
-            if (segments.size < minLen) continue
+            val effectiveMinLen = if (density >= 0.95f && (targetCells - filledCells) < minLen) 2 else minLen
+            if (segments.size < effectiveMinLen) continue
 
             val arrowId = nextId++
             for (seg in segments) {
