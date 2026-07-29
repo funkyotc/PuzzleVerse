@@ -211,6 +211,12 @@ fun HexaStackScreen(
         }
     }
 
+    // Track stacks currently playing a pop animation
+    class PopAnimState(val colorIdx: Int, val tileCount: Int) {
+        var progress by mutableStateOf(0f)
+    }
+    val poppingStackAnims = remember { mutableStateMapOf<AxialCoord, PopAnimState>() }
+
     // Moving tile animation state
     class MovingTileState(
         val start: Offset,
@@ -309,9 +315,10 @@ fun HexaStackScreen(
                             }
                             is com.funkyotc.puzzleverse.hexastack.data.HexaStackLogic.AnimStep.Pop -> {
                                 val center = metrics.centers[step.coord]
+                                val baseColor = paletteColors[step.color.coerceIn(0, paletteColors.lastIndex)]
+
                                 if (center != null) {
-                                    val baseColor = paletteColors[step.color.coerceIn(0, paletteColors.lastIndex)]
-                                    repeat(16) {
+                                    repeat(18) {
                                         val angle = Random.nextFloat() * 2 * PI.toFloat()
                                         val speed = Random.nextFloat() * 5f + 2f
                                         particles.add(
@@ -319,25 +326,35 @@ fun HexaStackScreen(
                                                 x = center.x, y = center.y,
                                                 vx = cos(angle) * speed, vy = sin(angle) * speed - 2f,
                                                 color = baseColor, alpha = 1f,
-                                                size = Random.nextFloat() * metrics.r * 0.15f + 4f, life = 1f
+                                                size = Random.nextFloat() * metrics.r * 0.16f + 4f, life = 1f
                                             )
                                         )
                                     }
                                     scoreTexts.add(
                                         ScoreFloatText(
                                             text = "+${step.count * 10}",
-                                            x = center.x, y = center.y - metrics.r,
+                                            x = center.x, y = center.y - metrics.r * 1.2f,
                                             currentYOffset = 0f, alpha = 1f, life = 1f
                                         )
                                     )
                                     soundManager.playSound(SoundManager.SOUND_ID_MERGE_POP)
                                 }
+
+                                val popAnim = PopAnimState(step.color, step.count)
+                                poppingStackAnims[step.coord] = popAnim
+
+                                val anim = Animatable(0f)
+                                anim.animateTo(1f, tween(durationMillis = 320)) {
+                                    popAnim.progress = value
+                                }
+
+                                poppingStackAnims.remove(step.coord)
                                 val stack = visibleCells[step.coord]
                                 if (stack != null) {
                                     repeat(step.count) { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
                                     if (stack.isEmpty()) visibleCells.remove(step.coord)
                                 }
-                                delay(220L)
+                                delay(50L)
                             }
                         }
                     }
@@ -522,7 +539,19 @@ fun HexaStackScreen(
                             .sortedBy { (coord, _) -> metrics.centers[coord]?.y ?: 0f }
                         for ((coord, tiles) in entries) {
                             val center = metrics.centers[coord] ?: continue
-                            drawHexStack(center, tiles, metrics.r, tileH, s.poppingCoords.contains(coord))
+                            val popAnim = poppingStackAnims[coord]
+                            if (popAnim != null) {
+                                val t = popAnim.progress
+                                val pulse = 1f + 0.15f * sin(t * PI.toFloat()) - 0.2f * t * t
+                                val alpha = (1f - t * 1.15f).coerceIn(0f, 1f)
+                                withTransform({
+                                    scale(pulse, pulse, center)
+                                }) {
+                                    drawHexStack(center, tiles, metrics.r, tileH, popping = true, alphaOverride = alpha)
+                                }
+                            } else {
+                                drawHexStack(center, tiles, metrics.r, tileH, s.poppingCoords.contains(coord))
+                            }
                         }
 
                         // 4. Moving tiles overlay (3D parabolic arc flip animation)
@@ -688,7 +717,8 @@ private fun DrawScope.drawHexStack(
     tiles: List<Int>,
     r: Float,
     tileH: Float,
-    popping: Boolean
+    popping: Boolean,
+    alphaOverride: Float = 1f
 ) {
     val maxVisible = 10
     val visible = tiles.takeLast(maxVisible)
@@ -697,7 +727,7 @@ private fun DrawScope.drawHexStack(
         val layer = hidden + i
         val cy = center.y - layer * tileH
         val base = paletteColors[colorIdx.coerceIn(0, paletteColors.lastIndex)]
-        val alpha = if (popping) 0.55f else 1f
+        val alpha = (if (popping) 0.85f else 1f) * alphaOverride
         // Side shading below each tile for pseudo-3D depth
         val side = createHexPath(center.x, cy + tileH * 0.55f, r * 0.92f)
         drawPath(side, base.darken(0.35f), alpha = alpha * 0.9f, style = Fill)
@@ -708,11 +738,11 @@ private fun DrawScope.drawHexStack(
             end = Offset(center.x + r, cy + r)
         )
         drawPath(top, brush, alpha = alpha, style = Fill)
-        drawPath(top, Color.White.copy(alpha = 0.3f * alpha), style = Stroke(width = 1.2f))
+        drawPath(top, Color.White.copy(alpha = 0.35f * alpha), style = Stroke(width = 1.2f))
     }
     if (popping) {
-        val ring = createHexPath(center.x, center.y - (tiles.size - 1) * tileH, r)
-        drawPath(ring, Color.White.copy(alpha = 0.8f), style = Stroke(width = 3f))
+        val ring = createHexPath(center.x, center.y - (tiles.size - 1) * tileH, r * 1.05f)
+        drawPath(ring, Color.White.copy(alpha = 0.9f * alphaOverride), style = Stroke(width = 3.5f))
     }
 }
 
