@@ -140,24 +140,25 @@ object HexaStackLogic {
             val componentToMerge = findNextComponentToMerge(cells, activeCoords)
             if (componentToMerge != null) {
                 val (component, targetCoord) = componentToMerge
-                val targetStack = cells[targetCoord] ?: continue
-                val topColor = targetStack.lastOrNull() ?: continue
+                val targetStack = cells[targetCoord]
+                val topColor = targetStack?.lastOrNull()
+                if (targetStack != null && topColor != null) {
+                    val donors = component.filter { it != targetCoord }
+                    for (donorCoord in donors) {
+                        val donorStack = cells[donorCoord] ?: continue
+                        if (donorStack.lastOrNull() != topColor) continue
+                        val run = topRun(donorStack)
+                        val tiles = donorStack.takeLast(run)
+                        repeat(run) { donorStack.removeAt(donorStack.size - 1) }
+                        targetStack.addAll(tiles)
+                        if (donorStack.isEmpty()) cells.remove(donorCoord)
+                        steps.add(AnimStep.Transfer(donorCoord, targetCoord, tiles))
+                    }
 
-                val donors = component.filter { it != targetCoord }
-                for (donorCoord in donors) {
-                    val donorStack = cells[donorCoord] ?: continue
-                    if (donorStack.lastOrNull() != topColor) continue
-                    val run = topRun(donorStack)
-                    val tiles = donorStack.takeLast(run)
-                    repeat(run) { donorStack.removeAt(donorStack.size - 1) }
-                    targetStack.addAll(tiles)
-                    if (donorStack.isEmpty()) cells.remove(donorCoord)
-                    steps.add(AnimStep.Transfer(donorCoord, targetCoord, tiles))
+                    activeCoords.clear()
+                    activeCoords.add(targetCoord)
+                    activity = true
                 }
-
-                activeCoords.clear()
-                activeCoords.add(targetCoord)
-                activity = true
             }
 
             // 2. Pop phase: check for stacks with >= POP_THRESHOLD same-color top tiles

@@ -144,13 +144,6 @@ class HexaStackViewModel(
     }
 
     /**
-     * Place the tray group in [traySlot] at [coord]. Returns false if the move is illegal.
-     * Emits Placed/Popped events for sounds, then re-evaluates win/loss after a short
-     * pop-animation window so the UI can flash popping stacks before finishing.
-     * When merges occur, emits a Moves event with a recorded sequence of transfers so
-     * the UI can animate them before the final resolved state is applied.
-     */
-    /**
      * Place the tray group in [traySlot] at [coord].
      * Emits Placed event, immediately updates state with placed stack, and emits Steps event
      * for step-by-step 3D flip & pop animations before finalizing state.
