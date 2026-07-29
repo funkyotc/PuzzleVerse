@@ -3,6 +3,7 @@ package com.funkyotc.puzzleverse.hexastack.ui
 import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitDragOrCancellation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -512,23 +513,42 @@ fun HexaStackScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .padding(vertical = 4.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .border(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                            RoundedCornerShape(16.dp)
+                        )
                         .onGloballyPositioned {
                             boardSize = it.size
                             boardBounds = it.boundsInRoot()
                         },
                     contentAlignment = Alignment.Center
                 ) {
+                    val socketFill = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                    val socketBorder = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    val emptySlotOutline = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f)
+                    val hoverFill = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    val hoverBorder = MaterialTheme.colorScheme.primary
+
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         @Suppress("UNUSED_VARIABLE")
                         val tick = frameTick
                         val metrics = boardMetrics(s.level.cells, size.width, size.height)
                         val tileH = metrics.r * 0.14f
 
-                        // 1. Empty cell outlines
+                        // 1. Board cell base sockets & empty cell outlines
                         for ((coord, center) in metrics.centers) {
+                            val path = createHexPath(center.x, center.y, metrics.r * 0.92f)
+                            drawPath(path, socketFill, style = Fill)
                             if (!visibleCells.containsKey(coord) || visibleCells[coord]?.isEmpty() == true) {
-                                val path = createHexPath(center.x, center.y, metrics.r * 0.92f)
-                                drawPath(path, Color.Gray.copy(alpha = 0.15f), style = Stroke(width = 1.5f))
+                                drawPath(path, emptySlotOutline, style = Stroke(width = 2f))
+                            } else {
+                                drawPath(path, socketBorder, style = Stroke(width = 1.2f))
                             }
                         }
 
@@ -537,8 +557,8 @@ fun HexaStackScreen(
                             if (dragSlot >= 0 && (!visibleCells.containsKey(hc) || visibleCells[hc]?.isEmpty() == true)) {
                                 metrics.centers[hc]?.let { center ->
                                     val path = createHexPath(center.x, center.y, metrics.r * 0.92f)
-                                    drawPath(path, Color.White.copy(alpha = 0.25f), style = Fill)
-                                    drawPath(path, Color.White.copy(alpha = 0.7f), style = Stroke(width = 2.5f))
+                                    drawPath(path, hoverFill, style = Fill)
+                                    drawPath(path, hoverBorder, style = Stroke(width = 3f))
                                 }
                             }
                         }
@@ -628,11 +648,19 @@ fun HexaStackScreen(
                 }
 
                 // Tray (drag source; explicit pointer tracking per AGENTS.md multi-touch gotcha)
-Box(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(96.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
+                            RoundedCornerShape(12.dp)
+                        )
+                        .border(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                            RoundedCornerShape(12.dp)
+                        )
                         .onGloballyPositioned { trayBounds = it.boundsInRoot() }
                         .pointerInput(s.tray, s.isWon, s.isGameOver, boardSize, boardBounds) {
                                     if (s.isWon || s.isGameOver) return@pointerInput
@@ -680,6 +708,8 @@ Box(
                             }
                         }
                 ) {
+                    val traySocketFill = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    val trayOutlineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val slotW = size.width / 3f
                         val r = minOf(slotW, size.height) * 0.24f
@@ -691,7 +721,8 @@ Box(
                                 drawHexStack(center, group, r, tileH, popping = false)
                             } else {
                                 val outline = createHexPath(center.x, center.y, r * 0.95f)
-                                drawPath(outline, Color.Gray.copy(alpha = 0.2f), style = Stroke(width = 1.5f))
+                                drawPath(outline, traySocketFill, style = Fill)
+                                drawPath(outline, trayOutlineColor, style = Stroke(width = 1.5f))
                             }
                         }
                     }
