@@ -154,6 +154,30 @@ class HexaStackLogicTest {
     }
 
     @Test
+    fun allConnectedSameColorStacksMergeTogether() {
+        // 4 connected cells in a line: (0,-1)=4 RED, (0,0)=3 RED, (0,1)=1 RED, (0,2)=5 RED.
+        // Total = 13 RED tiles across the connected component.
+        // Placing at (0,1) must flood-fill merge ALL 4 connected stacks together into 1 stack and pop all 13 tiles.
+        val level = HexaStackLevel(
+            "t", "Easy", 2, scoreTarget = 1000,
+            initialStacks = mapOf(
+                AxialCoord(0, -1) to List(4) { 1 },
+                AxialCoord(0, 0) to List(3) { 1 },
+                AxialCoord(0, 2) to List(5) { 1 }
+            ),
+            spawnDeck = listOf(listOf(1), listOf(0), listOf(0))
+        )
+        val s0 = logic.initialState(level)
+        val s1 = logic.placeAndResolve(s0, 0, AxialCoord(0, 1))!!
+        assertEquals(13, s1.lastPoppedTiles)
+        assertEquals(130, s1.score)
+        assertTrue(AxialCoord(0, -1) !in s1.cells)
+        assertTrue(AxialCoord(0, 0) !in s1.cells)
+        assertTrue(AxialCoord(0, 1) !in s1.cells)
+        assertTrue(AxialCoord(0, 2) !in s1.cells)
+    }
+
+    @Test
     fun cascadeFiresAfterPopRound() {
         // A board that starts with a pop: 10 ones at (0,0) pop first; the cascade
         // phase then merges the adjacent 7 twos at (0,1) with the 3 twos at (1,0)

@@ -120,8 +120,8 @@ object HexaStackLogic {
     }
 
     /**
-     * Resolve the board after a placement at [placedCoord]: continuously cycles pops and
-     * matching-color transfers until stable, recording step-by-step animation instructions.
+     * Resolve the board after a placement at [placedCoord]: continuously merges connected components
+     * of same-color top tiles and pops qualifying stacks until stable.
      */
     fun resolve(
         cells: MutableMap<AxialCoord, MutableList<Int>>,
@@ -136,7 +136,31 @@ object HexaStackLogic {
         while (true) {
             var activity = false
 
-            // 1. Pop phase: check for stacks with >= POP_THRESHOLD same-color top tiles
+            // 1. Transfer phase: find next connected component of matching top colors to merge
+            val componentToMerge = findNextComponentToMerge(cells, activeCoords)
+            if (componentToMerge != null) {
+                val (component, targetCoord) = componentToMerge
+                val targetStack = cells[targetCoord] ?: continue
+                val topColor = targetStack.lastOrNull() ?: continue
+
+                val donors = component.filter { it != targetCoord }
+                for (donorCoord in donors) {
+                    val donorStack = cells[donorCoord] ?: continue
+                    if (donorStack.lastOrNull() != topColor) continue
+                    val run = topRun(donorStack)
+                    val tiles = donorStack.takeLast(run)
+                    repeat(run) { donorStack.removeAt(donorStack.size - 1) }
+                    targetStack.addAll(tiles)
+                    if (donorStack.isEmpty()) cells.remove(donorCoord)
+                    steps.add(AnimStep.Transfer(donorCoord, targetCoord, tiles))
+                }
+
+                activeCoords.clear()
+                activeCoords.add(targetCoord)
+                activity = true
+            }
+
+            // 2. Pop phase: check for stacks with >= POP_THRESHOLD same-color top tiles
             val coordsToCheck = cells.keys.toList()
             for (c in coordsToCheck) {
                 val stack = cells[c] ?: continue
@@ -152,24 +176,6 @@ object HexaStackLogic {
                 }
             }
 
-            // 2. Transfer phase: merge adjacent stacks with matching top color
-            val candidate = findBestMergeCandidate(cells, activeCoords)
-            if (candidate != null) {
-                val (fromCoord, toCoord) = candidate
-                val fromStack = cells[fromCoord] ?: continue
-                val toStack = cells[toCoord] ?: continue
-                val run = topRun(fromStack)
-                val tiles = fromStack.takeLast(run)
-                repeat(run) { fromStack.removeAt(fromStack.size - 1) }
-                toStack.addAll(tiles)
-                if (fromStack.isEmpty()) cells.remove(fromCoord)
-
-                steps.add(AnimStep.Transfer(fromCoord, toCoord, tiles))
-                activeCoords.clear()
-                activeCoords.add(toCoord)
-                activity = true
-            }
-
             if (!activity) break
         }
 
@@ -181,38 +187,62 @@ object HexaStackLogic {
         )
     }
 
-    private fun findBestMergeCandidate(
+    /** Finds all cells connected to [start] that share the same top color as [start]. */
+    fun findConnectedComponent(
+        cells: Map<AxialCoord, List<Int>>,
+        start: AxialCoord
+    ): Set<AxialCoord> {
+        val stack = cells[start] ?: return emptySet()
+        val topColor = stack.lastOrNull() ?: return emptySet()
+        val component = mutableSetOf<AxialCoord>()
+        val queue = ArrayDeque<AxialCoord>()
+
+        queue.add(start)
+        component.add(start)
+
+        while (queue.isNotEmpty()) {
+            val curr = queue.removeFirst()
+            for (n in curr.neighbors()) {
+                if (n !in component) {
+                    val nStack = cells[n] ?: continue
+                    if (nStack.lastOrNull() == topColor) {
+                        component.add(n)
+                        queue.add(n)
+                    }
+                }
+            }
+        }
+        return component
+    }
+
+    private fun findNextComponentToMerge(
         cells: Map<AxialCoord, List<Int>>,
         activeCoords: List<AxialCoord>
-    ): Pair<AxialCoord, AxialCoord>? {
-        // Priority 1: Merges involving activeCoords (chain reaction)
+    ): Pair<Set<AxialCoord>, AxialCoord>? {
+        // Priority 1: Component containing activeCoords if size > 1
         for (active in activeCoords) {
-            val stack = cells[active] ?: continue
-            val topColor = stack.lastOrNull() ?: continue
-            for (n in active.neighbors()) {
-                val nStack = cells[n] ?: continue
-                if (nStack.lastOrNull() == topColor) {
-                    return if (nStack.size > stack.size) active to n else n to active
+            if (cells.containsKey(active)) {
+                val comp = findConnectedComponent(cells, active)
+                if (comp.size > 1) {
+                    val target = comp.maxByOrNull { c ->
+                        val sSize = cells[c]?.size ?: 0
+                        if (c == active) sSize + 100000 else sSize
+                    } ?: active
+                    return comp to target
                 }
             }
         }
 
-        // Priority 2: Any adjacent matching stacks on the board (taller receives)
-        data class Candidate(val from: AxialCoord, val to: AxialCoord, val height: Int)
-        var best: Candidate? = null
-        for ((coord, stack) in cells) {
-            val top = stack.lastOrNull() ?: continue
-            for (n in coord.neighbors()) {
-                val nStack = cells[n] ?: continue
-                if (nStack.lastOrNull() != top) continue
-                val (from, to) = if (stack.size <= nStack.size) coord to n else n to coord
-                val height = maxOf(stack.size, nStack.size)
-                if (best == null || height > best.height) {
-                    best = Candidate(from, to, height)
-                }
+        // Priority 2: Any connected component on board with size > 1
+        for (coord in cells.keys) {
+            val comp = findConnectedComponent(cells, coord)
+            if (comp.size > 1) {
+                val target = comp.maxByOrNull { cells[it]?.size ?: 0 } ?: coord
+                return comp to target
             }
         }
-        return best?.let { it.from to it.to }
+
+        return null
     }
 
     /** Length of the contiguous same-color run at the top of [stack]. */
