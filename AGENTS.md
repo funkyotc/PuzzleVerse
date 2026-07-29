@@ -1,7 +1,7 @@
 # AGENTS.md — PuzzleVerse
 
 ## Project Overview
-Android app with 19 puzzle games: sudoku, bonza, constellations, wordle, tfe (2048), minesweeper, nonogram, blockpuzzle, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess, hashi, tangrams. Each game has Standard / Daily modes with streak tracking and resume.
+Android app with multiple puzzle games (examples: sudoku, bonza, constellations, wordle, tfe (2048), minesweeper, nonogram, blockpuzzle, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess, hashi, tangrams). Seventeen games include pre-generated puzzle sets in the codebase; others use assets or runtime generation. Each game has Standard / Daily modes with streak tracking and resume.
 
 ## Commands
 ```bash
@@ -29,7 +29,7 @@ git add -A && git commit -m "type(scope): description"
 ```
 
 ## Tech Stack
-- Kotlin 2.2.10, AGP 9.3.0-rc01, Compose BOM 2024.06.00
+- Kotlin 2.2.10, AGP 9.3.1, Compose BOM 2024.06.00
 - minSdk 24, compileSdk/targetSdk 36
 - Java 11 compatibility
 - Single module: `:app`
