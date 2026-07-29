@@ -23,11 +23,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -195,20 +198,21 @@ fun HexaStackScreen(
 
     val particles = remember { mutableStateListOf<PopParticle>() }
     val scoreTexts = remember { mutableStateListOf<ScoreFloatText>() }
+    var frameTick by remember { mutableIntStateOf(0) }
     var boardSize by remember { mutableStateOf(IntSize.Zero) }
     var boardBounds by remember { mutableStateOf(Rect.Zero) }
     var trayBounds by remember { mutableStateOf(Rect.Zero) }
     val textMeasurer = rememberTextMeasurer()
 
     // Local animated board cells state to prevent tile duplication glitches
-    val visibleCells = remember { mutableMapOf<AxialCoord, MutableList<Int>>() }
+    val visibleCells = remember { mutableStateMapOf<AxialCoord, SnapshotStateList<Int>>() }
 
     // Sync visibleCells with state when idle
     LaunchedEffect(state?.cells) {
         val s = state ?: return@LaunchedEffect
         visibleCells.clear()
         s.cells.forEach { (coord, list) ->
-            visibleCells[coord] = list.toMutableList()
+            visibleCells[coord] = list.toMutableStateList()
         }
     }
 
@@ -287,7 +291,7 @@ fun HexaStackScreen(
                                     if (fromStack.isEmpty()) visibleCells.remove(step.from)
 
                                     // Landing position on target stack
-                                    val toStack = visibleCells.getOrPut(step.to) { mutableListOf() }
+                                    val toStack = visibleCells.getOrPut(step.to) { mutableStateListOf() }
                                     val destLayer = toStack.size
                                     val endY = toCenter.y - destLayer * tileH
 
@@ -305,8 +309,8 @@ fun HexaStackScreen(
                                         mt.progress = value
                                     }
 
-                                    movingTiles.remove(mt)
                                     toStack.add(colorIdx)
+                                    movingTiles.remove(mt)
                                     soundManager.playSound(SoundManager.SOUND_ID_TILE_PLACE)
 
                                     delay(25L)
@@ -349,12 +353,12 @@ fun HexaStackScreen(
                                     popAnim.progress = value
                                 }
 
-                                poppingStackAnims.remove(step.coord)
                                 val stack = visibleCells[step.coord]
                                 if (stack != null) {
                                     repeat(step.count) { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
                                     if (stack.isEmpty()) visibleCells.remove(step.coord)
                                 }
+                                poppingStackAnims.remove(step.coord)
                                 delay(50L)
                             }
                         }
@@ -370,21 +374,24 @@ fun HexaStackScreen(
     LaunchedEffect(Unit) {
         while (true) {
             withFrameMillis {
-                val pi = particles.iterator()
-                while (pi.hasNext()) {
-                    val p = pi.next()
-                    p.x += p.vx; p.y += p.vy; p.vy += 0.2f
-                    p.life -= 0.03f
-                    p.alpha = p.life.coerceIn(0f, 1f)
-                    if (p.life <= 0f) pi.remove()
-                }
-                val ti = scoreTexts.iterator()
-                while (ti.hasNext()) {
-                    val t = ti.next()
-                    t.currentYOffset -= 1.2f
-                    t.life -= 0.02f
-                    t.alpha = t.life.coerceIn(0f, 1f)
-                    if (t.life <= 0f) ti.remove()
+                if (particles.isNotEmpty() || scoreTexts.isNotEmpty()) {
+                    val pi = particles.iterator()
+                    while (pi.hasNext()) {
+                        val p = pi.next()
+                        p.x += p.vx; p.y += p.vy; p.vy += 0.2f
+                        p.life -= 0.03f
+                        p.alpha = p.life.coerceIn(0f, 1f)
+                        if (p.life <= 0f) pi.remove()
+                    }
+                    val ti = scoreTexts.iterator()
+                    while (ti.hasNext()) {
+                        val t = ti.next()
+                        t.currentYOffset -= 1.2f
+                        t.life -= 0.02f
+                        t.alpha = t.life.coerceIn(0f, 1f)
+                        if (t.life <= 0f) ti.remove()
+                    }
+                    frameTick++
                 }
             }
         }
@@ -512,6 +519,8 @@ fun HexaStackScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
+                        @Suppress("UNUSED_VARIABLE")
+                        val tick = frameTick
                         val metrics = boardMetrics(s.level.cells, size.width, size.height)
                         val tileH = metrics.r * 0.14f
 
