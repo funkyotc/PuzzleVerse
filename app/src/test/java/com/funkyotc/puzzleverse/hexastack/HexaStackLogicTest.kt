@@ -123,20 +123,23 @@ class HexaStackLogicTest {
     fun cascadePopsImmediatelyWhenReachingThreshold() {
         // A cascade merge that forms a 10+ run pops immediately in the same resolve step
         // without waiting for a subsequent placement.
+        // Place a color-2 tile at (1,0) which is adjacent to both (0,1) and (0,0).
+        // All three merge into one 10-tile stack and pop.
         val level = HexaStackLevel(
             "t", "Easy", 2, scoreTarget = 1000,
             initialStacks = mapOf(
                 AxialCoord(0, 1) to List(7) { 2 },
-                AxialCoord(0, 0) to List(3) { 2 }
+                AxialCoord(0, 0) to List(2) { 2 }
             ),
-            spawnDeck = listOf(listOf(3), listOf(0), listOf(0))
+            spawnDeck = listOf(listOf(2), listOf(0), listOf(0))
         )
         val s0 = logic.initialState(level)
-        val s1 = logic.placeAndResolve(s0, 0, AxialCoord(2, 0))!!
+        val s1 = logic.placeAndResolve(s0, 0, AxialCoord(1, 0))!!
         assertEquals(10, s1.lastPoppedTiles)
         assertEquals(100, s1.score)
         assertTrue(AxialCoord(0, 1) !in s1.cells)
         assertTrue(AxialCoord(0, 0) !in s1.cells)
+        assertTrue(AxialCoord(1, 0) !in s1.cells)
     }
 
     @Test

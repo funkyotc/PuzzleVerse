@@ -131,7 +131,12 @@ object HexaStackLogic {
         val poppingCoords = mutableSetOf<AxialCoord>()
         val steps = mutableListOf<AnimStep>()
         val activeCoords = mutableListOf<AxialCoord>()
-        if (placedCoord != null) activeCoords.add(placedCoord)
+        if (placedCoord != null) {
+            activeCoords.add(placedCoord)
+        } else {
+            // No placed coord: seed with all occupied cells so merges can be found
+            activeCoords.addAll(cells.keys)
+        }
 
         while (true) {
             var activity = false
@@ -163,6 +168,7 @@ object HexaStackLogic {
 
             // 2. Pop phase: check for stacks with >= POP_THRESHOLD same-color top tiles
             val coordsToCheck = cells.keys.toList()
+            val newActives = mutableListOf<AxialCoord>()
             for (c in coordsToCheck) {
                 val stack = cells[c] ?: continue
                 val run = topRun(stack)
@@ -173,8 +179,14 @@ object HexaStackLogic {
                     poppingCoords.add(c)
                     steps.add(AnimStep.Pop(c, run, color))
                     if (stack.isEmpty()) cells.remove(c)
+                    // Neighbors of the popped cell may now have matching top colors — add them as active
+                    newActives.addAll(c.neighbors().filter { cells.containsKey(it) })
                     activity = true
                 }
+            }
+            if (newActives.isNotEmpty()) {
+                activeCoords.clear()
+                activeCoords.addAll(newActives.distinct())
             }
 
             if (!activity) break
@@ -231,15 +243,6 @@ object HexaStackLogic {
                     } ?: active
                     return comp to target
                 }
-            }
-        }
-
-        // Priority 2: Any connected component on board with size > 1
-        for (coord in cells.keys) {
-            val comp = findConnectedComponent(cells, coord)
-            if (comp.size > 1) {
-                val target = comp.maxByOrNull { cells[it]?.size ?: 0 } ?: coord
-                return comp to target
             }
         }
 
