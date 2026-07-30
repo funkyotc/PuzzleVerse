@@ -106,7 +106,11 @@ fun ArrowEscapeScreen(
         )
     }
 
-    val displayTitle = if (mode == "testing") "Arrow Escape (Testing)" else "Arrow Escape"
+    val displayTitle = when (mode) {
+        "extreme" -> "Arrow Escape (Extreme)"
+        "testing" -> "Arrow Escape (Testing)"
+        else -> "Arrow Escape"
+    }
 
     StandardGameLayout(
         title = displayTitle,

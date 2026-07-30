@@ -153,6 +153,11 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             navController.navigate("game/arrowescape/testing")
                         }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Play Extreme (God Tier)") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/arrowescape/extreme")
+                        }
                     }
                     else -> {
                         MenuCard(text = "Play Standard") {

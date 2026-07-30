@@ -39,7 +39,18 @@ class ArrowEscapeViewModel(
         val height: Int
         val shape: LevelShape
 
-        if (mode == "testing" && specificPuzzle == null) {
+        if (mode == "extreme" && specificPuzzle == null) {
+            val extremeSizes = listOf(30, 40, 50)
+            width = extremeSizes.random()
+            height = width
+            shape = LevelShape.entries.random()
+            arrows = com.funkyotc.puzzleverse.arrowescape.model.ArrowEscapeGenerator().generateExtreme(
+                width = width,
+                height = height,
+                density = 0.90f,
+                shape = shape
+            )
+        } else if (mode == "testing" && specificPuzzle == null) {
             val testingSizes = listOf(15, 20, 25, 30, 35, 40)
             width = testingSizes.random()
             height = width
