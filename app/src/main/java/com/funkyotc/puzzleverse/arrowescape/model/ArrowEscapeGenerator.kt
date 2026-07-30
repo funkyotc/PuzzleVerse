@@ -311,7 +311,12 @@ class ArrowEscapeGenerator {
             minGridDim <= 30 -> 80
             else -> 120
         }
-        val maxStarters = 3
+        val maxStarters = when {
+            minGridDim <= 15 -> 3
+            minGridDim <= 25 -> 4
+            minGridDim <= 35 -> 5
+            else -> 6
+        }
 
         var candidateAttempts = 0
         val maxAttemptsCount = 40
@@ -323,7 +328,7 @@ class ArrowEscapeGenerator {
             if (arrows.isNotEmpty()) {
                 val starters = countStarterArrows(arrows, width, height, shape)
                 val depth = calculateDependencyDepth(arrows, width, height, shape)
-                if (starters in 1..4 && depth >= 3 && isPuzzleSolvable(arrows, width, height, shape)) {
+                if (starters in 1..(maxStarters + 2) && depth >= 3 && isPuzzleSolvable(arrows, width, height, shape)) {
                     return arrows
                 }
             }

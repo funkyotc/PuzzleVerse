@@ -40,13 +40,14 @@ class ArrowEscapeViewModel(
         val shape: LevelShape
 
         if (mode == "testing" && specificPuzzle == null) {
-            width = 15
-            height = 15
-            shape = LevelShape.SQUARE
+            val testingSizes = listOf(15, 20, 25, 30, 35, 40)
+            width = testingSizes.random()
+            height = width
+            shape = LevelShape.entries.random()
             arrows = com.funkyotc.puzzleverse.arrowescape.model.ArrowEscapeGenerator().generateTesting(
                 width = width,
                 height = height,
-                density = 0.90f,
+                density = 0.85f,
                 shape = shape
             )
         } else {

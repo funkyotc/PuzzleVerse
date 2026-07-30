@@ -156,6 +156,24 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
+        // Testing Puzzles (101-120, 15x15 to 40x40) - Reverse Dependency Generation
+        val testingSizes = listOf(15, 15, 15, 15, 20, 20, 20, 20, 25, 25, 25, 25, 30, 30, 30, 30, 40, 40, 40, 40)
+        for (i in 1..20) {
+            val size = testingSizes[i - 1]
+            val random = Random(600 + i)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generateTesting(size, size, 0.90f, shape, random)
+            sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
+            sb.append("    val arrows = listOf<Arrow>(\n")
+            arrows.forEach { a ->
+                val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
+                sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")
+            }
+            sb.append("    )\n}\n\n")
+            puzzleIndex++
+        }
+
         sb.append("object ArrowEscapePregenerated {\n")
         sb.append("    val ALL_PUZZLES: List<ArrowEscapePuzzle> by lazy {\n")
         sb.append("        listOf(\n")
@@ -186,6 +204,11 @@ class ArrowEscapeGeneratorTest {
             sb.append("            ArrowEscapePuzzle(\"arrowescape_master_$formattedIndex\", \"Master\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
+        for (i in 1..20) {
+            val formattedIndex = String.format("%03d", i)
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_testing_$formattedIndex\", \"Testing\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
+            pIdx++
+        }
 
         sb.append("        )\n")
         sb.append("    }\n\n")
@@ -198,6 +221,6 @@ class ArrowEscapeGeneratorTest {
         val targetPath = "src/main/java/com/funkyotc/puzzleverse/arrowescape/data/ArrowEscapePregenerated.kt"
         val file = File(targetPath)
         file.writeText(sb.toString())
-        println("Successfully updated ArrowEscapePregenerated.kt with 100 shape-masked 100% density puzzles (${file.length()} bytes)!")
+        println("Successfully updated ArrowEscapePregenerated.kt with 120 shape-masked puzzles including Testing difficulty (${file.length()} bytes)!")
     }
 }
