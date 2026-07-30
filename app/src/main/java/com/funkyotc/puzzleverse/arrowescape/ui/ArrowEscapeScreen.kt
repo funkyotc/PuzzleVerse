@@ -106,8 +106,10 @@ fun ArrowEscapeScreen(
         )
     }
 
+    val displayTitle = if (mode == "testing") "Arrow Escape (Testing)" else "Arrow Escape"
+
     StandardGameLayout(
-        title = "Arrow Escape",
+        title = displayTitle,
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {

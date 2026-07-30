@@ -33,33 +33,50 @@ class ArrowEscapeViewModel(
 
     private fun loadPuzzle() {
         val specificPuzzle = if (puzzleId != null) ArrowEscapePregenerated.getPuzzleById(puzzleId) else null
-        val difficulty = specificPuzzle?.difficulty ?: when (mode) {
-            "daily" -> "Medium"
-            else -> "Easy"
-        }
         
-        val arrows = if (specificPuzzle != null) {
-            specificPuzzle.arrows
-        } else {
-            val puzzles = ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY[difficulty] ?: emptyList()
-            if (puzzles.isNotEmpty()) puzzles.random().arrows else emptyList()
-        }
+        val arrows: List<Arrow>
+        val width: Int
+        val height: Int
+        val shape: LevelShape
 
-        val shape = specificPuzzle?.shape ?: LevelShape.SQUARE
-        
-        // Determine grid size based on puzzle
-        val maxCoord = arrows.flatMap { it.segments }.let { segs ->
-            if (segs.isEmpty()) 10 else maxOf(segs.maxOf { it.x }, segs.maxOf { it.y }) + 1
+        if (mode == "testing" && specificPuzzle == null) {
+            width = 15
+            height = 15
+            shape = LevelShape.SQUARE
+            arrows = com.funkyotc.puzzleverse.arrowescape.model.ArrowEscapeGenerator().generateTesting(
+                width = width,
+                height = height,
+                density = 0.90f,
+                shape = shape
+            )
+        } else {
+            val difficulty = specificPuzzle?.difficulty ?: when (mode) {
+                "daily" -> "Medium"
+                else -> "Easy"
+            }
+            
+            arrows = if (specificPuzzle != null) {
+                specificPuzzle.arrows
+            } else {
+                val puzzles = ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY[difficulty] ?: emptyList()
+                if (puzzles.isNotEmpty()) puzzles.random().arrows else emptyList()
+            }
+
+            shape = specificPuzzle?.shape ?: LevelShape.SQUARE
+            
+            val maxCoord = arrows.flatMap { it.segments }.let { segs ->
+                if (segs.isEmpty()) 10 else maxOf(segs.maxOf { it.x }, segs.maxOf { it.y }) + 1
+            }
+            width = when (difficulty) {
+                "Easy" -> 10
+                "Medium" -> 20
+                "Hard" -> 30
+                "Expert" -> 40
+                "Master" -> 50
+                else -> maxOf(10, maxCoord)
+            }
+            height = width
         }
-        val width = when (difficulty) {
-            "Easy" -> 10
-            "Medium" -> 20
-            "Hard" -> 30
-            "Expert" -> 40
-            "Master" -> 50
-            else -> maxOf(10, maxCoord)
-        }
-        val height = width
 
         gridState = GridState(width, height, arrows, shape)
         _uiState.value = ArrowEscapeUiState(

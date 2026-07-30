@@ -143,6 +143,17 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                             navController.navigate("game/cubeshooter/hard_pictures")
                         }
                     }
+                    "arrowescape" -> {
+                        MenuCard(text = "Play Standard") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/arrowescape/standard")
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        MenuCard(text = "Play Testing (High Difficulty)") {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            navController.navigate("game/arrowescape/testing")
+                        }
+                    }
                     else -> {
                         MenuCard(text = "Play Standard") {
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)

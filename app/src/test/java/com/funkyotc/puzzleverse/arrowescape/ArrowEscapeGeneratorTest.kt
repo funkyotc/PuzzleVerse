@@ -37,6 +37,21 @@ class ArrowEscapeGeneratorTest {
         }
     }
 
+    @Test
+    fun testTestingGeneratedPuzzlesAreSolvableAndChallenging() {
+        val generator = ArrowEscapeGenerator()
+        for (seed in 1..5) {
+            val random = Random(seed)
+            val shape = LevelShape.SQUARE
+            val arrows = generator.generateTesting(12, 12, 0.90f, shape, random)
+            assertTrue("Generated testing puzzle should contain arrows", arrows.isNotEmpty())
+            assertTrue("Testing puzzle generated with seed $seed should be solvable", generator.isPuzzleSolvable(arrows, 12, 12, shape))
+
+            val depth = generator.calculateDependencyDepth(arrows, 12, 12, shape)
+            assertTrue("Testing puzzle should have dependency depth >= 3, got $depth", depth >= 3)
+        }
+    }
+
     fun updatePregeneratedFile() {
         val generator = ArrowEscapeGenerator()
         val sb = StringBuilder()
