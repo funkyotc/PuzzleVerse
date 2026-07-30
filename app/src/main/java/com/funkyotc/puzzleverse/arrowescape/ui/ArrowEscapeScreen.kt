@@ -103,8 +103,7 @@ fun ArrowEscapeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
+                .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
             ArrowEscapeGrid(
@@ -115,7 +114,8 @@ fun ArrowEscapeScreen(
                 onArrowTapped = { arrowId, onBump, onMove ->
                     soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                     viewModel.onArrowTapped(arrowId, onBump, onMove)
-                }
+                },
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

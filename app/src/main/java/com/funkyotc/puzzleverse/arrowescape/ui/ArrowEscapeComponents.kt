@@ -13,7 +13,6 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -53,10 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.funkyotc.puzzleverse.arrowescape.model.Arrow
 import com.funkyotc.puzzleverse.arrowescape.model.Direction
+import com.funkyotc.puzzleverse.arrowescape.model.LevelShape
 import kotlinx.coroutines.launch
 import kotlin.math.sin
-
-import com.funkyotc.puzzleverse.arrowescape.model.LevelShape
 
 @Composable
 fun ArrowEscapeGrid(
@@ -92,19 +90,24 @@ fun ArrowEscapeGrid(
         Color(0xFFFF8A65)  // Orange pastel
     )
 
-    fun clampPan(pan: Offset, scale: Float, width: Float, height: Float): Offset {
+    fun clampPan(pan: Offset, scale: Float, width: Float, height: Float, gridWidthPx: Float, gridHeightPx: Float): Offset {
         if (scale <= 1.0f || width <= 0f || height <= 0f) return Offset.Zero
-        val maxPanX = (width * (scale - 1f)) / 2f
-        val maxPanY = (height * (scale - 1f)) / 2f
+        val maxPanX = maxOf(0f, (gridWidthPx * scale - width) / 2f + width * 0.15f)
+        val maxPanY = maxOf(0f, (gridHeightPx * scale - height) / 2f + height * 0.15f)
         return Offset(
             x = pan.x.coerceIn(-maxPanX, maxPanX),
             y = pan.y.coerceIn(-maxPanY, maxPanY)
         )
     }
 
+    val cellSize = if (containerSize.width > 0f && containerSize.height > 0f) {
+        minOf(containerSize.width / gridWidth, containerSize.height / gridHeight)
+    } else 0f
+    val gridPixelWidth = cellSize * gridWidth
+    val gridPixelHeight = cellSize * gridHeight
+
     Box(
         modifier = modifier
-            .aspectRatio(gridWidth.toFloat() / gridHeight.toFloat())
             .onSizeChanged {
                 containerSize = Size(it.width.toFloat(), it.height.toFloat())
             }
@@ -113,7 +116,7 @@ fun ArrowEscapeGrid(
             modifier = Modifier
                 .fillMaxSize()
                 .clipToBounds()
-                .pointerInput(gridWidth, gridHeight, arrows) {
+                .pointerInput(gridWidth, gridHeight, arrows, cellSize) {
                     awaitEachGesture {
                         var isTransforming = false
                         var initialTapOffset = Offset.Zero
@@ -152,7 +155,7 @@ fun ArrowEscapeGrid(
                                             x = (centroid.x - midX) * (1f - newScale / oldScale) + oldPan.x * (newScale / oldScale) + panChange.x,
                                             y = (centroid.y - midY) * (1f - newScale / oldScale) + oldPan.y * (newScale / oldScale) + panChange.y
                                         )
-                                        val clampedPan = clampPan(newPanUnclamped, newScale, containerSize.width, containerSize.height)
+                                        val clampedPan = clampPan(newPanUnclamped, newScale, containerSize.width, containerSize.height, gridPixelWidth, gridPixelHeight)
 
                                         scaleAnim.snapTo(newScale)
                                         panAnim.snapTo(clampedPan)
@@ -172,7 +175,9 @@ fun ArrowEscapeGrid(
                                                 panAnim.value + dragDelta,
                                                 scaleAnim.value,
                                                 containerSize.width,
-                                                containerSize.height
+                                                containerSize.height,
+                                                gridPixelWidth,
+                                                gridPixelHeight
                                             )
                                             panAnim.snapTo(newPan)
                                         }
@@ -189,15 +194,15 @@ fun ArrowEscapeGrid(
                             val width = containerSize.width
                             val height = containerSize.height
 
-                            if (width > 0 && height > 0) {
+                            if (width > 0 && height > 0 && cellSize > 0f) {
                                 val canvasX = width / 2f + (tapOffset.x - width / 2f - currentPan.x) / currentScale
                                 val canvasY = height / 2f + (tapOffset.y - height / 2f - currentPan.y) / currentScale
 
-                                val cellWidth = width / gridWidth
-                                val cellHeight = height / gridHeight
+                                val gridOriginX = (width - gridPixelWidth) / 2f
+                                val gridOriginY = (height - gridPixelHeight) / 2f
 
-                                val tapX = (canvasX / cellWidth).toInt()
-                                val tapY = (canvasY / cellHeight).toInt()
+                                val tapX = ((canvasX - gridOriginX) / cellSize).toInt()
+                                val tapY = ((canvasY - gridOriginY) / cellSize).toInt()
 
                                 if (tapX in 0 until gridWidth && tapY in 0 until gridHeight) {
                                     val now = System.currentTimeMillis()
@@ -216,7 +221,9 @@ fun ArrowEscapeGrid(
                                                     ),
                                                     targetScale,
                                                     width,
-                                                    height
+                                                    height,
+                                                    gridPixelWidth,
+                                                    gridPixelHeight
                                                 )
                                                 scaleAnim.animateTo(targetScale, tween(250))
                                                 panAnim.animateTo(targetPan, tween(250))
@@ -261,8 +268,13 @@ fun ArrowEscapeGrid(
                         translationY = panAnim.value.y
                     }
             ) {
-                val cellWidth = size.width / gridWidth
-                val cellHeight = size.height / gridHeight
+                if (size.width <= 0f || size.height <= 0f) return@Canvas
+                val cellW = minOf(size.width / gridWidth, size.height / gridHeight)
+                val cellH = cellW
+                val gridW = cellW * gridWidth
+                val gridH = cellH * gridHeight
+                val gridOriginX = (size.width - gridW) / 2f
+                val gridOriginY = (size.height - gridH) / 2f
 
                 // Draw background shape tiles
                 for (r in 0 until gridHeight) {
@@ -270,8 +282,8 @@ fun ArrowEscapeGrid(
                         if (shape.isCellInside(c, r, gridWidth, gridHeight)) {
                             drawRoundRect(
                                 color = Color(0x10FFFFFF),
-                                topLeft = Offset(c * cellWidth + 1f, r * cellHeight + 1f),
-                                size = Size(cellWidth - 2f, cellHeight - 2f),
+                                topLeft = Offset(gridOriginX + c * cellW + 1f, gridOriginY + r * cellH + 1f),
+                                size = Size(cellW - 2f, cellH - 2f),
                                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
                             )
                         }
@@ -286,15 +298,14 @@ fun ArrowEscapeGrid(
                     var bumpOffsetX = 0f
                     var bumpOffsetY = 0f
                     if (bumpAnim > 0f) {
-                        val bumpMagnitude = 0.2f * cellWidth // 20% of cell
+                        val bumpMagnitude = 0.2f * cellW // 20% of cell
                         val wave = sin(bumpAnim * Math.PI).toFloat()
                         bumpOffsetX = arrow.direction.dx * bumpMagnitude * wave
                         bumpOffsetY = arrow.direction.dy * bumpMagnitude * wave
                     }
 
-                    val cellSize = minOf(cellWidth, cellHeight)
-                    val strokeWidth = cellSize * 0.22f
-                    val arrowHeadSize = cellSize * 0.72f
+                    val strokeWidth = cellW * 0.22f
+                    val arrowHeadSize = cellW * 0.72f
 
                     // Determine direction of the line segment entering the head
                     val headDir = if (arrow.segments.size > 1) {
@@ -318,8 +329,8 @@ fun ArrowEscapeGrid(
 
                     for (i in points.indices) {
                         val pt = points[i]
-                        var cx = pt.x * cellWidth + cellWidth / 2f + bumpOffsetX
-                        var cy = pt.y * cellHeight + cellHeight / 2f + bumpOffsetY
+                        var cx = gridOriginX + pt.x * cellW + cellW / 2f + bumpOffsetX
+                        var cy = gridOriginY + pt.y * cellH + cellH / 2f + bumpOffsetY
 
                         // For the head segment (the last point in reversed list), offset slightly backward along headDir
                         if (i == points.lastIndex) {
@@ -348,8 +359,8 @@ fun ArrowEscapeGrid(
 
                     // Draw the prominent head pointer aligned with headDir
                     val head = arrow.head
-                    val hx = head.x * cellWidth + cellWidth / 2f + bumpOffsetX
-                    val hy = head.y * cellHeight + cellHeight / 2f + bumpOffsetY
+                    val hx = gridOriginX + head.x * cellW + cellW / 2f + bumpOffsetX
+                    val hy = gridOriginY + head.y * cellH + cellH / 2f + bumpOffsetY
 
                     val headPath = Path()
                     val hs = arrowHeadSize
@@ -396,17 +407,17 @@ fun ArrowEscapeGrid(
                     drawPath(
                         path = headPath,
                         color = outlineColor,
-                        style = Stroke(width = cellSize * 0.04f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                        style = Stroke(width = cellW * 0.04f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                     )
                 }
             }
         }
 
-        // Overlay Zoom Controls
+        // Overlay Zoom Controls anchored at bottom right of screen container
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(16.dp),
             contentAlignment = Alignment.BottomEnd
         ) {
             Surface(
@@ -449,7 +460,7 @@ fun ArrowEscapeGrid(
                         onClick = {
                             coroutineScope.launch {
                                 val newScale = (scaleAnim.value / 1.35f).coerceAtLeast(1.0f)
-                                val newPan = clampPan(panAnim.value, newScale, containerSize.width, containerSize.height)
+                                val newPan = clampPan(panAnim.value, newScale, containerSize.width, containerSize.height, gridPixelWidth, gridPixelHeight)
                                 scaleAnim.animateTo(newScale, tween(200))
                                 panAnim.animateTo(newPan, tween(200))
                             }
@@ -469,7 +480,7 @@ fun ArrowEscapeGrid(
                         onClick = {
                             coroutineScope.launch {
                                 val newScale = (scaleAnim.value * 1.35f).coerceAtMost(5.0f)
-                                val newPan = clampPan(panAnim.value, newScale, containerSize.width, containerSize.height)
+                                val newPan = clampPan(panAnim.value, newScale, containerSize.width, containerSize.height, gridPixelWidth, gridPixelHeight)
                                 scaleAnim.animateTo(newScale, tween(200))
                                 panAnim.animateTo(newPan, tween(200))
                             }
