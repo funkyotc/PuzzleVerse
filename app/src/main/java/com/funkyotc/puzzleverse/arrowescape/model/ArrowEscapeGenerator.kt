@@ -304,22 +304,23 @@ class ArrowEscapeGenerator {
         random: Random = Random
     ): List<Arrow> {
         val minGridDim = minOf(width, height)
-        val minLen = 3
+        val minLen = 4
         val maxLen = when {
-            minGridDim <= 10 -> 18
-            minGridDim <= 20 -> 45
-            minGridDim <= 30 -> 80
-            else -> 120
+            minGridDim <= 10 -> 20
+            minGridDim <= 20 -> 50
+            minGridDim <= 30 -> 90
+            else -> 140
         }
-        val maxStarters = when {
-            minGridDim <= 15 -> 3
-            minGridDim <= 25 -> 4
-            minGridDim <= 35 -> 5
-            else -> 6
+        val maxStarters = 2
+        val minRequiredDepth = when {
+            minGridDim <= 15 -> 5
+            minGridDim <= 25 -> 8
+            minGridDim <= 35 -> 12
+            else -> 15
         }
 
         var candidateAttempts = 0
-        val maxAttemptsCount = 40
+        val maxAttemptsCount = 50
 
         while (candidateAttempts < maxAttemptsCount) {
             candidateAttempts++
@@ -328,16 +329,16 @@ class ArrowEscapeGenerator {
             if (arrows.isNotEmpty()) {
                 val starters = countStarterArrows(arrows, width, height, shape)
                 val depth = calculateDependencyDepth(arrows, width, height, shape)
-                if (starters in 1..(maxStarters + 2) && depth >= 3 && isPuzzleSolvable(arrows, width, height, shape)) {
+                if (starters in 1..3 && depth >= minRequiredDepth && isPuzzleSolvable(arrows, width, height, shape)) {
                     return arrows
                 }
             }
         }
 
-        // Fallback: return best solvable candidate with lower density constraint
-        for (fallbackSeed in 1..30) {
+        // Fallback: return best solvable candidate with relaxed depth constraint
+        for (fallbackSeed in 1..40) {
             val r = Random(random.nextInt() + fallbackSeed)
-            val arrows = generateTestingCandidate(width, height, 0.75f, shape, minLen, maxLen, 4, r)
+            val arrows = generateTestingCandidate(width, height, 0.80f, shape, minLen, maxLen, 3, r)
             if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height, shape)) {
                 return arrows
             }
@@ -372,13 +373,13 @@ class ArrowEscapeGenerator {
         if (validCells.isEmpty()) return emptyList()
 
         val minTargetCells = (validCells.size * density).toInt()
-        val primaryTargetCells = (validCells.size * 0.65f).toInt()
+        val primaryTargetCells = (validCells.size * 0.70f).toInt()
         var filledCells = 0
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
         var placedStarters = 0
         var attempts = 0
-        val maxAttempts = validCells.size * 10
+        val maxAttempts = validCells.size * 12
         val emptyCoords = mutableListOf<Coordinate>()
 
         while (filledCells < primaryTargetCells && attempts < maxAttempts) {
@@ -403,6 +404,11 @@ class ArrowEscapeGenerator {
                 continue
             }
 
+            // Prefer multi-blocker placements for deeper web of dependencies
+            if (placedStarters >= maxStarters + 3 && blockerCount < 2 && random.nextFloat() < 0.50f) {
+                continue
+            }
+
             // Segment 1 (neck) MUST be placed behind head (spawnDir.opposite)
             val neckDir = spawnDir.opposite
             val neckX = headX + neckDir.dx
@@ -421,7 +427,7 @@ class ArrowEscapeGenerator {
 
             for (i in 2 until targetLength) {
                 val preferredDirs = mutableListOf<Direction>()
-                if (random.nextFloat() < 0.60f) {
+                if (random.nextFloat() < 0.75f) {
                     val turnOptions = listOf(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
                         .filter { it != currentDir && it != currentDir.opposite }
                     preferredDirs.addAll(turnOptions.shuffled(random))
