@@ -28,7 +28,7 @@ class ArrowEscapeGenerator {
         }
 
         var candidateAttempts = 0
-        val maxAttemptsCount = if (density >= 0.95f) 300 else 100
+        val maxAttemptsCount = 50
 
         while (candidateAttempts < maxAttemptsCount) {
             candidateAttempts++
@@ -36,16 +36,17 @@ class ArrowEscapeGenerator {
             
             if (arrows.isNotEmpty()) {
                 val starters = countStarterArrows(arrows, width, height)
-                if (starters in 1..maxStarterArrows && isPuzzleSolvable(arrows, width, height)) {
+                val starterCap = if (density >= 0.95f) maxStarterArrows + 10 else maxStarterArrows
+                if (starters in 1..starterCap && isPuzzleSolvable(arrows, width, height)) {
                     return arrows
                 }
             }
         }
 
         // Fallback: return best generated candidate that is solvable
-        for (fallbackSeed in 1..100) {
+        for (fallbackSeed in 1..20) {
             val r = Random(random.nextInt() + fallbackSeed)
-            val fallbackDensity = if (density >= 0.95f) 0.98f else density * 0.90f
+            val fallbackDensity = if (density >= 0.95f) 0.95f else density * 0.90f
             val arrows = generateCandidate(width, height, fallbackDensity, minLen, maxLen, r)
             if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height)) {
                 return arrows
@@ -72,36 +73,51 @@ class ArrowEscapeGenerator {
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
         var attempts = 0
-        val maxAttempts = targetCells * 100
+        val maxAttempts = targetCells * 40
+        val emptyCoords = mutableListOf<Coordinate>()
 
         while (filledCells < targetCells && attempts < maxAttempts) {
             attempts++
 
-            val spawnDir = Direction.entries.random(random)
-
-            // Spawn head anywhere on grid edge or interior
             val headX: Int
             val headY: Int
-            when (spawnDir) {
-                Direction.UP -> {
-                    headX = random.nextInt(width)
-                    headY = random.nextInt(height / 2 + 1)
+            val spawnDir = Direction.entries.random(random)
+
+            if (attempts > targetCells * 2 || filledCells > targetCells * 0.6) {
+                emptyCoords.clear()
+                for (r in 0 until height) {
+                    for (c in 0 until width) {
+                        if (grid[r][c] == 0) emptyCoords.add(Coordinate(c, r))
+                    }
                 }
-                Direction.DOWN -> {
-                    headX = random.nextInt(width)
-                    headY = random.nextInt(height / 2, height)
+                if (emptyCoords.isEmpty()) break
+                val selected = emptyCoords.random(random)
+                headX = selected.x
+                headY = selected.y
+            } else {
+                when (spawnDir) {
+                    Direction.UP -> {
+                        headX = random.nextInt(width)
+                        headY = random.nextInt(height / 2 + 1)
+                    }
+                    Direction.DOWN -> {
+                        headX = random.nextInt(width)
+                        headY = random.nextInt(height / 2, height)
+                    }
+                    Direction.LEFT -> {
+                        headX = random.nextInt(width / 2 + 1)
+                        headY = random.nextInt(height)
+                    }
+                    Direction.RIGHT -> {
+                        headX = random.nextInt(width / 2, width)
+                        headY = random.nextInt(height)
+                    }
                 }
-                Direction.LEFT -> {
-                    headX = random.nextInt(width / 2 + 1)
-                    headY = random.nextInt(height)
-                }
-                Direction.RIGHT -> {
-                    headX = random.nextInt(width / 2, width)
-                    headY = random.nextInt(height)
-                }
+                if (grid[headY][headX] != 0) continue
             }
 
-            if (grid[headY][headX] != 0) continue
+            // Head exit ray must be clear of previously placed arrows so reverse sequence is solvable by construction
+            if (!isExitRayClearOfPlacedArrows(headX, headY, spawnDir, grid, width, height)) continue
 
             val targetLength = random.nextInt(minLen, maxLen + 1)
             val segments = mutableListOf<Coordinate>()
@@ -166,6 +182,17 @@ class ArrowEscapeGenerator {
         return arrows
     }
 
+    private fun isExitRayClearOfPlacedArrows(x: Int, y: Int, dir: Direction, grid: Array<IntArray>, width: Int, height: Int): Boolean {
+        var cx = x + dir.dx
+        var cy = y + dir.dy
+        while (cx in 0 until width && cy in 0 until height) {
+            if (grid[cy][cx] != 0) return false
+            cx += dir.dx
+            cy += dir.dy
+        }
+        return true
+    }
+
     private fun isOnFrontHeadRay(x: Int, y: Int, headX: Int, headY: Int, dir: Direction, width: Int, height: Int): Boolean {
         var cx = headX + dir.dx
         var cy = headY + dir.dy
@@ -184,16 +211,19 @@ class ArrowEscapeGenerator {
 
     fun isPuzzleSolvable(arrows: List<Arrow>, width: Int, height: Int): Boolean {
         val state = GridState(width, height, arrows)
-        var progress = true
-        while (progress && !state.isComplete()) {
-            progress = false
+        var steps = 0
+        val maxSteps = arrows.size * 2
+        while (!state.isComplete() && steps < maxSteps) {
+            steps++
+            var moved = false
             for (arrowId in state.arrows.keys.toList()) {
                 if (state.canMove(arrowId)) {
                     state.moveArrowFully(arrowId)
-                    progress = true
+                    moved = true
                     break
                 }
             }
+            if (!moved) break
         }
         return state.isComplete()
     }

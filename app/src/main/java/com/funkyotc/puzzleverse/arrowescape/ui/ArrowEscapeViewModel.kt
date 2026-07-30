@@ -45,13 +45,16 @@ class ArrowEscapeViewModel(
         }
         
         // Determine grid size based on puzzle
+        val maxCoord = arrows.flatMap { it.segments }.let { segs ->
+            if (segs.isEmpty()) 10 else maxOf(segs.maxOf { it.x }, segs.maxOf { it.y }) + 1
+        }
         val width = when (difficulty) {
             "Easy" -> 10
             "Medium" -> 20
             "Hard" -> 30
             "Expert" -> 40
             "Master" -> 50
-            else -> 10
+            else -> maxOf(10, maxCoord)
         }
         val height = width
 

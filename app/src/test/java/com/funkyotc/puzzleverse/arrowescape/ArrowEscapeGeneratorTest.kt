@@ -35,7 +35,6 @@ class ArrowEscapeGeneratorTest {
         }
     }
 
-    @Test
     fun updatePregeneratedFile() {
         val generator = ArrowEscapeGenerator()
         val sb = StringBuilder()
