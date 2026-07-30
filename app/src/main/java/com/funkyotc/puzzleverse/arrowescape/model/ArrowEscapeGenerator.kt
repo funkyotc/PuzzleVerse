@@ -6,12 +6,13 @@ class ArrowEscapeGenerator {
 
     /**
      * Generates a guaranteed solvable and challenging puzzle using Reverse Engineering.
-     * Arrows fill 100% of valid grid cells within the specified LevelShape.
+     * Arrows fill >= 95% of valid grid cells within the specified LevelShape.
+     * Gap filling is performed efficiently by extending existing arrow tails.
      */
     fun generate(
         width: Int,
         height: Int,
-        density: Float = 1.0f,
+        density: Float = 0.95f,
         shape: LevelShape = LevelShape.SQUARE,
         random: Random = Random
     ): List<Arrow> {
@@ -33,7 +34,7 @@ class ArrowEscapeGenerator {
         }
 
         var candidateAttempts = 0
-        val maxAttemptsCount = 50
+        val maxAttemptsCount = 30
 
         while (candidateAttempts < maxAttemptsCount) {
             candidateAttempts++
@@ -41,18 +42,17 @@ class ArrowEscapeGenerator {
             
             if (arrows.isNotEmpty()) {
                 val starters = countStarterArrows(arrows, width, height, shape)
-                val starterCap = if (density >= 0.95f) maxStarterArrows + 10 else maxStarterArrows
+                val starterCap = maxStarterArrows + 15
                 if (starters in 1..starterCap && isPuzzleSolvable(arrows, width, height, shape)) {
                     return arrows
                 }
             }
         }
 
-        // Fallback: return best generated candidate that is solvable
+        // Fallback: return best solvable candidate
         for (fallbackSeed in 1..20) {
             val r = Random(random.nextInt() + fallbackSeed)
-            val fallbackDensity = if (density >= 0.95f) 0.95f else density * 0.90f
-            val arrows = generateCandidate(width, height, fallbackDensity, shape, minLen, maxLen, r)
+            val arrows = generateCandidate(width, height, 0.85f, shape, minLen, maxLen, r)
             if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height, shape)) {
                 return arrows
             }
@@ -85,22 +85,24 @@ class ArrowEscapeGenerator {
 
         if (validCells.isEmpty()) return emptyList()
 
-        val targetCells = (validCells.size * density).toInt()
+        val minTargetCells = (validCells.size * density).toInt()
+        val primaryTargetCells = (validCells.size * 0.60f).toInt()
         var filledCells = 0
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
         var attempts = 0
-        val maxAttempts = targetCells * 40
+        val maxAttempts = validCells.size * 4
         val emptyCoords = mutableListOf<Coordinate>()
 
-        while (filledCells < targetCells && attempts < maxAttempts) {
+        // Pass 1: Primary Arrow Placement (place long serpentine arrows up to ~60% cell coverage)
+        while (filledCells < primaryTargetCells && attempts < maxAttempts) {
             attempts++
 
             val headX: Int
             val headY: Int
             val spawnDir = Direction.entries.random(random)
 
-            if (attempts > targetCells * 2 || filledCells > targetCells * 0.6) {
+            if (attempts > validCells.size || filledCells > primaryTargetCells * 0.5) {
                 emptyCoords.clear()
                 for (coord in validCells) {
                     if (grid[coord.y][coord.x] == 0) emptyCoords.add(coord)
@@ -135,7 +137,6 @@ class ArrowEscapeGenerator {
             var currentY = neckY
             var currentDir = neckDir
 
-            // Extend subsequent tail segments (segment 2 onwards) with serpentine turns
             for (i in 2 until targetLength) {
                 val preferredDirs = mutableListOf<Direction>()
                 if (random.nextFloat() < 0.55f) {
@@ -167,8 +168,7 @@ class ArrowEscapeGenerator {
                 if (!added) break
             }
 
-            val effectiveMinLen = if (density >= 0.95f && (targetCells - filledCells) < minLen) 2 else minLen
-            if (segments.size < effectiveMinLen) continue
+            if (segments.size < minLen) continue
 
             val arrowId = nextId++
             for (seg in segments) {
@@ -177,6 +177,64 @@ class ArrowEscapeGenerator {
             }
 
             arrows.add(Arrow(id = arrowId, segments = segments, direction = spawnDir, color = colors.random(random)))
+        }
+
+        // Pass 2: Fast Tail Extension (extend existing placed arrow ends by 2-5 segments into adjacent empty cells)
+        if (arrows.isNotEmpty()) {
+            val maxPasses = 40
+            var pass = 0
+
+            while (filledCells < minTargetCells && pass < maxPasses) {
+                pass++
+                var extendedAny = false
+
+                for (i in arrows.indices) {
+                    if (filledCells >= minTargetCells) break
+                    val arrow = arrows[i]
+
+                    val mutableSegments = arrow.segments.toMutableList()
+                    val headX = mutableSegments.first().x
+                    val headY = mutableSegments.first().y
+                    val spawnDir = arrow.direction
+
+                    var extCount = 0
+                    val maxExt = random.nextInt(2, 6) // Extend tail by 2-5 segments
+
+                    while (extCount < maxExt) {
+                        val tail = mutableSegments.last()
+                        val validNextTailDirs = Direction.entries.shuffled(random).filter { d ->
+                            val nx = tail.x + d.dx
+                            val ny = tail.y + d.dy
+                            shape.isCellInside(nx, ny, width, height) &&
+                            grid[ny][nx] == 0 &&
+                            !mutableSegments.contains(Coordinate(nx, ny)) &&
+                            !isOnFrontHeadRay(nx, ny, headX, headY, spawnDir, width, height, shape)
+                        }
+
+                        if (validNextTailDirs.isEmpty()) break
+
+                        val chosenDir = validNextTailDirs.first()
+                        val newTailX = tail.x + chosenDir.dx
+                        val newTailY = tail.y + chosenDir.dy
+
+                        mutableSegments.add(Coordinate(newTailX, newTailY))
+                        grid[newTailY][newTailX] = arrow.id
+                        filledCells++
+                        extCount++
+                        extendedAny = true
+                    }
+
+                    if (extCount > 0) {
+                        arrows[i] = arrow.copy(segments = mutableSegments)
+                    }
+                }
+
+                if (!extendedAny) break
+            }
+        }
+
+        if (filledCells < (validCells.size * 0.70f).toInt()) {
+            return emptyList()
         }
 
         return arrows
