@@ -6,10 +6,15 @@ class ArrowEscapeGenerator {
 
     /**
      * Generates a guaranteed solvable and challenging puzzle using Reverse Engineering.
-     * Arrows block each other's exit paths, creating an interlocking puzzle structure
-     * where only a small number of starter arrows can be freed initially.
+     * Arrows fill 100% of valid grid cells within the specified LevelShape.
      */
-    fun generate(width: Int, height: Int, density: Float, random: Random = Random): List<Arrow> {
+    fun generate(
+        width: Int,
+        height: Int,
+        density: Float = 1.0f,
+        shape: LevelShape = LevelShape.SQUARE,
+        random: Random = Random
+    ): List<Arrow> {
         val minGridDim = minOf(width, height)
         val minLen = 3
         val maxLen = when {
@@ -32,12 +37,12 @@ class ArrowEscapeGenerator {
 
         while (candidateAttempts < maxAttemptsCount) {
             candidateAttempts++
-            val arrows = generateCandidate(width, height, density, minLen, maxLen, random)
+            val arrows = generateCandidate(width, height, density, shape, minLen, maxLen, random)
             
             if (arrows.isNotEmpty()) {
-                val starters = countStarterArrows(arrows, width, height)
+                val starters = countStarterArrows(arrows, width, height, shape)
                 val starterCap = if (density >= 0.95f) maxStarterArrows + 10 else maxStarterArrows
-                if (starters in 1..starterCap && isPuzzleSolvable(arrows, width, height)) {
+                if (starters in 1..starterCap && isPuzzleSolvable(arrows, width, height, shape)) {
                     return arrows
                 }
             }
@@ -47,8 +52,8 @@ class ArrowEscapeGenerator {
         for (fallbackSeed in 1..20) {
             val r = Random(random.nextInt() + fallbackSeed)
             val fallbackDensity = if (density >= 0.95f) 0.95f else density * 0.90f
-            val arrows = generateCandidate(width, height, fallbackDensity, minLen, maxLen, r)
-            if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height)) {
+            val arrows = generateCandidate(width, height, fallbackDensity, shape, minLen, maxLen, r)
+            if (arrows.isNotEmpty() && isPuzzleSolvable(arrows, width, height, shape)) {
                 return arrows
             }
         }
@@ -60,6 +65,7 @@ class ArrowEscapeGenerator {
         width: Int,
         height: Int,
         density: Float,
+        shape: LevelShape,
         minLen: Int,
         maxLen: Int,
         random: Random
@@ -68,7 +74,18 @@ class ArrowEscapeGenerator {
         val arrows = mutableListOf<Arrow>()
         var nextId = 1
 
-        val targetCells = (width * height * density).toInt()
+        val validCells = mutableListOf<Coordinate>()
+        for (r in 0 until height) {
+            for (c in 0 until width) {
+                if (shape.isCellInside(c, r, width, height)) {
+                    validCells.add(Coordinate(c, r))
+                }
+            }
+        }
+
+        if (validCells.isEmpty()) return emptyList()
+
+        val targetCells = (validCells.size * density).toInt()
         var filledCells = 0
         val colors = listOf(1, 2, 3, 4, 5, 6, 7)
 
@@ -85,39 +102,22 @@ class ArrowEscapeGenerator {
 
             if (attempts > targetCells * 2 || filledCells > targetCells * 0.6) {
                 emptyCoords.clear()
-                for (r in 0 until height) {
-                    for (c in 0 until width) {
-                        if (grid[r][c] == 0) emptyCoords.add(Coordinate(c, r))
-                    }
+                for (coord in validCells) {
+                    if (grid[coord.y][coord.x] == 0) emptyCoords.add(coord)
                 }
                 if (emptyCoords.isEmpty()) break
                 val selected = emptyCoords.random(random)
                 headX = selected.x
                 headY = selected.y
             } else {
-                when (spawnDir) {
-                    Direction.UP -> {
-                        headX = random.nextInt(width)
-                        headY = random.nextInt(height / 2 + 1)
-                    }
-                    Direction.DOWN -> {
-                        headX = random.nextInt(width)
-                        headY = random.nextInt(height / 2, height)
-                    }
-                    Direction.LEFT -> {
-                        headX = random.nextInt(width / 2 + 1)
-                        headY = random.nextInt(height)
-                    }
-                    Direction.RIGHT -> {
-                        headX = random.nextInt(width / 2, width)
-                        headY = random.nextInt(height)
-                    }
-                }
+                val candidateHead = validCells.random(random)
+                headX = candidateHead.x
+                headY = candidateHead.y
                 if (grid[headY][headX] != 0) continue
             }
 
-            // Head exit ray must be clear of previously placed arrows so reverse sequence is solvable by construction
-            if (!isExitRayClearOfPlacedArrows(headX, headY, spawnDir, grid, width, height)) continue
+            // Head exit ray must be clear of previously placed arrows inside shape
+            if (!isExitRayClearOfPlacedArrows(headX, headY, spawnDir, grid, width, height, shape)) continue
 
             val targetLength = random.nextInt(minLen, maxLen + 1)
             val segments = mutableListOf<Coordinate>()
@@ -128,7 +128,7 @@ class ArrowEscapeGenerator {
             val neckX = headX + neckDir.dx
             val neckY = headY + neckDir.dy
 
-            if (neckX !in 0 until width || neckY !in 0 until height || grid[neckY][neckX] != 0) continue
+            if (!shape.isCellInside(neckX, neckY, width, height) || grid[neckY][neckX] != 0) continue
             segments.add(Coordinate(neckX, neckY))
 
             var currentX = neckX
@@ -150,10 +150,10 @@ class ArrowEscapeGenerator {
                     val nextX = currentX + tryDir.dx
                     val nextY = currentY + tryDir.dy
 
-                    if (nextX in 0 until width && nextY in 0 until height &&
+                    if (shape.isCellInside(nextX, nextY, width, height) &&
                         grid[nextY][nextX] == 0 &&
                         !segments.contains(Coordinate(nextX, nextY)) &&
-                        !isOnFrontHeadRay(nextX, nextY, headX, headY, spawnDir, width, height)
+                        !isOnFrontHeadRay(nextX, nextY, headX, headY, spawnDir, width, height, shape)
                     ) {
                         currentX = nextX
                         currentY = nextY
@@ -182,10 +182,12 @@ class ArrowEscapeGenerator {
         return arrows
     }
 
-    private fun isExitRayClearOfPlacedArrows(x: Int, y: Int, dir: Direction, grid: Array<IntArray>, width: Int, height: Int): Boolean {
+    private fun isExitRayClearOfPlacedArrows(
+        x: Int, y: Int, dir: Direction, grid: Array<IntArray>, width: Int, height: Int, shape: LevelShape
+    ): Boolean {
         var cx = x + dir.dx
         var cy = y + dir.dy
-        while (cx in 0 until width && cy in 0 until height) {
+        while (shape.isCellInside(cx, cy, width, height)) {
             if (grid[cy][cx] != 0) return false
             cx += dir.dx
             cy += dir.dy
@@ -193,10 +195,12 @@ class ArrowEscapeGenerator {
         return true
     }
 
-    private fun isOnFrontHeadRay(x: Int, y: Int, headX: Int, headY: Int, dir: Direction, width: Int, height: Int): Boolean {
+    private fun isOnFrontHeadRay(
+        x: Int, y: Int, headX: Int, headY: Int, dir: Direction, width: Int, height: Int, shape: LevelShape
+    ): Boolean {
         var cx = headX + dir.dx
         var cy = headY + dir.dy
-        while (cx in 0 until width && cy in 0 until height) {
+        while (shape.isCellInside(cx, cy, width, height)) {
             if (cx == x && cy == y) return true
             cx += dir.dx
             cy += dir.dy
@@ -204,13 +208,13 @@ class ArrowEscapeGenerator {
         return false
     }
 
-    private fun countStarterArrows(arrows: List<Arrow>, width: Int, height: Int): Int {
-        val state = GridState(width, height, arrows)
+    private fun countStarterArrows(arrows: List<Arrow>, width: Int, height: Int, shape: LevelShape): Int {
+        val state = GridState(width, height, arrows, shape)
         return state.arrows.keys.count { state.canMove(it) }
     }
 
-    fun isPuzzleSolvable(arrows: List<Arrow>, width: Int, height: Int): Boolean {
-        val state = GridState(width, height, arrows)
+    fun isPuzzleSolvable(arrows: List<Arrow>, width: Int, height: Int, shape: LevelShape = LevelShape.SQUARE): Boolean {
+        val state = GridState(width, height, arrows, shape)
         var steps = 0
         val maxSteps = arrows.size * 2
         while (!state.isComplete() && steps < maxSteps) {

@@ -3,7 +3,8 @@ package com.funkyotc.puzzleverse.arrowescape.model
 class GridState(
     val width: Int,
     val height: Int,
-    initialArrows: List<Arrow>
+    initialArrows: List<Arrow>,
+    val shape: LevelShape = LevelShape.SQUARE
 ) {
     private val grid = Array(height) { IntArray(width) }
     val arrows = initialArrows.associateBy { it.id }.toMutableMap()
@@ -11,15 +12,22 @@ class GridState(
     init {
         for (arrow in initialArrows) {
             for (segment in arrow.segments) {
-                grid[segment.y][segment.x] = arrow.id
+                if (isCellOnBoard(segment.x, segment.y)) {
+                    grid[segment.y][segment.x] = arrow.id
+                }
             }
         }
+    }
+
+    fun isCellOnBoard(x: Int, y: Int): Boolean {
+        if (x !in 0 until width || y !in 0 until height) return false
+        return shape.isCellInside(x, y, width, height)
     }
 
     fun canMove(arrowId: Int): Boolean {
         val arrow = arrows[arrowId] ?: return false
         var checkPos = arrow.head.move(arrow.direction)
-        while (checkPos.x in 0 until width && checkPos.y in 0 until height) {
+        while (isCellOnBoard(checkPos.x, checkPos.y)) {
             val occupant = grid[checkPos.y][checkPos.x]
             if (occupant != 0) {
                 return false
@@ -41,19 +49,21 @@ class GridState(
 
         // Clear the tail from the grid
         val tail = arrow.segments.last()
-        grid[tail.y][tail.x] = 0
+        if (isCellOnBoard(tail.x, tail.y)) {
+            grid[tail.y][tail.x] = 0
+        }
 
         // Create new segments list: add nextPos as new head, remove old tail
         val newSegments = mutableListOf(nextPos)
         newSegments.addAll(arrow.segments.dropLast(1))
 
         // Update grid for new head (if on screen)
-        if (nextPos.x in 0 until width && nextPos.y in 0 until height) {
+        if (isCellOnBoard(nextPos.x, nextPos.y)) {
             grid[nextPos.y][nextPos.x] = arrowId
         }
 
-        // Check if the entire arrow is now off screen
-        val isOffScreen = newSegments.all { it.x !in 0 until width || it.y !in 0 until height }
+        // Check if the entire arrow is now off screen / off board
+        val isOffScreen = newSegments.all { !isCellOnBoard(it.x, it.y) }
 
         if (isOffScreen) {
             arrows.remove(arrowId)
@@ -66,14 +76,11 @@ class GridState(
 
     /**
      * Attempts to move an arrow until it's completely off screen.
-     * In a real implementation, this might happen tick by tick in the UI.
-     * This function is mostly for logical validation or quick solving.
      */
     fun moveArrowFully(arrowId: Int): Boolean {
         if (!canMove(arrowId)) return false
         while (arrows.containsKey(arrowId)) {
             if (!moveArrow(arrowId)) {
-                // Should not happen if paths are guaranteed, but good safeguard
                 break
             }
         }

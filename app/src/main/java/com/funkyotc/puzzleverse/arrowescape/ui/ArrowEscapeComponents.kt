@@ -56,11 +56,14 @@ import com.funkyotc.puzzleverse.arrowescape.model.Direction
 import kotlinx.coroutines.launch
 import kotlin.math.sin
 
+import com.funkyotc.puzzleverse.arrowescape.model.LevelShape
+
 @Composable
 fun ArrowEscapeGrid(
     arrows: List<Arrow>,
     gridWidth: Int,
     gridHeight: Int,
+    shape: LevelShape = LevelShape.SQUARE,
     onArrowTapped: (Int, () -> Unit, () -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -260,6 +263,20 @@ fun ArrowEscapeGrid(
             ) {
                 val cellWidth = size.width / gridWidth
                 val cellHeight = size.height / gridHeight
+
+                // Draw background shape tiles
+                for (r in 0 until gridHeight) {
+                    for (c in 0 until gridWidth) {
+                        if (shape.isCellInside(c, r, gridWidth, gridHeight)) {
+                            drawRoundRect(
+                                color = Color(0x10FFFFFF),
+                                topLeft = Offset(c * cellWidth + 1f, r * cellHeight + 1f),
+                                size = Size(cellWidth - 2f, cellHeight - 2f),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+                            )
+                        }
+                    }
+                }
 
                 // Draw arrows
                 for (arrow in arrows) {

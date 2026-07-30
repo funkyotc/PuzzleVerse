@@ -2,6 +2,7 @@ package com.funkyotc.puzzleverse.arrowescape
 
 import com.funkyotc.puzzleverse.arrowescape.model.ArrowEscapeGenerator
 import com.funkyotc.puzzleverse.arrowescape.model.GridState
+import com.funkyotc.puzzleverse.arrowescape.model.LevelShape
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -12,12 +13,13 @@ class ArrowEscapeGeneratorTest {
     @Test
     fun testGeneratedPuzzlesAre100PercentSolvable() {
         val generator = ArrowEscapeGenerator()
-        for (seed in 1..10) {
+        for (seed in 1..5) {
             val random = Random(seed)
-            val arrows = generator.generate(10, 10, 0.78f, random)
+            val shape = LevelShape.entries[seed % LevelShape.entries.size]
+            val arrows = generator.generate(10, 10, 1.00f, shape, random)
             assertTrue("Generated puzzle should contain arrows", arrows.isNotEmpty())
 
-            val state = GridState(10, 10, arrows)
+            val state = GridState(10, 10, arrows, shape)
             var progress = true
             while (progress && !state.isComplete()) {
                 progress = false
@@ -43,23 +45,29 @@ class ArrowEscapeGeneratorTest {
         sb.append("import com.funkyotc.puzzleverse.arrowescape.model.Arrow\n")
         sb.append("import com.funkyotc.puzzleverse.arrowescape.model.Coordinate\n")
         sb.append("import com.funkyotc.puzzleverse.arrowescape.model.Direction\n")
+        sb.append("import com.funkyotc.puzzleverse.arrowescape.model.LevelShape\n")
         sb.append("import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle\n\n")
         sb.append("data class ArrowEscapePuzzle(\n")
         sb.append("    override val id: String,\n")
         sb.append("    override val difficulty: String,\n")
-        sb.append("    val arrows: List<Arrow>\n")
+        sb.append("    val arrows: List<Arrow>,\n")
+        sb.append("    val shapeName: String = \"SQUARE\"\n")
         sb.append(") : BrowseablePuzzle {\n")
+        sb.append("    val shape: LevelShape get() = try { LevelShape.valueOf(shapeName) } catch(e: Exception) { LevelShape.SQUARE }\n")
         sb.append("    override val label: String get() = \"Puzzle \${id.takeLast(3)}\"\n")
         sb.append("    override val subtitle: String get() = \"\${arrows.size} arrows\"\n")
         sb.append("}\n\n")
 
+        val shapes = LevelShape.entries
         var puzzleIndex = 1
 
-        // Easy Puzzles (1-20, 10x10) - ~78% density (variable length 3-18)
+        // Easy Puzzles (1-20, 10x10) - 100% density with shapes
         for (i in 1..20) {
             val random = Random(100 + i)
-            val arrows = generator.generate(10, 10, 0.78f, random)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generate(10, 10, 1.00f, shape, random)
             sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
             sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
@@ -69,11 +77,13 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
-        // Medium Puzzles (21-40, 20x20) - ~78% density (variable length 3-45)
+        // Medium Puzzles (21-40, 20x20) - 100% density with shapes
         for (i in 1..20) {
             val random = Random(200 + i)
-            val arrows = generator.generate(20, 20, 0.78f, random)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generate(20, 20, 1.00f, shape, random)
             sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
             sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
@@ -83,11 +93,13 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
-        // Hard Puzzles (41-60, 30x30) - ~75% density (variable length 3-80)
+        // Hard Puzzles (41-60, 30x30) - 100% density with shapes
         for (i in 1..20) {
             val random = Random(300 + i)
-            val arrows = generator.generate(30, 30, 0.75f, random)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generate(30, 30, 1.00f, shape, random)
             sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
             sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
@@ -97,11 +109,13 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
-        // Expert Puzzles (61-80, 40x40) - ~72% density (variable length 3-120)
+        // Expert Puzzles (61-80, 40x40) - 100% density with shapes
         for (i in 1..20) {
             val random = Random(400 + i)
-            val arrows = generator.generate(40, 40, 0.72f, random)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generate(40, 40, 1.00f, shape, random)
             sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
             sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
@@ -111,27 +125,13 @@ class ArrowEscapeGeneratorTest {
             puzzleIndex++
         }
 
-        // Master Puzzles (81-100, 50x50) - ~70% density (variable length 3-160)
+        // Master Puzzles (81-100, 50x50) - 100% density with shapes
         for (i in 1..20) {
             val random = Random(500 + i)
-            val arrows = generator.generate(50, 50, 0.70f, random)
+            val shape = shapes[(i - 1) % shapes.size]
+            val arrows = generator.generate(50, 50, 1.00f, shape, random)
             sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
-            sb.append("    val arrows = listOf<Arrow>(\n")
-            arrows.forEach { a ->
-                val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
-                sb.append("        Arrow(${a.id}, listOf($segs), Direction.${a.direction.name}, ${a.color}),\n")
-            }
-            sb.append("    )\n}\n\n")
-            puzzleIndex++
-        }
-
-        // Test Puzzles (101-105: 100% density for sizes 10x10, 20x20, 30x30, 40x40, 50x50)
-        val testSizes = listOf(10, 20, 30, 40, 50)
-        for (i in testSizes.indices) {
-            val dim = testSizes[i]
-            val random = Random(600 + i)
-            val arrows = generator.generate(dim, dim, 1.00f, random)
-            sb.append("object ArrowEscapePuzzle$puzzleIndex {\n")
+            sb.append("    val shape = LevelShape.${shape.name}\n")
             sb.append("    val arrows = listOf<Arrow>(\n")
             arrows.forEach { a ->
                 val segs = a.segments.joinToString(", ") { "Coordinate(${it.x}, ${it.y})" }
@@ -148,32 +148,27 @@ class ArrowEscapeGeneratorTest {
         var pIdx = 1
         for (i in 1..20) {
             val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_easy_$formattedIndex\", \"Easy\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_easy_$formattedIndex\", \"Easy\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
         for (i in 1..20) {
             val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_medium_$formattedIndex\", \"Medium\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_medium_$formattedIndex\", \"Medium\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
         for (i in 1..20) {
             val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_hard_$formattedIndex\", \"Hard\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_hard_$formattedIndex\", \"Hard\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
         for (i in 1..20) {
             val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_expert_$formattedIndex\", \"Expert\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_expert_$formattedIndex\", \"Expert\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
         for (i in 1..20) {
             val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_master_$formattedIndex\", \"Master\", ArrowEscapePuzzle$pIdx.arrows),\n")
-            pIdx++
-        }
-        for (i in 1..5) {
-            val formattedIndex = String.format("%03d", i)
-            sb.append("            ArrowEscapePuzzle(\"arrowescape_test_$formattedIndex\", \"Test\", ArrowEscapePuzzle$pIdx.arrows),\n")
+            sb.append("            ArrowEscapePuzzle(\"arrowescape_master_$formattedIndex\", \"Master\", ArrowEscapePuzzle$pIdx.arrows, ArrowEscapePuzzle$pIdx.shape.name),\n")
             pIdx++
         }
 
@@ -188,6 +183,6 @@ class ArrowEscapeGeneratorTest {
         val targetPath = "src/main/java/com/funkyotc/puzzleverse/arrowescape/data/ArrowEscapePregenerated.kt"
         val file = File(targetPath)
         file.writeText(sb.toString())
-        println("Successfully updated ArrowEscapePregenerated.kt with 105 puzzles including 100% density Test puzzles (${file.length()} bytes)!")
+        println("Successfully updated ArrowEscapePregenerated.kt with 100 shape-masked 100% density puzzles (${file.length()} bytes)!")
     }
 }

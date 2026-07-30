@@ -111,6 +111,7 @@ fun ArrowEscapeScreen(
                 arrows = uiState.arrows,
                 gridWidth = uiState.gridWidth,
                 gridHeight = uiState.gridHeight,
+                shape = uiState.shape,
                 onArrowTapped = { arrowId, onBump, onMove ->
                     soundManager.playSound(SoundManager.SOUND_ID_PIECE_SLIDE)
                     viewModel.onArrowTapped(arrowId, onBump, onMove)
