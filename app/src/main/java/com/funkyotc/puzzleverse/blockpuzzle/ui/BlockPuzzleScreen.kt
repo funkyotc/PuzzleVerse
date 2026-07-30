@@ -83,7 +83,8 @@ fun BlockPuzzleScreen(
             mode = mode,
             gameId = "blockpuzzle",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-            onPlayAgainClick = { viewModel.startNewGame() }
+            onBackToListClick = { navController.navigate("gameDetail/blockpuzzle") { popUpTo("home") } },
+            onRandomPuzzleClick = { viewModel.startNewGame() }
         )
     }
 

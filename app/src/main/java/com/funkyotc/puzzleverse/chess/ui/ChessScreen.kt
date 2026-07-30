@@ -104,14 +104,17 @@ fun ChessScreen(
     }
 
     if (state.isWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val allPuzzles = com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES
-            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
-            if (nextId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.chess.data.ChessPregenerated.ALL_PUZZLES
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
-                    navController.popBackStack()
-                    navController.navigate("game/chess/puzzle/$nextId")
+                    navController.navigate("game/chess/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -121,12 +124,14 @@ fun ChessScreen(
             title = "Checkmate!",
             message = "You found the solution!\n${state.message}",
             mode = mode,
+            gameId = "chess",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "chess/puzzles?difficulty=$currentDifficulty" else "chess/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = { viewModel.startNewGame() },
             onNextPuzzleClick = nextPuzzleAction

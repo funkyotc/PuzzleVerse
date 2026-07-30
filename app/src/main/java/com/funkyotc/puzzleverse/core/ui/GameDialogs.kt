@@ -92,13 +92,16 @@ fun GameEndDialog(
     isWon: Boolean,
     title: String,
     message: String,
-    mode: String?,
+    mode: String? = null,
     onMainMenuClick: () -> Unit,
+    onBackToListClick: (() -> Unit)? = null,
     onPlayAgainClick: (() -> Unit)? = null,
     onNextPuzzleClick: (() -> Unit)? = null,
+    onRandomPuzzleClick: (() -> Unit)? = null,
     onDismissRequest: () -> Unit = {},
     streakCount: Int? = null,
-    gameId: String? = null
+    gameId: String? = null,
+    currentDifficulty: String? = null
 ) {
     val soundManager = LocalSoundManager.current
     val context = LocalContext.current
@@ -184,74 +187,55 @@ fun GameEndDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.End
             ) {
-                when (mode) {
-                    "daily" -> {
+                // 1. Primary Action: Next Puzzle or Random Puzzle / Play Again
+                if (onNextPuzzleClick != null) {
+                    Button(
+                        onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            onNextPuzzleClick()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Next Puzzle")
+                    }
+                } else {
+                    val randomAction = onRandomPuzzleClick ?: onPlayAgainClick
+                    if (randomAction != null) {
                         Button(
                             onClick = {
                                 soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                onMainMenuClick()
+                                randomAction()
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Main Menu")
-                        }
-                        if (onPlayAgainClick != null) {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    onPlayAgainClick()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Random Puzzles")
-                            }
+                            Text(if (mode == "daily" || mode == "puzzle") "Random Puzzle" else if (isWon) "Play Again" else "Try Again")
                         }
                     }
-                    "puzzle" -> {
-                        Button(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                onMainMenuClick() // Maps to "Back to List" in puzzle mode
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Back to List")
-                        }
-                        if (onNextPuzzleClick != null) {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    onNextPuzzleClick()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Next Puzzle")
-                            }
-                        }
+                }
+
+                // 2. Back to List Button
+                val backToListAction = onBackToListClick ?: if (mode == "puzzle") onMainMenuClick else null
+                if (backToListAction != null) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = {
+                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                            backToListAction()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Back to List")
                     }
-                    else -> {
-                        // Standard mode
-                        if (onPlayAgainClick != null) {
-                            Button(
-                                onClick = {
-                                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                    onPlayAgainClick()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(if (isWon) "Play Again" else "Try Again")
-                            }
-                        }
-                        TextButton(
-                            onClick = {
-                                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                onMainMenuClick()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Main Menu")
-                        }
-                    }
+                }
+
+                // 3. Main Menu Button
+                TextButton(
+                    onClick = {
+                        soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                        onMainMenuClick()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Main Menu")
                 }
             }
         }

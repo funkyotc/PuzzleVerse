@@ -112,8 +112,9 @@ fun ConstellationsScreen(
     }
 
     if (isGameWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId) else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val currentPuzzle = com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.getPuzzleById(puzzleId)
             val sameDiffPuzzles = if (currentPuzzle != null) {
                 com.funkyotc.puzzleverse.constellations.data.ConstellationsPregenerated.ALL_PUZZLES
                     .filter { it.difficulty == currentPuzzle.difficulty }
@@ -121,11 +122,11 @@ fun ConstellationsScreen(
             val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
             val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
                 sameDiffPuzzles[currentIndex + 1]
-            } else null
+            } else sameDiffPuzzles.firstOrNull()
             if (nextPuzzle != null) {
                 {
                     navController.navigate("game/constellations/puzzle/${nextPuzzle.id}") {
-                        popUpTo("constellations/puzzles")
+                        popUpTo("home")
                     }
                 }
             } else null
@@ -137,12 +138,13 @@ fun ConstellationsScreen(
             message = "You solved the puzzle!",
             mode = mode,
             gameId = "constellations",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "constellations/puzzles?difficulty=$currentDifficulty" else "constellations/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

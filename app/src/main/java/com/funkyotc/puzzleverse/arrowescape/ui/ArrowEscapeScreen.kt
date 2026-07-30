@@ -66,19 +66,43 @@ fun ArrowEscapeScreen(
     }
 
     if (uiState.isComplete) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.ALL_PUZZLES
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
+                {
+                    navController.navigate("game/arrowescape/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
+                }
+            } else null
+        } else null
+
         GameEndDialog(
             isWon = true,
             title = "Puzzle Cleared!",
             message = "You have successfully untangled all the arrows.",
             mode = mode,
             gameId = "arrowescape",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
                 navController.navigate("home") { popUpTo(0) }
             },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "arrowescape/puzzles?difficulty=$currentDifficulty" else "arrowescape/puzzles"
+                navController.navigate(route) { popUpTo("home") }
+            },
             onPlayAgainClick = {
-                // Wait for an integration to load a new puzzle. For now, pop back to home.
-                navController.navigate("home") { popUpTo(0) }
-            }
+                if (mode == "daily") {
+                    navController.navigate("game/arrowescape/standard") { popUpTo("home") }
+                } else {
+                    viewModel.resetPuzzle()
+                }
+            },
+            onNextPuzzleClick = nextPuzzleAction
         )
     }
 

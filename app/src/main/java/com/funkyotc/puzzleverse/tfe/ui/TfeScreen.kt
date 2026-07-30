@@ -84,7 +84,8 @@ fun TfeScreen(
             mode = mode,
             gameId = "tfe",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-            onPlayAgainClick = { viewModel.startNewGame() }
+            onBackToListClick = { navController.navigate("gameDetail/tfe") { popUpTo("home") } },
+            onRandomPuzzleClick = { viewModel.startNewGame() }
         )
     }
 
@@ -96,7 +97,8 @@ fun TfeScreen(
             mode = mode,
             gameId = "tfe",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-            onPlayAgainClick = { viewModel.startNewGame() }
+            onBackToListClick = { navController.navigate("gameDetail/tfe") { popUpTo("home") } },
+            onRandomPuzzleClick = { viewModel.startNewGame() }
         )
     }
 

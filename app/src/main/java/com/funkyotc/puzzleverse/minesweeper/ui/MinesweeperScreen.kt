@@ -81,7 +81,8 @@ fun MinesweeperScreen(
             mode = mode,
             gameId = "minesweeper",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-            onPlayAgainClick = { viewModel.startNewGame() }
+            onBackToListClick = { navController.navigate("gameDetail/minesweeper") { popUpTo("home") } },
+            onRandomPuzzleClick = { viewModel.startNewGame() }
         )
     }
 
@@ -93,7 +94,8 @@ fun MinesweeperScreen(
             mode = mode,
             gameId = "minesweeper",
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-            onPlayAgainClick = { viewModel.startNewGame() }
+            onBackToListClick = { navController.navigate("gameDetail/minesweeper") { popUpTo("home") } },
+            onRandomPuzzleClick = { viewModel.startNewGame() }
         )
     }
 

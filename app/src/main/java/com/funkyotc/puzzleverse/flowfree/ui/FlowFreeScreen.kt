@@ -77,8 +77,9 @@ fun FlowFreeScreen(
     }
 
     if (state.isWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.getPuzzleById(puzzleId) else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val currentPuzzle = com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.getPuzzleById(puzzleId)
             val sameSizePuzzles = if (currentPuzzle != null) {
                 com.funkyotc.puzzleverse.flowfree.data.FlowFreePregenerated.ALL_PUZZLES
                     .filter { it.size == currentPuzzle.size && it.difficulty == currentPuzzle.difficulty }
@@ -86,12 +87,12 @@ fun FlowFreeScreen(
             val currentIndex = sameSizePuzzles.indexOfFirst { it.id == puzzleId }
             val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameSizePuzzles.size - 1) {
                 sameSizePuzzles[currentIndex + 1]
-            } else null
+            } else sameSizePuzzles.firstOrNull()
 
             if (nextPuzzle != null) {
                 {
                     navController.navigate("game/flowfree/puzzle/${nextPuzzle.id}") {
-                        popUpTo("flowfree/puzzles")
+                        popUpTo("home")
                     }
                 }
             } else null
@@ -103,12 +104,13 @@ fun FlowFreeScreen(
             message = "You connected all flows and filled the grid!",
             mode = mode,
             gameId = "flowfree",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "flowfree/puzzles?difficulty=$currentDifficulty" else "flowfree/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

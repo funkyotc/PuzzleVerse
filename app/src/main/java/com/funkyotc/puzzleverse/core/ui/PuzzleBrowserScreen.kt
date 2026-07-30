@@ -34,12 +34,19 @@ fun PuzzleBrowserScreen(
     navController: NavController,
     puzzlesByDifficulty: Map<String, List<BrowseablePuzzle>>,
     difficultyOrder: List<String>,
+    initialDifficulty: String? = null,
     onPuzzleClick: (BrowseablePuzzle) -> Unit
 ) {
     val context = LocalContext.current
     val soundManager = LocalSoundManager.current
     val completionRepo = remember { PuzzleCompletionRepository(context, gameName) }
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val defaultTab = remember(initialDifficulty, difficultyOrder) {
+        if (initialDifficulty != null) {
+            val idx = difficultyOrder.indexOfFirst { it.equals(initialDifficulty, ignoreCase = true) }
+            if (idx >= 0) idx else 0
+        } else 0
+    }
+    var selectedTab by androidx.compose.runtime.saveable.rememberSaveable(initialDifficulty) { mutableIntStateOf(defaultTab) }
     var completedIds by remember { mutableStateOf(completionRepo.getCompletedIds()) }
 
     LaunchedEffect(navController.currentBackStackEntry) {

@@ -104,14 +104,18 @@ fun ShikakuScreen(
     }
 
     if (isGameWon) {
+        val allShikakuPuzzles = com.funkyotc.puzzleverse.shikaku.data.ShikakuPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.shikaku.data.ShikakuPregenerated.getPuzzleById(puzzleId) else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val allPuzzles = ShikakuPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
-            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                val nextId = allPuzzles[currentIndex + 1].id
+            val sameDiffPuzzles = if (currentPuzzle != null) allShikakuPuzzles.filter { it.difficulty == currentPuzzle.difficulty } else allShikakuPuzzles
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
-                    navController.popBackStack()
-                    navController.navigate("game/shikaku/puzzle/$nextId")
+                    navController.navigate("game/shikaku/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -122,12 +126,13 @@ fun ShikakuScreen(
             message = "You solved the Shikaku puzzle!",
             mode = mode,
             gameId = "shikaku",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "shikaku/puzzles?difficulty=$currentDifficulty" else "shikaku/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

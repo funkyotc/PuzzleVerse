@@ -108,15 +108,18 @@ fun WoodNutsScreen(
     }
 
     if (showVictoryDialog) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated.ALL_LEVELS.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val all = WoodNutsPregenerated.ALL_LEVELS
-            val i = all.indexOfFirst { it.id == puzzleId }
-            val nextId = if (i != -1 && i + 1 < all.size) all[i + 1].id else null
-            if (nextId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated.ALL_LEVELS.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated.ALL_LEVELS
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
                     showVictoryDialog = false
-                    navController.popBackStack()
-                    navController.navigate("game/woodnuts/puzzle/$nextId")
+                    navController.navigate("game/woodnuts/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -127,13 +130,15 @@ fun WoodNutsScreen(
             message = "All planks removed in ${state.moves} moves!",
             mode = mode,
             gameId = "woodnuts",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
                 showVictoryDialog = false
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                showVictoryDialog = false
+                val route = if (currentDifficulty != null) "woodnuts/puzzles?difficulty=$currentDifficulty" else "woodnuts/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 showVictoryDialog = false

@@ -208,7 +208,8 @@ fun WordleScreen(
                         mode = mode,
                         gameId = "wordle",
                         onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-                        onPlayAgainClick = { viewModel.startNewGame() }
+                        onBackToListClick = { navController.navigate("gameDetail/wordle") { popUpTo("home") } },
+                        onRandomPuzzleClick = { viewModel.startNewGame() }
                     )
                 } else if (state.gameStatus == GameStatus.LOST) {
                     GameEndDialog(
@@ -218,7 +219,8 @@ fun WordleScreen(
                         mode = mode,
                         gameId = "wordle",
                         onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
-                        onPlayAgainClick = { viewModel.startNewGame() }
+                        onBackToListClick = { navController.navigate("gameDetail/wordle") { popUpTo("home") } },
+                        onRandomPuzzleClick = { viewModel.startNewGame() }
                     )
                 }
             }

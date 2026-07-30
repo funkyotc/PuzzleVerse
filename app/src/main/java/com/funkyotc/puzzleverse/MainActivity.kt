@@ -244,13 +244,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 }
             }
         }
-        composable("bonza/puzzles") {
+        composable(
+            "bonza/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Bonza Puzzles",
                 gameName = "Bonza",
                 navController = navController,
                 puzzlesByDifficulty = BonzaPregenerated.PUZZLES_BY_THEME,
                 difficultyOrder = listOf("Cities", "Fruit", "Nature", "Technology"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/bonza/puzzle/${puzzle.id}") }
             )
         }
@@ -267,13 +272,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("cubeshooter/puzzles") {
+        composable(
+            "cubeshooter/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Cube Shooter Puzzles",
                 gameName = "Cube Shooter",
                 navController = navController,
                 puzzlesByDifficulty = CubeShooterPregenerated.LEVELS_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Pictures", "Hard Pictures"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/cubeshooter/puzzle/${puzzle.id}") }
             )
         }
@@ -290,13 +300,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("pullpin/puzzles") {
+        composable(
+            "pullpin/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Pull the Pin Puzzles",
                 gameName = "PullPin",
                 navController = navController,
                 puzzlesByDifficulty = PullPinPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/pullpin/puzzle/${puzzle.id}") }
             )
         }
@@ -313,13 +328,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("flowfree/puzzles") {
+        composable(
+            "flowfree/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Flow Puzzles",
                 gameName = "Flow",
                 navController = navController,
                 puzzlesByDifficulty = FlowFreePregenerated.PUZZLES_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/flowfree/puzzle/${puzzle.id}") }
             )
         }
@@ -336,13 +356,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("sudoku/puzzles") {
+        composable(
+            "sudoku/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Sudoku Puzzles",
                 gameName = "Sudoku",
                 navController = navController,
                 puzzlesByDifficulty = SudokuPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/sudoku/puzzle/${puzzle.id}") }
             )
         }
@@ -359,13 +384,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("kakuro/puzzles") {
+        composable(
+            "kakuro/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Kakuro Puzzles",
                 gameName = "Kakuro",
                 navController = navController,
                 puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY.mapValues { it.value.map { p -> p as com.funkyotc.puzzleverse.core.data.BrowseablePuzzle } },
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/kakuro/puzzle/${puzzle.id}") }
             )
         }
@@ -382,13 +412,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("nonogram/puzzles") {
+        composable(
+            "nonogram/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Nonogram Puzzles",
                 gameName = "Nonogram",
                 navController = navController,
                 puzzlesByDifficulty = NonogramPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/nonogram/puzzle/${puzzle.id}") }
             )
         }
@@ -405,13 +440,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("constellations/puzzles") {
+        composable(
+            "constellations/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Constellations Puzzles",
                 gameName = "Constellations",
                 navController = navController,
                 puzzlesByDifficulty = ConstellationsPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/constellations/puzzle/${puzzle.id}") }
             )
         }
@@ -428,13 +468,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 streakRepository = streakRepository
             )
         }
-        composable("shikaku/puzzles") {
+        composable(
+            "shikaku/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Shikaku Puzzles",
                 gameName = "Shikaku",
                 navController = navController,
                 puzzlesByDifficulty = ShikakuPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/shikaku/puzzle/${puzzle.id}") }
             )
         }
@@ -451,13 +496,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("watersort/puzzles") {
+        composable(
+            "watersort/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Water Sort Puzzles",
                 gameName = "Water Sort",
                 navController = navController,
                 puzzlesByDifficulty = WaterSortPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/watersort/puzzle/${puzzle.id}") }
             )
         }
@@ -474,13 +524,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("woodnuts/puzzles") {
+        composable(
+            "woodnuts/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Wood Screws Puzzles",
                 gameName = "Wood Screws",
                 navController = navController,
                 puzzlesByDifficulty = WoodNutsPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert", "Master"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/woodnuts/puzzle/${puzzle.id}") }
             )
         }
@@ -497,13 +552,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("hexasort/puzzles") {
+        composable(
+            "hexasort/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Hexa Sort Puzzles",
                 gameName = "Hexa Sort",
                 navController = navController,
                 puzzlesByDifficulty = HexaSortPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/hexasort/puzzle/${puzzle.id}") }
             )
         }
@@ -520,13 +580,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository!!
             )
         }
-        composable("hexastack/puzzles") {
+        composable(
+            "hexastack/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Hexa Stack Puzzles",
                 gameName = "Hexa Stack",
                 navController = navController,
                 puzzlesByDifficulty = HexaStackPregenerated.LEVELS_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/hexastack/puzzle/${puzzle.id}") }
             )
         }
@@ -543,13 +608,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository!!
             )
         }
-        composable("chess/puzzles") {
+        composable(
+            "chess/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Chess Puzzles",
                 gameName = "Chess",
                 navController = navController,
                 puzzlesByDifficulty = ChessPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/chess/puzzle/${puzzle.id}") }
             )
         }
@@ -566,13 +636,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("hashi/puzzles") {
+        composable(
+            "hashi/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Hashi Puzzles",
                 gameName = "Hashi",
                 navController = navController,
                 puzzlesByDifficulty = HashiPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/hashi/puzzle/${puzzle.id}") }
             )
         }
@@ -589,13 +664,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("tangrams/puzzles") {
+        composable(
+            "tangrams/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Tangrams",
                 gameName = "Tangrams",
                 navController = navController,
                 puzzlesByDifficulty = TangramsPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/tangrams/puzzle/${puzzle.id}") }
             )
         }
@@ -612,13 +692,18 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 settingsRepository = settingsRepository
             )
         }
-        composable("arrowescape/puzzles") {
+        composable(
+            "arrowescape/puzzles?difficulty={difficulty}",
+            arguments = listOf(navArgument("difficulty") { type = NavType.StringType; nullable = true; defaultValue = null })
+        ) { backStackEntry ->
+            val initialDifficulty = backStackEntry.arguments?.getString("difficulty")
             PuzzleBrowserScreen(
                 title = "Arrow Escape Puzzles",
                 gameName = "Arrow Escape",
                 navController = navController,
                 puzzlesByDifficulty = com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert", "Master"),
+                initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/arrowescape/puzzle/${puzzle.id}") }
             )
         }

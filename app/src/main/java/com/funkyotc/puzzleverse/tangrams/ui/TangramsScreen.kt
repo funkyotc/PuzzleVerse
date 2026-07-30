@@ -103,19 +103,20 @@ fun TangramsScreen(
     }
 
     if (isSolved) {
+        val currentPuzzle = if (currentPuzzleId.isNotEmpty()) com.funkyotc.puzzleverse.tangrams.data.TangramsPregenerated.getPuzzleById(currentPuzzleId) else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && currentPuzzleId.isNotEmpty()) {
-            val currentPuzzle = TangramsPregenerated.getPuzzleById(currentPuzzleId)
             val sameDiffPuzzles = if (currentPuzzle != null) {
-                TangramsPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty }
+                com.funkyotc.puzzleverse.tangrams.data.TangramsPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty }
             } else emptyList()
             val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == currentPuzzleId }
             val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
                 sameDiffPuzzles[currentIndex + 1]
-            } else null
+            } else sameDiffPuzzles.firstOrNull()
             if (nextPuzzle != null) {
                 {
                     navController.navigate("game/tangrams/puzzle/${nextPuzzle.id}") {
-                        popUpTo("tangrams/puzzles")
+                        popUpTo("home")
                     }
                 }
             } else null
@@ -127,12 +128,13 @@ fun TangramsScreen(
             message = "You solved the $puzzleName Tangram!",
             mode = mode,
             gameId = "tangrams",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "tangrams/puzzles?difficulty=$currentDifficulty" else "tangrams/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

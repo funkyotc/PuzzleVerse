@@ -127,14 +127,17 @@ fun CubeShooterScreen(
     }
 
     if (state.isWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated.ALL_LEVELS.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val allPuzzles = CubeShooterPregenerated.ALL_LEVELS
-            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
-            if (nextId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated.ALL_LEVELS.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated.ALL_LEVELS
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
-                    navController.popBackStack()
-                    navController.navigate("game/cubeshooter/puzzle/$nextId")
+                    navController.navigate("game/cubeshooter/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -145,12 +148,13 @@ fun CubeShooterScreen(
             message = "You cleared all cubes! Final Score: ${state.score}",
             mode = mode,
             gameId = "cubeshooter",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "cubeshooter/puzzles?difficulty=$currentDifficulty" else "cubeshooter/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = { viewModel.startNewGame() },
             onNextPuzzleClick = nextPuzzleAction
@@ -158,13 +162,20 @@ fun CubeShooterScreen(
     }
 
     if (state.isGameOver && !state.isWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.cubeshooter.data.CubeShooterPregenerated.ALL_LEVELS.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         GameEndDialog(
             isWon = false,
             title = "Game Over",
             message = "Storage tray overflowed. Try again!",
             mode = mode,
             gameId = "cubeshooter",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = { navController.navigate("home") { popUpTo(0) } },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "cubeshooter/puzzles?difficulty=$currentDifficulty" else "cubeshooter/puzzles"
+                navController.navigate(route) { popUpTo("home") }
+            },
             onPlayAgainClick = { viewModel.startNewGame() }
         )
     }

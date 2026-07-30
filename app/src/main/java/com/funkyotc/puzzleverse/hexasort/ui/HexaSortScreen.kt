@@ -413,15 +413,18 @@ fun HexaSortScreen(
     }
 
     if (showVictoryDialog) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val allPuzzles = com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES
-            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-            val nextId = if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) allPuzzles[currentIndex + 1].id else null
-            if (nextId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
                     showVictoryDialog = false
-                    navController.popBackStack()
-                    navController.navigate("game/hexasort/puzzle/$nextId")
+                    navController.navigate("game/hexasort/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -431,13 +434,16 @@ fun HexaSortScreen(
             title = "Victory!",
             message = "All hexes cleared! Score: $victoryScore",
             mode = mode,
+            gameId = "hexasort",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
                 showVictoryDialog = false
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                showVictoryDialog = false
+                val route = if (currentDifficulty != null) "hexasort/puzzles?difficulty=$currentDifficulty" else "hexasort/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 showVictoryDialog = false
@@ -448,14 +454,23 @@ fun HexaSortScreen(
     }
 
     if (showGameOverDialog) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         GameEndDialog(
             isWon = false,
             title = "Game Over",
             message = "No more moves available!",
             mode = mode,
+            gameId = "hexasort",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
                 showGameOverDialog = false
                 navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                showGameOverDialog = false
+                val route = if (currentDifficulty != null) "hexasort/puzzles?difficulty=$currentDifficulty" else "hexasort/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 showGameOverDialog = false

@@ -129,20 +129,18 @@ fun BonzaScreen(
     }
 
     if (isGameWon) {
+        val currentTheme = if (puzzleId != null) com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)?.theme else null
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val currentTheme = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.getPuzzleById(puzzleId)?.theme
             val themePuzzles = com.funkyotc.puzzleverse.bonza.data.BonzaPregenerated.PUZZLES_BY_THEME[currentTheme] ?: emptyList()
             val currentIndex = themePuzzles.indexOfFirst { it.id == puzzleId }
-            val nextPuzzle = if (currentIndex != -1 && currentIndex + 1 < themePuzzles.size) themePuzzles[currentIndex + 1] else null
+            val nextPuzzle = if (currentIndex != -1 && currentIndex + 1 < themePuzzles.size) themePuzzles[currentIndex + 1] else themePuzzles.firstOrNull()
             if (nextPuzzle != null) {
                 {
                     navController.navigate("game/bonza/puzzle/${nextPuzzle.id}") {
-                        popUpTo("bonza/puzzles")
+                        popUpTo("home")
                     }
                 }
-            } else {
-                { navController.popBackStack() }
-            }
+            } else null
         } else null
 
         GameEndDialog(
@@ -151,12 +149,13 @@ fun BonzaScreen(
             message = "You solved the puzzle!",
             mode = mode,
             gameId = "bonza",
+            currentDifficulty = currentTheme,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentTheme != null) "bonza/puzzles?difficulty=$currentTheme" else "bonza/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

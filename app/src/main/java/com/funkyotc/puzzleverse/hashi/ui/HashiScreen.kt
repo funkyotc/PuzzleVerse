@@ -76,14 +76,17 @@ fun HashiScreen(
     }
 
     if (isGameWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.hashi.data.HashiPregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val allPuzzles = HashiPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
-            val currentIndex = allPuzzles.indexOfFirst { it.id == puzzleId }
-            if (currentIndex != -1 && currentIndex + 1 < allPuzzles.size) {
-                val nextId = allPuzzles[currentIndex + 1].id
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.hashi.data.HashiPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.hashi.data.HashiPregenerated.ALL_PUZZLES
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
-                    navController.popBackStack()
-                    navController.navigate("game/hashi/puzzle/$nextId")
+                    navController.navigate("game/hashi/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -94,12 +97,13 @@ fun HashiScreen(
             message = "You solved the Hashi puzzle!",
             mode = mode,
             gameId = "hashi",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "hashi/puzzles?difficulty=$currentDifficulty" else "hashi/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

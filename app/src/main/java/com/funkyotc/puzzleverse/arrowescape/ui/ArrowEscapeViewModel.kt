@@ -138,6 +138,10 @@ class ArrowEscapeViewModel(
             }
         }
     }
+
+    fun resetPuzzle() {
+        loadPuzzle()
+    }
 }
 
 data class ArrowEscapeUiState(

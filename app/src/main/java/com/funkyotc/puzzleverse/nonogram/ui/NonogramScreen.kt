@@ -120,14 +120,17 @@ fun NonogramScreen(
     }
 
     if (state.isWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val diffPuzzles = com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES
-            val currentIndex = diffPuzzles.indexOfFirst { it.id == puzzleId }
-            val nextId = if (currentIndex != -1 && currentIndex + 1 < diffPuzzles.size) diffPuzzles[currentIndex + 1].id else null
-            if (nextId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
                 {
-                    navController.popBackStack()
-                    navController.navigate("game/nonogram/puzzle/$nextId")
+                    navController.navigate("game/nonogram/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
                 }
             } else null
         } else null
@@ -138,12 +141,13 @@ fun NonogramScreen(
             message = "You solved the Nonogram!",
             mode = mode,
             gameId = "nonogram",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "nonogram/puzzles?difficulty=$currentDifficulty" else "nonogram/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

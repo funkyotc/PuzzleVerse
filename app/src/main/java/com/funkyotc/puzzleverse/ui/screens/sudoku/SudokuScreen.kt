@@ -123,8 +123,9 @@ fun SudokuScreen(
     }
 
     if (isGameWon) {
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.getPuzzleById(puzzleId) else null
+        val currentDifficulty = currentPuzzle?.difficulty
         val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
-            val currentPuzzle = com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.getPuzzleById(puzzleId)
             val sameDiffPuzzles = if (currentPuzzle != null) {
                 com.funkyotc.puzzleverse.sudoku.data.SudokuPregenerated.ALL_PUZZLES
                     .filter { it.difficulty == currentPuzzle.difficulty }
@@ -132,11 +133,11 @@ fun SudokuScreen(
             val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
             val nextPuzzle = if (currentIndex >= 0 && currentIndex < sameDiffPuzzles.size - 1) {
                 sameDiffPuzzles[currentIndex + 1]
-            } else null
+            } else sameDiffPuzzles.firstOrNull()
             if (nextPuzzle != null) {
                 {
                     navController.navigate("game/sudoku/puzzle/${nextPuzzle.id}") {
-                        popUpTo("sudoku/puzzles")
+                        popUpTo("home")
                     }
                 }
             } else null
@@ -148,12 +149,13 @@ fun SudokuScreen(
             message = "You solved the puzzle!",
             mode = mode,
             gameId = "sudoku",
+            currentDifficulty = currentDifficulty,
             onMainMenuClick = {
-                if (mode == "puzzle") {
-                    navController.popBackStack()
-                } else {
-                    navController.navigate("home") { popUpTo(0) }
-                }
+                navController.navigate("home") { popUpTo(0) }
+            },
+            onBackToListClick = {
+                val route = if (currentDifficulty != null) "sudoku/puzzles?difficulty=$currentDifficulty" else "sudoku/puzzles"
+                navController.navigate(route) { popUpTo("home") }
             },
             onPlayAgainClick = {
                 if (mode == "daily") {

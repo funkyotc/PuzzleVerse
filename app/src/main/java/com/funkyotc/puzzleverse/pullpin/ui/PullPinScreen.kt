@@ -146,6 +146,22 @@ fun PullPinScreen(
     }
 
     state?.let { s ->
+        val currentPuzzle = if (puzzleId != null) com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated.ALL_LEVELS.firstOrNull { it.id == puzzleId } else null
+        val currentDifficulty = currentPuzzle?.difficulty
+        val nextPuzzleAction: (() -> Unit)? = if (mode == "puzzle" && puzzleId != null) {
+            val sameDiffPuzzles = if (currentPuzzle != null) com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated.ALL_LEVELS.filter { it.difficulty == currentPuzzle.difficulty } else com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated.ALL_LEVELS
+            val currentIndex = sameDiffPuzzles.indexOfFirst { it.id == puzzleId }
+            val nextPuzzle = if (currentIndex >= 0 && currentIndex + 1 < sameDiffPuzzles.size) sameDiffPuzzles[currentIndex + 1] else sameDiffPuzzles.firstOrNull()
+            if (nextPuzzle != null) {
+                {
+                    showWinDialog = false
+                    navController.navigate("game/pullpin/puzzle/${nextPuzzle.id}") {
+                        popUpTo("home")
+                    }
+                }
+            } else null
+        } else null
+
         if (showWinDialog) {
             GameEndDialog(
                 isWon = true,
@@ -153,15 +169,22 @@ fun PullPinScreen(
                 message = "All balls are safely in their cups!\nMoves: ${s.moves}",
                 mode = mode,
                 gameId = "pullpin",
+                currentDifficulty = currentDifficulty,
                 onMainMenuClick = {
                     showWinDialog = false
-                    navController.popBackStack()
+                    navController.navigate("home") { popUpTo(0) }
+                },
+                onBackToListClick = {
+                    showWinDialog = false
+                    val route = if (currentDifficulty != null) "pullpin/puzzles?difficulty=$currentDifficulty" else "pullpin/puzzles"
+                    navController.navigate(route) { popUpTo("home") }
                 },
                 onPlayAgainClick = {
                     showWinDialog = false
                     prevInCup = emptySet()
                     viewModel.startNewGame()
-                }
+                },
+                onNextPuzzleClick = nextPuzzleAction
             )
         }
         if (showLoseDialog) {
@@ -171,9 +194,15 @@ fun PullPinScreen(
                 message = "${s.lostReason ?: "You ran out of pins or balls got stuck."}\n\nTap Retry to try again!",
                 mode = mode,
                 gameId = "pullpin",
+                currentDifficulty = currentDifficulty,
                 onMainMenuClick = {
                     showLoseDialog = false
-                    navController.popBackStack()
+                    navController.navigate("home") { popUpTo(0) }
+                },
+                onBackToListClick = {
+                    showLoseDialog = false
+                    val route = if (currentDifficulty != null) "pullpin/puzzles?difficulty=$currentDifficulty" else "pullpin/puzzles"
+                    navController.navigate(route) { popUpTo("home") }
                 },
                 onPlayAgainClick = {
                     showLoseDialog = false
