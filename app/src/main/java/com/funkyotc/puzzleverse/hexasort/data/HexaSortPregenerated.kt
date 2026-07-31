@@ -18,119 +18,196 @@ data class PregeneratedHexaSort(
 object HexaSortPregenerated {
     val ALL_PUZZLES: List<PregeneratedHexaSort> by lazy { listOf(
         PregeneratedHexaSort("HexaSort_Easy_puzzle_001", "Easy", 5, 5, listOf(
-            listOf(0, 1, 2, 0, 1),
-            listOf(1, 2, 0, 1, 2),
-            listOf(2, 0, 1, 2, 0),
-            listOf(0, 1, 2, 0, 1),
-            listOf(1, 2, 0, 1, 2)
+            listOf(2, 0, 2, 2, 1),
+            listOf(0, 1, 2, 1, 0),
+            listOf(1, 1, 1, 2, 2),
+            listOf(1, 0, 1, 1, 1),
+            listOf(0, 0, 0, 2, 2)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_002", "Easy", 5, 5, listOf(
-            listOf(1, 1, 0, 2, 2),
-            listOf(0, 1, 0, 2, 1),
-            listOf(0, 0, 1, 1, 0),
-            listOf(2, 0, 1, 0, 2),
-            listOf(2, 2, 0, 1, 1)
+            listOf(1, 2, 1, 1, 1),
+            listOf(0, 2, 2, 1, 2),
+            listOf(0, 0, 1, 2, 1),
+            listOf(0, 2, 0, 2, 2),
+            listOf(1, 1, 0, 0, 0)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_003", "Easy", 5, 5, listOf(
-            listOf(0, 2, 0, 2, 0),
-            listOf(1, 0, 1, 0, 1),
-            listOf(2, 1, 2, 1, 2),
-            listOf(0, 2, 0, 2, 0),
-            listOf(1, 0, 1, 0, 1)
+            listOf(2, 0, 2, 1, 0),
+            listOf(1, 2, 0, 2, 1),
+            listOf(1, 2, 2, 0, 0),
+            listOf(0, 2, 0, 0, 1),
+            listOf(0, 1, 0, 0, 1)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_004", "Easy", 5, 5, listOf(
-            listOf(2, 0, 0, 1, 1),
-            listOf(0, 2, 0, 1, 2),
-            listOf(0, 0, 2, 2, 1),
-            listOf(1, 1, 0, 2, 0),
-            listOf(2, 1, 1, 0, 2)
+            listOf(1, 0, 0, 1, 0),
+            listOf(2, 0, 2, 0, 0),
+            listOf(0, 0, 0, 2, 2),
+            listOf(2, 1, 2, 1, 1),
+            listOf(1, 1, 1, 1, 2)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_005", "Easy", 5, 5, listOf(
-            listOf(1, 0, 1, 0, 1),
-            listOf(2, 1, 2, 1, 2),
-            listOf(0, 2, 0, 2, 0),
-            listOf(1, 0, 1, 0, 1),
-            listOf(2, 1, 2, 1, 2)
+            listOf(1, 0, 0, 1, 1),
+            listOf(0, 2, 1, 1, 2),
+            listOf(2, 2, 2, 2, 0),
+            listOf(0, 1, 2, 1, 1),
+            listOf(0, 0, 1, 2, 0)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_006", "Easy", 5, 5, listOf(
-            listOf(0, 0, 1, 2, 2),
-            listOf(1, 0, 1, 0, 2),
-            listOf(2, 1, 2, 0, 1),
-            listOf(2, 2, 1, 0, 0),
-            listOf(1, 2, 0, 1, 2)
+            listOf(0, 1, 2, 1, 0),
+            listOf(1, 0, 0, 2, 2),
+            listOf(0, 2, 0, 0, 1),
+            listOf(1, 0, 2, 2, 2),
+            listOf(2, 2, 0, 2, 1)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_007", "Easy", 5, 5, listOf(
-            listOf(0, 1, 0, 1, 0),
-            listOf(2, 0, 2, 0, 2),
-            listOf(1, 2, 1, 2, 1),
-            listOf(0, 1, 0, 1, 0),
-            listOf(2, 0, 2, 0, 2)
+            listOf(1, 0, 1, 2, 1),
+            listOf(0, 1, 1, 1, 1),
+            listOf(2, 1, 2, 0, 0),
+            listOf(2, 2, 2, 1, 2),
+            listOf(1, 2, 1, 2, 2)
         )),
         PregeneratedHexaSort("HexaSort_Easy_puzzle_008", "Easy", 5, 5, listOf(
-            listOf(2, 2, 1, 1, 0),
-            listOf(1, 2, 2, 0, 1),
-            listOf(0, 0, 1, 2, 2),
-            listOf(1, 2, 0, 0, 1),
-            listOf(2, 1, 0, 2, 0)
+            listOf(1, 1, 2, 1, 1),
+            listOf(2, 2, 2, 2, 1),
+            listOf(1, 2, 1, 2, 1),
+            listOf(2, 2, 2, 1, 0),
+            listOf(2, 2, 0, 1, 2)
         )),
         PregeneratedHexaSort("HexaSort_Medium_puzzle_001", "Medium", 6, 6, listOf(
-            listOf(0, 1, 2, 3, 0, 1),
-            listOf(1, 2, 3, 0, 1, 2),
-            listOf(2, 3, 0, 1, 2, 3),
-            listOf(3, 0, 1, 2, 3, 0),
-            listOf(0, 1, 2, 3, 0, 1),
-            listOf(1, 2, 3, 0, 1, 2)
+            listOf(1, 3, 2, 2, 2, 2),
+            listOf(2, 0, 3, 2, 3, 1),
+            listOf(2, 2, 3, 0, 0, 2),
+            listOf(0, 3, 3, 1, 2, 3),
+            listOf(0, 1, 2, 1, 1, 0),
+            listOf(1, 1, 1, 1, 1, 3)
         )),
         PregeneratedHexaSort("HexaSort_Medium_puzzle_002", "Medium", 6, 6, listOf(
-            listOf(0, 0, 1, 2, 3, 3),
-            listOf(1, 0, 1, 2, 3, 0),
-            listOf(2, 1, 2, 3, 0, 1),
-            listOf(3, 2, 3, 0, 1, 2),
-            listOf(0, 3, 0, 1, 2, 3),
-            listOf(1, 0, 1, 2, 3, 0)
+            listOf(1, 0, 3, 1, 1, 1),
+            listOf(3, 3, 1, 1, 3, 0),
+            listOf(2, 1, 0, 2, 0, 1),
+            listOf(3, 1, 2, 2, 0, 3),
+            listOf(0, 1, 3, 2, 2, 0),
+            listOf(2, 1, 1, 0, 3, 3)
         )),
         PregeneratedHexaSort("HexaSort_Medium_puzzle_003", "Medium", 6, 6, listOf(
-            listOf(3, 3, 2, 2, 1, 1),
-            listOf(0, 3, 2, 1, 1, 0),
-            listOf(0, 0, 3, 2, 1, 0),
-            listOf(1, 0, 3, 2, 0, 0),
-            listOf(1, 1, 2, 3, 0, 0),
-            listOf(2, 1, 1, 3, 3, 2)
+            listOf(0, 0, 2, 0, 0, 2),
+            listOf(3, 0, 3, 3, 0, 1),
+            listOf(2, 3, 2, 0, 3, 3),
+            listOf(0, 3, 0, 1, 1, 2),
+            listOf(2, 1, 3, 3, 1, 0),
+            listOf(1, 3, 0, 0, 2, 0)
         )),
         PregeneratedHexaSort("HexaSort_Medium_puzzle_004", "Medium", 6, 6, listOf(
-            listOf(0, 1, 2, 3, 2, 1),
-            listOf(1, 2, 3, 0, 3, 2),
-            listOf(2, 3, 0, 1, 0, 3),
-            listOf(3, 0, 1, 2, 1, 0),
-            listOf(2, 3, 0, 1, 0, 3),
-            listOf(1, 2, 3, 0, 3, 2)
+            listOf(1, 1, 2, 3, 0, 2),
+            listOf(2, 1, 3, 3, 0, 3),
+            listOf(3, 0, 0, 3, 2, 0),
+            listOf(1, 3, 3, 1, 3, 2),
+            listOf(1, 3, 2, 2, 3, 1),
+            listOf(1, 2, 0, 3, 0, 2)
+        )),
+        PregeneratedHexaSort("HexaSort_Medium_puzzle_005", "Medium", 6, 6, listOf(
+            listOf(0, 0, 3, 3, 2, 0),
+            listOf(1, 3, 3, 0, 1, 3),
+            listOf(1, 3, 3, 3, 0, 1),
+            listOf(3, 1, 0, 0, 2, 1),
+            listOf(3, 1, 3, 3, 2, 1),
+            listOf(2, 2, 3, 2, 3, 2)
+        )),
+        PregeneratedHexaSort("HexaSort_Medium_puzzle_006", "Medium", 6, 6, listOf(
+            listOf(1, 3, 2, 1, 3, 0),
+            listOf(0, 2, 0, 0, 0, 3),
+            listOf(0, 0, 0, 1, 2, 3),
+            listOf(1, 0, 1, 0, 3, 3),
+            listOf(1, 0, 1, 1, 1, 1),
+            listOf(2, 1, 1, 0, 2, 0)
+        )),
+        PregeneratedHexaSort("HexaSort_Medium_puzzle_007", "Medium", 6, 6, listOf(
+            listOf(2, 3, 1, 1, 3, 1),
+            listOf(3, 2, 2, 3, 0, 0),
+            listOf(3, 3, 0, 1, 3, 3),
+            listOf(3, 1, 2, 3, 2, 2),
+            listOf(3, 3, 1, 2, 1, 1),
+            listOf(2, 2, 1, 2, 3, 2)
+        )),
+        PregeneratedHexaSort("HexaSort_Medium_puzzle_008", "Medium", 6, 6, listOf(
+            listOf(3, 3, 2, 2, 2, 0),
+            listOf(3, 3, 3, 3, 0, 3),
+            listOf(3, 2, 2, 3, 0, 2),
+            listOf(0, 3, 3, 2, 0, 1),
+            listOf(3, 2, 1, 2, 1, 1),
+            listOf(2, 3, 1, 3, 1, 3)
         )),
         PregeneratedHexaSort("HexaSort_Hard_puzzle_001", "Hard", 7, 7, listOf(
-            listOf(0, 1, 2, 3, 4, 0, 1),
-            listOf(1, 2, 3, 4, 0, 1, 2),
-            listOf(2, 3, 4, 0, 1, 2, 3),
-            listOf(3, 4, 0, 1, 2, 3, 4),
-            listOf(4, 0, 1, 2, 3, 4, 0),
-            listOf(0, 1, 2, 3, 4, 0, 1),
-            listOf(1, 2, 3, 4, 0, 1, 2)
+            listOf(0, 4, 1, 4, 4, 3, 3),
+            listOf(2, 2, 1, 4, 0, 2, 1),
+            listOf(0, 3, 4, 2, 1, 4, 2),
+            listOf(2, 0, 4, 3, 4, 2, 4),
+            listOf(1, 3, 3, 0, 3, 1, 2),
+            listOf(3, 1, 1, 4, 2, 3, 3),
+            listOf(3, 3, 2, 0, 4, 3, 0)
         )),
         PregeneratedHexaSort("HexaSort_Hard_puzzle_002", "Hard", 7, 7, listOf(
-            listOf(4, 4, 3, 3, 2, 2, 1),
-            listOf(0, 4, 3, 2, 1, 1, 0),
-            listOf(0, 0, 4, 3, 2, 1, 0),
-            listOf(1, 0, 4, 3, 2, 0, 0),
-            listOf(1, 1, 3, 4, 2, 0, 0),
-            listOf(2, 1, 3, 4, 0, 0, 0),
-            listOf(2, 2, 3, 4, 4, 1, 1)
+            listOf(0, 0, 4, 0, 0, 4, 2),
+            listOf(2, 0, 3, 3, 3, 0, 3),
+            listOf(0, 3, 1, 3, 3, 4, 3),
+            listOf(3, 4, 0, 4, 0, 2, 2),
+            listOf(3, 4, 1, 4, 1, 4, 0),
+            listOf(4, 4, 0, 3, 1, 1, 3),
+            listOf(2, 3, 2, 0, 1, 4, 4)
         )),
         PregeneratedHexaSort("HexaSort_Hard_puzzle_003", "Hard", 7, 7, listOf(
-            listOf(3, 2, 1, 0, 4, 3, 2),
-            listOf(2, 1, 0, 4, 3, 2, 1),
-            listOf(1, 0, 4, 3, 2, 1, 0),
-            listOf(0, 4, 3, 2, 1, 0, 4),
-            listOf(4, 3, 2, 1, 0, 4, 3),
-            listOf(3, 2, 1, 0, 4, 3, 2),
-            listOf(2, 1, 0, 4, 3, 2, 1)
+            listOf(2, 2, 2, 3, 1, 4, 3),
+            listOf(1, 0, 0, 0, 0, 3, 3),
+            listOf(3, 3, 3, 0, 3, 3, 4),
+            listOf(3, 2, 3, 3, 1, 3, 3),
+            listOf(2, 2, 4, 1, 4, 0, 2),
+            listOf(2, 1, 2, 2, 0, 2, 3),
+            listOf(2, 1, 2, 1, 4, 4, 2)
+        )),
+        PregeneratedHexaSort("HexaSort_Hard_puzzle_004", "Hard", 7, 7, listOf(
+            listOf(1, 0, 4, 4, 0, 3, 4),
+            listOf(2, 2, 4, 2, 4, 4, 4),
+            listOf(4, 1, 4, 1, 0, 2, 4),
+            listOf(0, 0, 2, 1, 2, 3, 0),
+            listOf(1, 3, 4, 2, 3, 0, 2),
+            listOf(0, 2, 1, 4, 0, 3, 2),
+            listOf(0, 2, 2, 4, 1, 1, 0)
+        )),
+        PregeneratedHexaSort("HexaSort_Hard_puzzle_005", "Hard", 7, 7, listOf(
+            listOf(3, 4, 0, 4, 2, 1, 3),
+            listOf(3, 3, 0, 4, 3, 1, 2),
+            listOf(1, 4, 2, 0, 4, 2, 2),
+            listOf(0, 4, 3, 4, 2, 2, 0),
+            listOf(4, 1, 4, 2, 3, 3, 3),
+            listOf(3, 2, 3, 0, 3, 4, 3),
+            listOf(0, 3, 1, 2, 2, 4, 1)
+        )),
+        PregeneratedHexaSort("HexaSort_Hard_puzzle_006", "Hard", 7, 7, listOf(
+            listOf(4, 4, 2, 1, 1, 1, 3),
+            listOf(0, 4, 3, 1, 3, 3, 0),
+            listOf(1, 2, 2, 3, 1, 0, 0),
+            listOf(3, 3, 4, 0, 0, 0, 0),
+            listOf(2, 4, 2, 2, 4, 2, 1),
+            listOf(0, 3, 4, 3, 0, 1, 3),
+            listOf(1, 0, 1, 4, 4, 2, 4)
+        )),
+        PregeneratedHexaSort("HexaSort_Hard_puzzle_007", "Hard", 7, 7, listOf(
+            listOf(3, 1, 2, 1, 4, 1, 2),
+            listOf(2, 2, 4, 1, 3, 2, 4),
+            listOf(4, 0, 3, 4, 2, 1, 2),
+            listOf(4, 0, 0, 0, 0, 1, 0),
+            listOf(3, 0, 0, 1, 4, 0, 2),
+            listOf(3, 1, 4, 1, 4, 2, 2),
+            listOf(3, 1, 3, 1, 0, 3, 0)
+        )),
+        PregeneratedHexaSort("HexaSort_Hard_puzzle_008", "Hard", 7, 7, listOf(
+            listOf(3, 4, 1, 4, 3, 1, 4),
+            listOf(2, 3, 0, 3, 3, 0, 4),
+            listOf(2, 2, 3, 4, 4, 3, 1),
+            listOf(4, 4, 3, 1, 4, 0, 1),
+            listOf(3, 1, 2, 3, 4, 4, 2),
+            listOf(3, 2, 1, 2, 4, 2, 1),
+            listOf(0, 0, 0, 3, 3, 0, 3)
         ))
     ) }
 

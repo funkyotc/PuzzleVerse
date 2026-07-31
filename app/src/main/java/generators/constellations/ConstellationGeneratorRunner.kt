@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
                 difficulty = diff,
                 size = size,
                 regions = puzzle.regions,
-                solution = puzzle.starPositions
+                solution = puzzle.solution
             )
 
             generatedPuzzles.add(pregenerated)

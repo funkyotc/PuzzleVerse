@@ -40,7 +40,6 @@ object WaterSortPregenerated {
 
         fun addBatch(difficulty: String, specs: List<Triple<Int, Int, Int>>) {
             for ((numColors, height, emptyBottles) in specs) {
-                // Generate a few varied shuffles per spec to add variety.
                 val variants = if (difficulty == "Easy") 4 else 3
                 repeat(variants) {
                     levels.add(
@@ -94,15 +93,12 @@ object WaterSortPregenerated {
         val id = "watersort_${difficulty.lowercase()}_${seed.toString().padStart(3, '0')}"
         val rand = Random(seed * 2654435761L)
 
-        // Build the pool of all layers: each color appears exactly `height` times.
         val pool = mutableListOf<Int>()
         repeat(numColors) { color ->
             repeat(height) { pool.add(color) }
         }
-        // A Fisher-Yates-ish shuffle via Kotlin's shuffled for determinism.
         val shuffled = pool.shuffled(rand)
 
-        // Distribute the shuffled layers into the filled bottles.
         val filledCount = numColors
         val bottles = mutableListOf<List<Int>>()
         var cursor = 0

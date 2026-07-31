@@ -27,7 +27,7 @@ private fun makeLevel(id: String, difficulty: String, cupCount: Int, extraGrey: 
         val cx = left + interior * frac
         val color = (i % 8) + 1
 
-        // divider between this cup and the next
+        // divider wall between adjacent cup columns
         if (i < cupCount - 1) {
             val nextFrac = (i + 1.5f) / cupCount.toFloat()
             val nextCx = left + interior * nextFrac
@@ -43,7 +43,7 @@ private fun makeLevel(id: String, difficulty: String, cupCount: Int, extraGrey: 
         pins.add(PinData("pin_$i", cx - 40f, 620f, 80f, 10f, pullDx, 0f, false, false))
 
         if (extraGrey) {
-            // a grey ball above, held by a second pin (colored on contact)
+            // grey ball above, held by a second pin (colored on contact)
             balls.add(BallSpawn("ball_${i}_g", cx, 500f, 0, 16f))
             pins.add(PinData("pin_${i}_g", cx - 40f, 540f, 80f, 10f, pullDx, 0f, false, false))
         }

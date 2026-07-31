@@ -1,45 +1,1014 @@
 package com.funkyotc.puzzleverse.hashi.data
 
-import com.funkyotc.puzzleverse.hashi.generator.HashiGenerator
-
 object HashiPregenerated {
 
-    val EASY_PUZZLES: List<HashiPuzzle> by lazy {
-        (1..10).map { idx ->
-            HashiGenerator(seed = 1000L + idx).generate("Easy")
-        }
-    }
-
-    val MEDIUM_PUZZLES: List<HashiPuzzle> by lazy {
-        (1..10).map { idx ->
-            HashiGenerator(seed = 2000L + idx).generate("Medium")
-        }
-    }
-
-    val HARD_PUZZLES: List<HashiPuzzle> by lazy {
-        (1..10).map { idx ->
-            HashiGenerator(seed = 3000L + idx).generate("Hard")
-        }
-    }
-
-    val EXPERT_PUZZLES: List<HashiPuzzle> by lazy {
-        (1..10).map { idx ->
-            HashiGenerator(seed = 4000L + idx).generate("Expert")
-        }
-    }
-
-    val ALL_PUZZLES: List<HashiPuzzle> by lazy {
-        EASY_PUZZLES + MEDIUM_PUZZLES + HARD_PUZZLES + EXPERT_PUZZLES
-    }
-
-    val PUZZLES_BY_DIFFICULTY: Map<String, List<HashiPuzzle>> by lazy {
-        mapOf(
-            "Easy" to EASY_PUZZLES,
-            "Medium" to MEDIUM_PUZZLES,
-            "Hard" to HARD_PUZZLES,
-            "Expert" to EXPERT_PUZZLES
+    val EASY_PUZZLES: List<HashiPuzzle> = listOf(
+        HashiPuzzle(
+            id = "hashi_Easy_1001",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 3, 5),
+                Island(5, 1, 4),
+                Island(2, 1, 2),
+                Island(2, 3, 1),
+                Island(5, 5, 4),
+                Island(2, 5, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1002",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(3, 2, 4),
+                Island(5, 2, 2),
+                Island(3, 5, 2),
+                Island(5, 5, 1),
+                Island(5, 4, 3),
+                Island(1, 2, 3),
+                Island(3, 4, 2),
+                Island(1, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1003",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 1, 3),
+                Island(1, 1, 3),
+                Island(5, 4, 2),
+                Island(3, 4, 4),
+                Island(1, 5, 3),
+                Island(3, 1, 2),
+                Island(5, 5, 2),
+                Island(1, 4, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1004",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 2, 2),
+                Island(2, 5, 3),
+                Island(5, 2, 3),
+                Island(4, 5, 4),
+                Island(4, 3, 4),
+                Island(5, 5, 2),
+                Island(2, 3, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1005",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 1, 2),
+                Island(5, 4, 2),
+                Island(2, 4, 2),
+                Island(1, 1, 2),
+                Island(1, 4, 1),
+                Island(2, 2, 2),
+                Island(4, 2, 2),
+                Island(4, 4, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1006",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 4, 1),
+                Island(1, 4, 3),
+                Island(1, 1, 3),
+                Island(3, 1, 5),
+                Island(5, 1, 4),
+                Island(3, 4, 2),
+                Island(5, 3, 3),
+                Island(3, 3, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1007",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 4, 4),
+                Island(5, 2, 3),
+                Island(2, 2, 2),
+                Island(1, 4, 4),
+                Island(1, 2, 2),
+                Island(2, 4, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1008",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 3, 2),
+                Island(4, 3, 3),
+                Island(2, 1, 1),
+                Island(4, 5, 2),
+                Island(2, 5, 1),
+                Island(4, 1, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1009",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 4, 2),
+                Island(2, 1, 2),
+                Island(5, 4, 2),
+                Island(5, 2, 2),
+                Island(5, 1, 1),
+                Island(2, 2, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Easy_1010",
+            width = 7,
+            height = 7,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 4, 4),
+                Island(5, 1, 3),
+                Island(2, 4, 4),
+                Island(1, 1, 2),
+                Island(1, 4, 1),
+                Island(2, 1, 2)
+            )
         )
-    }
+    )
+
+    val MEDIUM_PUZZLES: List<HashiPuzzle> = listOf(
+        HashiPuzzle(
+            id = "hashi_Medium_2001",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(3, 2, 4),
+                Island(3, 5, 7),
+                Island(1, 2, 3),
+                Island(5, 2, 5),
+                Island(5, 5, 4),
+                Island(7, 5, 2),
+                Island(5, 4, 4),
+                Island(3, 4, 2),
+                Island(1, 4, 2),
+                Island(1, 5, 2),
+                Island(7, 2, 3),
+                Island(7, 4, 2),
+                Island(3, 7, 3),
+                Island(7, 7, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2002",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(7, 3, 4),
+                Island(7, 1, 4),
+                Island(7, 6, 4),
+                Island(5, 1, 5),
+                Island(5, 3, 2),
+                Island(3, 6, 3),
+                Island(3, 4, 4),
+                Island(3, 2, 3),
+                Island(1, 1, 1),
+                Island(1, 2, 3),
+                Island(6, 4, 3),
+                Island(6, 1, 2),
+                Island(1, 4, 3),
+                Island(1, 7, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2003",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(1, 1, 2),
+                Island(3, 1, 4),
+                Island(6, 1, 4),
+                Island(1, 3, 5),
+                Island(4, 3, 6),
+                Island(6, 5, 3),
+                Island(4, 6, 4),
+                Island(1, 7, 2),
+                Island(3, 3, 2),
+                Island(4, 1, 1),
+                Island(6, 6, 2),
+                Island(4, 5, 1),
+                Island(6, 3, 1),
+                Island(3, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2004",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(7, 5, 1),
+                Island(7, 1, 3),
+                Island(4, 1, 4),
+                Island(4, 5, 4),
+                Island(1, 5, 1),
+                Island(6, 5, 3),
+                Island(1, 1, 3),
+                Island(6, 7, 2),
+                Island(6, 3, 2),
+                Island(1, 4, 4),
+                Island(3, 4, 2),
+                Island(2, 7, 1),
+                Island(4, 7, 1),
+                Island(6, 1, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2005",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 3, 6),
+                Island(3, 3, 4),
+                Island(3, 7, 4),
+                Island(7, 3, 5),
+                Island(7, 6, 2),
+                Island(6, 7, 1),
+                Island(3, 1, 1),
+                Island(5, 5, 2),
+                Island(5, 1, 1),
+                Island(1, 7, 3),
+                Island(1, 3, 1),
+                Island(7, 1, 2),
+                Island(4, 6, 1),
+                Island(3, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2006",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(6, 7, 4),
+                Island(2, 7, 4),
+                Island(2, 3, 4),
+                Island(4, 3, 6),
+                Island(4, 1, 5),
+                Island(7, 3, 4),
+                Island(6, 3, 2),
+                Island(1, 1, 4),
+                Island(6, 1, 1),
+                Island(1, 5, 2),
+                Island(2, 1, 1),
+                Island(7, 5, 4),
+                Island(4, 5, 1),
+                Island(7, 7, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2007",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 7, 3),
+                Island(6, 7, 3),
+                Island(2, 7, 2),
+                Island(6, 4, 3),
+                Island(4, 4, 3),
+                Island(2, 4, 2),
+                Island(2, 2, 3),
+                Island(5, 2, 4),
+                Island(5, 4, 4),
+                Island(5, 6, 2),
+                Island(6, 2, 1),
+                Island(4, 2, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2008",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(7, 4, 3),
+                Island(7, 7, 3),
+                Island(3, 4, 2),
+                Island(3, 2, 3),
+                Island(3, 7, 2),
+                Island(5, 2, 4),
+                Island(3, 5, 2),
+                Island(5, 5, 2),
+                Island(7, 2, 1),
+                Island(1, 2, 3),
+                Island(5, 4, 2),
+                Island(5, 7, 1),
+                Island(1, 6, 4),
+                Island(3, 6, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2009",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(6, 3, 6),
+                Island(4, 3, 6),
+                Island(4, 5, 6),
+                Island(6, 5, 2),
+                Island(2, 3, 5),
+                Island(6, 1, 2),
+                Island(2, 6, 2),
+                Island(2, 5, 2),
+                Island(4, 7, 4),
+                Island(2, 7, 2),
+                Island(2, 1, 3),
+                Island(4, 1, 1),
+                Island(4, 6, 3),
+                Island(6, 6, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Medium_2010",
+            width = 9,
+            height = 9,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 1, 4),
+                Island(1, 1, 2),
+                Island(4, 3, 6),
+                Island(1, 5, 3),
+                Island(6, 3, 5),
+                Island(4, 5, 4),
+                Island(7, 1, 2),
+                Island(6, 6, 4),
+                Island(2, 6, 2),
+                Island(2, 5, 4),
+                Island(7, 4, 1),
+                Island(2, 3, 2),
+                Island(1, 7, 2),
+                Island(6, 1, 1)
+            )
+        )
+    )
+
+    val HARD_PUZZLES: List<HashiPuzzle> = listOf(
+        HashiPuzzle(
+            id = "hashi_Hard_3001",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(6, 4, 5),
+                Island(9, 4, 4),
+                Island(9, 1, 3),
+                Island(6, 1, 3),
+                Island(6, 2, 4),
+                Island(6, 6, 4),
+                Island(4, 2, 4),
+                Island(3, 6, 3),
+                Island(3, 3, 3),
+                Island(4, 6, 3),
+                Island(3, 1, 2),
+                Island(1, 1, 2),
+                Island(6, 8, 4),
+                Island(4, 1, 2),
+                Island(9, 6, 1),
+                Island(9, 8, 1),
+                Island(4, 9, 3),
+                Island(1, 4, 1),
+                Island(4, 8, 2),
+                Island(8, 9, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3002",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(1, 2, 3),
+                Island(5, 2, 1),
+                Island(1, 6, 5),
+                Island(3, 6, 6),
+                Island(1, 8, 1),
+                Island(5, 6, 3),
+                Island(3, 9, 4),
+                Island(7, 6, 2),
+                Island(3, 3, 3),
+                Island(6, 3, 5),
+                Island(8, 3, 5),
+                Island(8, 1, 2),
+                Island(6, 1, 3),
+                Island(2, 1, 1),
+                Island(5, 3, 1),
+                Island(6, 9, 3),
+                Island(7, 9, 1),
+                Island(6, 7, 3),
+                Island(3, 7, 2),
+                Island(8, 6, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3003",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 1, 3),
+                Island(2, 4, 4),
+                Island(6, 1, 4),
+                Island(6, 4, 2),
+                Island(2, 7, 2),
+                Island(9, 4, 3),
+                Island(6, 7, 6),
+                Island(9, 7, 2),
+                Island(8, 1, 2),
+                Island(6, 3, 5),
+                Island(8, 3, 2),
+                Island(9, 9, 1),
+                Island(9, 1, 1),
+                Island(6, 9, 4),
+                Island(9, 6, 1),
+                Island(8, 9, 4),
+                Island(8, 7, 2),
+                Island(6, 5, 4),
+                Island(2, 3, 2),
+                Island(2, 5, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3004",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(7, 9, 6),
+                Island(3, 9, 2),
+                Island(9, 9, 2),
+                Island(7, 5, 8),
+                Island(3, 5, 6),
+                Island(3, 7, 4),
+                Island(7, 1, 5),
+                Island(9, 1, 2),
+                Island(5, 1, 4),
+                Island(1, 5, 5),
+                Island(6, 7, 2),
+                Island(5, 3, 3),
+                Island(1, 3, 4),
+                Island(4, 3, 3),
+                Island(9, 5, 4),
+                Island(9, 8, 2),
+                Island(1, 7, 1),
+                Island(2, 1, 1),
+                Island(7, 3, 1),
+                Island(4, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3005",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 2, 2),
+                Island(4, 5, 4),
+                Island(7, 5, 3),
+                Island(1, 5, 4),
+                Island(7, 1, 4),
+                Island(4, 1, 4),
+                Island(7, 2, 3),
+                Island(4, 9, 4),
+                Island(1, 8, 4),
+                Island(7, 8, 2),
+                Island(5, 8, 1),
+                Island(6, 9, 3),
+                Island(9, 9, 2),
+                Island(9, 2, 2),
+                Island(9, 5, 1),
+                Island(2, 1, 2),
+                Island(2, 9, 1),
+                Island(1, 3, 1),
+                Island(9, 1, 1),
+                Island(4, 8, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3006",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 6, 6),
+                Island(2, 3, 4),
+                Island(5, 6, 4),
+                Island(5, 3, 4),
+                Island(8, 6, 3),
+                Island(5, 1, 5),
+                Island(3, 1, 1),
+                Island(8, 1, 2),
+                Island(8, 2, 4),
+                Island(6, 2, 4),
+                Island(6, 5, 5),
+                Island(5, 8, 5),
+                Island(4, 5, 4),
+                Island(7, 8, 2),
+                Island(4, 3, 3),
+                Island(2, 9, 2),
+                Island(2, 8, 2),
+                Island(8, 5, 1),
+                Island(4, 1, 2),
+                Island(2, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3007",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(1, 4, 6),
+                Island(1, 2, 3),
+                Island(5, 2, 4),
+                Island(5, 6, 4),
+                Island(9, 6, 6),
+                Island(3, 4, 4),
+                Island(9, 9, 4),
+                Island(7, 9, 5),
+                Island(9, 3, 4),
+                Island(3, 8, 2),
+                Island(1, 8, 2),
+                Island(7, 3, 6),
+                Island(4, 9, 4),
+                Island(5, 3, 2),
+                Island(7, 2, 1),
+                Island(2, 9, 2),
+                Island(7, 7, 3),
+                Island(5, 7, 1),
+                Island(7, 6, 2),
+                Island(4, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3008",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(9, 5, 5),
+                Island(9, 8, 4),
+                Island(6, 5, 3),
+                Island(7, 8, 5),
+                Island(6, 2, 5),
+                Island(8, 2, 2),
+                Island(9, 1, 4),
+                Island(7, 5, 3),
+                Island(2, 2, 3),
+                Island(2, 4, 2),
+                Island(4, 5, 3),
+                Island(6, 4, 1),
+                Island(5, 8, 3),
+                Island(4, 9, 3),
+                Island(5, 5, 2),
+                Island(7, 3, 1),
+                Island(2, 9, 2),
+                Island(7, 1, 3),
+                Island(3, 1, 1),
+                Island(2, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3009",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 6, 7),
+                Island(4, 9, 4),
+                Island(8, 6, 4),
+                Island(8, 2, 2),
+                Island(7, 9, 2),
+                Island(8, 8, 3),
+                Island(6, 2, 3),
+                Island(4, 2, 1),
+                Island(2, 6, 3),
+                Island(6, 5, 4),
+                Island(2, 9, 2),
+                Island(2, 7, 3),
+                Island(6, 8, 3),
+                Island(4, 5, 2),
+                Island(4, 8, 3),
+                Island(4, 7, 4),
+                Island(2, 2, 1),
+                Island(2, 8, 2),
+                Island(9, 9, 1),
+                Island(7, 7, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Hard_3010",
+            width = 11,
+            height = 11,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 1, 3),
+                Island(8, 1, 3),
+                Island(5, 3, 4),
+                Island(9, 3, 3),
+                Island(5, 7, 3),
+                Island(2, 7, 3),
+                Island(2, 3, 3),
+                Island(2, 1, 1),
+                Island(9, 5, 3),
+                Island(2, 6, 2),
+                Island(2, 9, 4),
+                Island(9, 8, 2),
+                Island(4, 6, 1),
+                Island(7, 7, 4),
+                Island(7, 3, 2),
+                Island(9, 1, 1),
+                Island(4, 9, 3),
+                Island(7, 9, 1),
+                Island(8, 3, 1),
+                Island(9, 7, 1)
+            )
+        )
+    )
+
+    val EXPERT_PUZZLES: List<HashiPuzzle> = listOf(
+        HashiPuzzle(
+            id = "hashi_Expert_4001",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(8, 5, 5),
+                Island(10, 5, 5),
+                Island(5, 5, 5),
+                Island(8, 9, 3),
+                Island(5, 1, 2),
+                Island(10, 1, 3),
+                Island(5, 7, 3),
+                Island(6, 9, 5),
+                Island(8, 1, 1),
+                Island(4, 9, 6),
+                Island(1, 5, 3),
+                Island(6, 6, 1),
+                Island(4, 6, 3),
+                Island(4, 11, 4),
+                Island(8, 3, 3),
+                Island(5, 3, 3),
+                Island(6, 11, 3),
+                Island(2, 3, 3),
+                Island(1, 7, 3),
+                Island(8, 11, 1),
+                Island(2, 5, 1),
+                Island(2, 1, 1),
+                Island(2, 6, 1),
+                Island(1, 10, 2),
+                Island(10, 9, 2),
+                Island(5, 9, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4002",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(1, 8, 3),
+                Island(1, 5, 5),
+                Island(4, 5, 5),
+                Island(4, 2, 3),
+                Island(4, 8, 7),
+                Island(1, 11, 3),
+                Island(4, 11, 4),
+                Island(7, 11, 3),
+                Island(2, 8, 4),
+                Island(7, 7, 5),
+                Island(6, 5, 3),
+                Island(11, 7, 2),
+                Island(6, 2, 3),
+                Island(1, 3, 3),
+                Island(4, 3, 2),
+                Island(4, 7, 1),
+                Island(6, 8, 2),
+                Island(7, 3, 4),
+                Island(11, 4, 1),
+                Island(3, 11, 2),
+                Island(2, 6, 1),
+                Island(2, 11, 1),
+                Island(6, 3, 1),
+                Island(11, 3, 2),
+                Island(8, 2, 2),
+                Island(1, 2, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4003",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(11, 7, 3),
+                Island(8, 7, 7),
+                Island(6, 7, 5),
+                Island(8, 10, 3),
+                Island(8, 4, 5),
+                Island(6, 11, 6),
+                Island(5, 4, 4),
+                Island(8, 2, 3),
+                Island(11, 4, 1),
+                Island(5, 2, 2),
+                Island(2, 2, 3),
+                Island(10, 11, 2),
+                Island(5, 8, 3),
+                Island(2, 5, 3),
+                Island(10, 10, 2),
+                Island(5, 10, 3),
+                Island(6, 4, 2),
+                Island(4, 5, 5),
+                Island(2, 11, 3),
+                Island(3, 10, 2),
+                Island(2, 9, 1),
+                Island(4, 3, 2),
+                Island(10, 8, 1),
+                Island(11, 5, 1),
+                Island(4, 9, 2),
+                Island(6, 2, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4004",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(5, 8, 4),
+                Island(5, 10, 3),
+                Island(5, 4, 6),
+                Island(7, 10, 3),
+                Island(10, 10, 2),
+                Island(1, 4, 4),
+                Island(1, 10, 3),
+                Island(1, 1, 2),
+                Island(7, 8, 4),
+                Island(8, 4, 5),
+                Island(1, 7, 5),
+                Island(8, 1, 5),
+                Island(5, 7, 1),
+                Island(10, 8, 2),
+                Island(11, 1, 4),
+                Island(2, 8, 3),
+                Island(7, 5, 1),
+                Island(4, 1, 2),
+                Island(8, 7, 2),
+                Island(11, 5, 4),
+                Island(10, 7, 1),
+                Island(5, 1, 1),
+                Island(11, 4, 1),
+                Island(2, 10, 2),
+                Island(1, 5, 2),
+                Island(11, 8, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4005",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(1, 8, 6),
+                Island(1, 10, 4),
+                Island(1, 5, 6),
+                Island(5, 5, 7),
+                Island(5, 8, 5),
+                Island(5, 10, 3),
+                Island(1, 3, 6),
+                Island(4, 3, 4),
+                Island(5, 3, 4),
+                Island(9, 10, 2),
+                Island(4, 5, 2),
+                Island(4, 10, 4),
+                Island(4, 7, 3),
+                Island(7, 3, 4),
+                Island(7, 1, 2),
+                Island(8, 8, 7),
+                Island(5, 1, 1),
+                Island(7, 5, 4),
+                Island(8, 10, 2),
+                Island(1, 7, 1),
+                Island(7, 7, 2),
+                Island(10, 8, 3),
+                Island(8, 4, 1),
+                Island(1, 1, 2),
+                Island(4, 8, 2),
+                Island(10, 5, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4006",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(11, 4, 5),
+                Island(11, 1, 3),
+                Island(11, 6, 5),
+                Island(9, 1, 2),
+                Island(5, 1, 3),
+                Island(11, 8, 5),
+                Island(8, 6, 6),
+                Island(9, 4, 3),
+                Island(4, 6, 5),
+                Island(8, 9, 4),
+                Island(8, 2, 2),
+                Island(2, 6, 3),
+                Island(4, 3, 4),
+                Island(4, 9, 4),
+                Island(4, 8, 2),
+                Island(8, 3, 1),
+                Island(9, 6, 2),
+                Island(11, 10, 4),
+                Island(8, 8, 1),
+                Island(1, 1, 2),
+                Island(9, 10, 2),
+                Island(1, 3, 2),
+                Island(2, 8, 4),
+                Island(4, 11, 3),
+                Island(8, 11, 1),
+                Island(2, 10, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4007",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 1, 1),
+                Island(4, 5, 7),
+                Island(6, 5, 6),
+                Island(6, 9, 4),
+                Island(6, 1, 2),
+                Island(2, 5, 5),
+                Island(8, 9, 5),
+                Island(10, 9, 6),
+                Island(10, 11, 3),
+                Island(2, 2, 2),
+                Island(4, 9, 4),
+                Island(8, 11, 1),
+                Island(2, 7, 2),
+                Island(10, 5, 3),
+                Island(2, 9, 3),
+                Island(9, 5, 2),
+                Island(8, 1, 4),
+                Island(4, 2, 1),
+                Island(8, 5, 2),
+                Island(10, 1, 1),
+                Island(8, 7, 3),
+                Island(2, 11, 2),
+                Island(10, 2, 1),
+                Island(4, 11, 1),
+                Island(10, 7, 2),
+                Island(9, 2, 1)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4008",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(2, 2, 4),
+                Island(2, 6, 4),
+                Island(4, 2, 5),
+                Island(2, 10, 4),
+                Island(4, 6, 3),
+                Island(7, 2, 4),
+                Island(7, 6, 4),
+                Island(9, 2, 6),
+                Island(11, 6, 5),
+                Island(9, 4, 4),
+                Island(7, 4, 2),
+                Island(11, 8, 3),
+                Island(4, 8, 7),
+                Island(8, 8, 1),
+                Island(2, 8, 2),
+                Island(7, 8, 2),
+                Island(11, 3, 3),
+                Island(11, 2, 2),
+                Island(5, 10, 6),
+                Island(8, 10, 4),
+                Island(4, 10, 2),
+                Island(9, 6, 2),
+                Island(10, 10, 4),
+                Island(10, 8, 2),
+                Island(9, 3, 1),
+                Island(5, 8, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4009",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(6, 1, 4),
+                Island(6, 4, 5),
+                Island(10, 1, 2),
+                Island(2, 4, 4),
+                Island(8, 4, 4),
+                Island(2, 1, 1),
+                Island(10, 5, 3),
+                Island(8, 7, 6),
+                Island(2, 2, 4),
+                Island(8, 10, 4),
+                Island(10, 4, 1),
+                Island(2, 6, 5),
+                Island(6, 7, 1),
+                Island(4, 6, 8),
+                Island(4, 9, 2),
+                Island(6, 6, 2),
+                Island(6, 10, 3),
+                Island(2, 10, 2),
+                Island(6, 2, 4),
+                Island(6, 8, 2),
+                Island(11, 7, 2),
+                Island(10, 2, 2),
+                Island(4, 4, 2),
+                Island(4, 8, 1),
+                Island(10, 7, 4),
+                Island(10, 10, 2)
+            )
+        ),
+        HashiPuzzle(
+            id = "hashi_Expert_4010",
+            width = 13,
+            height = 13,
+            difficulty = "Easy",
+            islands = listOf(
+                Island(4, 11, 5),
+                Island(4, 9, 6),
+                Island(6, 11, 5),
+                Island(1, 9, 3),
+                Island(8, 9, 2),
+                Island(1, 11, 2),
+                Island(6, 9, 2),
+                Island(4, 5, 3),
+                Island(4, 1, 1),
+                Island(8, 5, 5),
+                Island(6, 7, 1),
+                Island(8, 11, 4),
+                Island(10, 11, 2),
+                Island(8, 1, 1),
+                Island(8, 8, 5),
+                Island(1, 6, 3),
+                Island(11, 8, 5),
+                Island(6, 8, 2),
+                Island(3, 6, 5),
+                Island(11, 6, 2),
+                Island(11, 3, 1),
+                Island(3, 2, 1),
+                Island(3, 9, 2),
+                Island(11, 11, 2),
+                Island(10, 5, 3),
+                Island(10, 8, 1)
+            )
+        )
+    )
+
+    val ALL_PUZZLES: List<HashiPuzzle> = EASY_PUZZLES + MEDIUM_PUZZLES + HARD_PUZZLES + EXPERT_PUZZLES
+
+    val PUZZLES_BY_DIFFICULTY: Map<String, List<HashiPuzzle>> = mapOf(
+        "Easy" to EASY_PUZZLES,
+        "Medium" to MEDIUM_PUZZLES,
+        "Hard" to HARD_PUZZLES,
+        "Expert" to EXPERT_PUZZLES
+    )
 
     fun getPuzzle(id: String): HashiPuzzle? {
         return ALL_PUZZLES.find { it.id == id }

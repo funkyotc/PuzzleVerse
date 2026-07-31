@@ -8,10 +8,10 @@ fun main(args: Array<String>) {
     println("Generating Hexa Stack pregenerated stages...")
     
     val diffConfigs = listOf(
-        Triple("Easy", HexaStackGenerator.Config(radius = 2, numColors = 3, targetFraction = 0.65), 20),
-        Triple("Medium", HexaStackGenerator.Config(radius = 2, numColors = 4, targetFraction = 0.65), 20),
-        Triple("Hard", HexaStackGenerator.Config(radius = 3, numColors = 4, targetFraction = 0.65), 20),
-        Triple("Expert", HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.65), 20)
+        Triple("Easy", HexaStackGenerator.Config(radius = 2, numColors = 3, targetFraction = 0.65, requireStrict = true), 20),
+        Triple("Medium", HexaStackGenerator.Config(radius = 2, numColors = 4, targetFraction = 0.65, requireStrict = true), 20),
+        Triple("Hard", HexaStackGenerator.Config(radius = 3, numColors = 4, targetFraction = 0.65, requireStrict = true), 15),
+        Triple("Expert", HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.65, requireStrict = true), 15)
     )
 
     val generatedByDiff = mutableMapOf<String, MutableList<HexaStackLevel>>()

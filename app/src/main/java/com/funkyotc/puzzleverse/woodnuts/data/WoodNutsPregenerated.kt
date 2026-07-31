@@ -61,7 +61,6 @@ object WoodNutsPregenerated {
         val bolts = mutableListOf<Bolt>()
         val planks = mutableListOf<Plank>()
         
-        // Determine number of planks and bolts based on difficulty
         val plankCount = when (difficulty) {
             "Easy" -> 3 + (seedIndex % 2)
             "Medium" -> 5 + (seedIndex % 2)
@@ -70,7 +69,6 @@ object WoodNutsPregenerated {
             else -> 10 + (seedIndex % 3)
         }
         
-        // Create pool of possible bolt coordinates
         val allCoords = mutableListOf<Pair<Int, Int>>()
         for (r in 0 until size) {
             for (c in 0 until size) {
@@ -79,7 +77,6 @@ object WoodNutsPregenerated {
         }
         allCoords.shuffle(random)
         
-        // Spawn bolts in groups of 3 for color board matching
         val rawTotal = (plankCount * 1.8f).toInt().coerceAtMost(size * size - 2)
         val boardCount = (rawTotal / 3).coerceAtLeast(1)
         val totalBolts = boardCount * 3
@@ -102,7 +99,6 @@ object WoodNutsPregenerated {
             bolts.add(Bolt("b${idx + 1}", coord.first, coord.second, color = boltColors[idx]))
         }
         
-        // Generate overlapping planks connected to bolts
         var plankId = 1
         for (p in 0 until plankCount) {
             if (bolts.size < 2) break
@@ -117,7 +113,6 @@ object WoodNutsPregenerated {
             val r2 = maxOf(b1.row, b2.row)
             val c2 = maxOf(b1.col, b2.col)
             
-            // Check if third bolt falls along line
             val extraBolts = bolts.filter { b ->
                 b.id != b1.id && b.id != b2.id &&
                 b.row in r1..r2 && b.col in c1..c2 &&

@@ -9,11 +9,7 @@ android {
         version = release(36)
     }
 
-    sourceSets {
-        getByName("main") {
-            java.srcDirs("src/main/java", "../generators")
-        }
-    }
+
 
     defaultConfig {
     applicationId = "com.funkyotc.puzzleverse"
