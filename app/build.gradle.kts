@@ -9,7 +9,13 @@ android {
         version = release(36)
     }
 
-defaultConfig {
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/main/java", "../generators")
+        }
+    }
+
+    defaultConfig {
     applicationId = "com.funkyotc.puzzleverse"
     minSdk = 24
     targetSdk = 36
@@ -102,18 +108,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-}
-
-tasks.register<JavaExec>("pregenerateExtremePuzzles") {
-    group = "puzzleverse"
-    description = "Runs the Arrow Escape Heavy Generator to pregenerate extreme puzzles"
-    dependsOn("compileDebugKotlin")
-    val compileTask = tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileDebugKotlin")
-    classpath = files(
-        compileTask.map { it.destinationDirectory },
-        configurations.getByName("debugRuntimeClasspath")
-    )
-    mainClass.set("com.funkyotc.puzzleverse.arrowescape.tools.PregenerateExtremePuzzlesRunnerKt")
-    standardOutput = System.out
-    errorOutput = System.err
 }
