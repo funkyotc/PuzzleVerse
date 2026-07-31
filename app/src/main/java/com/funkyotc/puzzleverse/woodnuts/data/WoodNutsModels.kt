@@ -6,12 +6,30 @@ data class PhysicsTransform(
     val angle: Float
 )
 
+enum class ScrewColor(val colorHex: Long, val displayName: String) {
+    RED(0xFFE53935, "Red"),
+    BLUE(0xFF1E88E5, "Blue"),
+    GREEN(0xFF43A047, "Green"),
+    YELLOW(0xFFFDD835, "Yellow"),
+    ORANGE(0xFFFB8C00, "Orange"),
+    PURPLE(0xFF8E24AA, "Purple"),
+    CYAN(0xFF00ACC1, "Cyan"),
+    PINK(0xFFD81B60, "Pink")
+}
+
+data class ColorBoard(
+    val id: String,
+    val color: ScrewColor,
+    val filledCount: Int = 0
+)
+
 data class Bolt(
     val id: String,
     val row: Int,
     val col: Int,
     val removed: Boolean = false,
-    val isUnscrewing: Boolean = false
+    val isUnscrewing: Boolean = false,
+    val color: ScrewColor = ScrewColor.RED
 )
 
 data class Plank(
@@ -53,7 +71,8 @@ data class WoodNutsLevel(
     val rows: Int,
     val cols: Int,
     val bolts: List<Bolt>,
-    val planks: List<Plank>
+    val planks: List<Plank>,
+    val boardQueue: List<ScrewColor> = emptyList()
 ) : com.funkyotc.puzzleverse.core.data.BrowseablePuzzle {
     override val label: String get() = id.substringAfterLast('_')
     override val subtitle: String get() = "${rows}x${cols}"
@@ -63,8 +82,13 @@ data class WoodNutsState(
     val level: WoodNutsLevel,
     val bolts: List<Bolt>,
     val planks: List<Plank>,
+    val activeBoards: List<ColorBoard> = emptyList(),
+    val remainingBoardQueue: List<ScrewColor> = emptyList(),
+    val trayScrews: List<ScrewColor> = emptyList(),
     val moves: Int = 0,
     val isWon: Boolean = false,
+    val isFailed: Boolean = false,
+    val failedReason: String? = null,
     val lastRemovedPlankId: String? = null,
     val lastRemovedBoltId: String? = null
 )

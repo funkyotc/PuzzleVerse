@@ -8,7 +8,8 @@ data class PregeneratedWoodNutsLevel(
     val rows: Int,
     val cols: Int,
     val bolts: List<Bolt>,
-    val planks: List<Plank>
+    val planks: List<Plank>,
+    val boardQueue: List<ScrewColor> = emptyList()
 ) : BrowseablePuzzle {
     override val label: String get() = id.substringAfterLast('_')
     override val subtitle: String get() = "${rows}x${cols}"
@@ -78,11 +79,27 @@ object WoodNutsPregenerated {
         }
         allCoords.shuffle(random)
         
-        // Spawn bolts
-        val totalBolts = (plankCount * 1.8f).toInt().coerceAtMost(size * size - 2)
+        // Spawn bolts in groups of 3 for color board matching
+        val rawTotal = (plankCount * 1.8f).toInt().coerceAtMost(size * size - 2)
+        val boardCount = (rawTotal / 3).coerceAtLeast(1)
+        val totalBolts = boardCount * 3
         val boltCoords = allCoords.take(totalBolts)
+        
+        val availableColors = ScrewColor.entries.shuffled(random)
+        val boardQueue = mutableListOf<ScrewColor>()
+        val boltColors = mutableListOf<ScrewColor>()
+        
+        for (b in 0 until boardCount) {
+            val color = availableColors[b % availableColors.size]
+            boardQueue.add(color)
+            repeat(3) {
+                boltColors.add(color)
+            }
+        }
+        boltColors.shuffle(random)
+
         for ((idx, coord) in boltCoords.withIndex()) {
-            bolts.add(Bolt("b${idx + 1}", coord.first, coord.second))
+            bolts.add(Bolt("b${idx + 1}", coord.first, coord.second, color = boltColors[idx]))
         }
         
         // Generate overlapping planks connected to bolts
@@ -128,7 +145,8 @@ object WoodNutsPregenerated {
             rows = size,
             cols = size,
             bolts = bolts,
-            planks = planks
+            planks = planks,
+            boardQueue = boardQueue
         )
     }
 }

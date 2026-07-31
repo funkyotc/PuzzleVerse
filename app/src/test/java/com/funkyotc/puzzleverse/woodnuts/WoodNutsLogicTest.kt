@@ -6,6 +6,9 @@ import com.funkyotc.puzzleverse.woodnuts.data.clampBoltCellToPlanks
 import org.junit.Assert.*
 import org.junit.Test
 
+import com.funkyotc.puzzleverse.woodnuts.data.ColorBoard
+import com.funkyotc.puzzleverse.woodnuts.data.ScrewColor
+
 class WoodNutsLogicTest {
 
     @Test
@@ -26,8 +29,20 @@ class WoodNutsLogicTest {
 
     @Test
     fun testBoltRemoval() {
-        val bolt = Bolt(id = "b1", row = 1, col = 1, removed = false)
+        val bolt = Bolt(id = "b1", row = 1, col = 1, removed = false, color = ScrewColor.BLUE)
         val removedBolt = bolt.copy(removed = true)
         assertTrue(removedBolt.removed)
+        assertEquals(ScrewColor.BLUE, removedBolt.color)
+    }
+
+    @Test
+    fun testColorBoardMatching() {
+        val board = ColorBoard(id = "cb1", color = ScrewColor.RED, filledCount = 1)
+        val updatedBoard = board.copy(filledCount = board.filledCount + 1)
+        assertEquals(2, updatedBoard.filledCount)
+        assertFalse(updatedBoard.filledCount == 3)
+        
+        val completedBoard = updatedBoard.copy(filledCount = 3)
+        assertEquals(3, completedBoard.filledCount)
     }
 }

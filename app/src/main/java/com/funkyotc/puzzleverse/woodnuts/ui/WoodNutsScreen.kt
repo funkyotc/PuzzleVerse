@@ -59,6 +59,16 @@ import com.funkyotc.puzzleverse.core.ui.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlin.math.sqrt
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import com.funkyotc.puzzleverse.woodnuts.data.ColorBoard
+import com.funkyotc.puzzleverse.woodnuts.data.ScrewColor
+
 private val PLANK_PALETTE = listOf(
     Color(0xFF8D6E63), Color(0xFFA1887F), Color(0xFFBCAAA4),
     Color(0xFF6D4C41), Color(0xFF5D4037), Color(0xFF4E342E),
@@ -102,8 +112,26 @@ fun WoodNutsScreen(
 
     if (showHowToDialog) {
         GameHowToDialog(
-            instructions = "Wooden planks are held together by bolts. Tap a bolt to unscrew it. When the last bolt holding a plank is removed, the plank falls off. Planks falling may expose other bolts and trigger chain reactions. Remove all planks to win!",
+            instructions = "Wooden planks are held together by colored bolts. Tap a bolt to unscrew it. Screws will automatically fly into matching 3-hole color boards. If no matching board has space, the screw goes to the 5-hole overflow tray. When a 3-hole board fills, it clears and next queued board arrives (auto-draining matching screws from tray). Remove all planks and clear all boards to win! Don't let the 5-hole tray overflow!",
             onDismiss = { showHowToDialog = false }
+        )
+    }
+
+    if (state.isFailed) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Level Failed!", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error) },
+            text = { Text(state.failedReason ?: "Tray full! No space for unscrewed screw.") },
+            confirmButton = {
+                Button(onClick = { viewModel.startNewGame() }) {
+                    Text("Try Again")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { navController.navigate("home") { popUpTo(0) } }) {
+                    Text("Main Menu")
+                }
+            }
         )
     }
 
@@ -127,7 +155,7 @@ fun WoodNutsScreen(
         GameEndDialog(
             isWon = true,
             title = "Victory!",
-            message = "All planks removed in ${state.moves} moves!",
+            message = "All planks removed & color boards cleared in ${state.moves} moves!",
             mode = mode,
             gameId = "woodnuts",
             currentDifficulty = currentDifficulty,
@@ -179,8 +207,16 @@ fun WoodNutsScreen(
                     text = "Difficulty: ${state.level.difficulty}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
+
+                // === 3-Hole Active Boards Section ===
+                ActiveBoardsRow(boards = state.activeBoards)
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // === 5-Hole Overflow Tray Section ===
+                OverflowTray(trayScrews = state.trayScrews)
 
                 BoxWithConstraints(
                     modifier = Modifier.weight(1f).fillMaxSize().padding(8.dp),
@@ -221,7 +257,7 @@ fun WoodNutsScreen(
                         modifier = Modifier
                             .size(gridW, gridH)
                             .animateEntrance(trigger = state.level.id)
-                            .background(Color(0xFF2E2E2E))
+                            .background(Color(0xFF2E2E2E), shape = RoundedCornerShape(12.dp))
                             .pointerInput(state.bolts) {
                                 detectTapGestures { offset ->
                                     val touchRadius = cellPx * 0.45f
@@ -265,9 +301,9 @@ fun WoodNutsScreen(
                             drawCircle(Color.Black.copy(alpha = 0.5f), boltRadius, Offset(cx + strokePx * 1.5f, cy + strokePx * 1.5f))
 
                             if (unscrewProgress > 0f) {
-                                drawUnscrewingBolt(cx, cy, boltRadius, unscrewProgress)
+                                drawUnscrewingBolt(cx, cy, boltRadius, unscrewProgress, bolt.color)
                             } else {
-                                drawNormalBolt(cx, cy, boltRadius)
+                                drawNormalBolt(cx, cy, boltRadius, bolt.color)
                             }
                         }
                     }
@@ -279,6 +315,116 @@ fun WoodNutsScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActiveBoardsRow(boards: List<ColorBoard>) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        for (i in 0 until 3) {
+            val board = boards.getOrNull(i)
+            if (board != null) {
+                val boardBgColor = Color(board.color.colorHex)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3E2723)),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    modifier = Modifier
+                        .padding(horizontal = 2.dp)
+                        .weight(1f)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                    ) {
+                        Text(
+                            text = board.color.displayName,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = boardBgColor
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            for (slot in 0 until 3) {
+                                val isFilled = slot < board.filledCount
+                                Canvas(modifier = Modifier.size(20.dp)) {
+                                    val r = size.minDimension / 2f
+                                    val center = Offset(size.width / 2f, size.height / 2f)
+                                    if (isFilled) {
+                                        drawCircle(Color(0xFF37474F), r, center)
+                                        drawCircle(boardBgColor, r * 0.75f, center)
+                                        drawCircle(Color.White.copy(alpha = 0.5f), r * 0.35f, center)
+                                    } else {
+                                        drawCircle(Color(0xFF1E1E1E), r, center)
+                                        drawCircle(Color.Black.copy(alpha = 0.6f), r * 0.8f, center)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverflowTray(trayScrews: List<ScrewColor>) {
+    val isWarning = trayScrews.size >= 4
+    val strokeColor = if (trayScrews.size >= 5) Color(0xFFE53935) else if (isWarning) Color(0xFFFB8C00) else Color(0xFF424242)
+    
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF263238)),
+        shape = RoundedCornerShape(10.dp),
+        border = androidx.compose.foundation.BorderStroke(2.dp, strokeColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(vertical = 6.dp, horizontal = 12.dp)
+        ) {
+            Text(
+                text = "Tray:",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = Color.White.copy(alpha = 0.8f),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            for (i in 0 until 5) {
+                val screwColor = trayScrews.getOrNull(i)
+                Canvas(
+                    modifier = Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(22.dp)
+                ) {
+                    val r = size.minDimension / 2f
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    if (screwColor != null) {
+                        drawCircle(Color(0xFF37474F), r, center)
+                        drawCircle(Color(screwColor.colorHex), r * 0.75f, center)
+                        drawCircle(Color.White.copy(alpha = 0.5f), r * 0.35f, center)
+                    } else {
+                        drawCircle(Color(0xFF151515), r, center)
+                        drawCircle(Color.Black.copy(alpha = 0.7f), r * 0.8f, center)
+                    }
+                }
             }
         }
     }
@@ -325,26 +471,33 @@ private fun DrawScope.drawPhysicsPlank(
     }
 }
 
-private fun DrawScope.drawNormalBolt(cx: Float, cy: Float, radius: Float) {
-    drawCircle(Color(0xFF37474F), radius, Offset(cx, cy))
-    drawCircle(Color(0xFF78909C), radius * 0.7f, Offset(cx, cy))
-    drawCircle(Color(0xFFB0BEC5), radius * 0.4f, Offset(cx, cy))
+private fun DrawScope.drawNormalBolt(cx: Float, cy: Float, radius: Float, screwColor: ScrewColor) {
+    drawCircle(Color(0xFF212121), radius, Offset(cx, cy))
+    drawCircle(Color(0xFF78909C), radius * 0.85f, Offset(cx, cy))
+    drawCircle(Color(screwColor.colorHex), radius * 0.65f, Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.4f), radius * 0.3f, Offset(cx - radius * 0.15f, cy - radius * 0.15f))
+    
+    // Cross-slot indicator
+    val slotLen = radius * 0.45f
+    drawLine(Color.Black.copy(alpha = 0.4f), Offset(cx - slotLen, cy), Offset(cx + slotLen, cy), radius * 0.12f)
+    drawLine(Color.Black.copy(alpha = 0.4f), Offset(cx, cy - slotLen), Offset(cx, cy + slotLen), radius * 0.12f)
 }
 
-private fun DrawScope.drawUnscrewingBolt(cx: Float, cy: Float, radius: Float, progress: Float) {
+private fun DrawScope.drawUnscrewingBolt(cx: Float, cy: Float, radius: Float, progress: Float, screwColor: ScrewColor) {
     val alpha = 1f - progress
     val scale = 1f - 0.4f * progress
     val r = radius * scale
     val spin = progress * 360f
 
     rotate(spin, Offset(cx, cy)) {
-        drawCircle(Color(0xFF37474F).copy(alpha = alpha), r, Offset(cx, cy))
-        drawCircle(Color(0xFF78909C).copy(alpha = alpha), r * 0.7f, Offset(cx, cy))
-        drawCircle(Color(0xFFB0BEC5).copy(alpha = alpha), r * 0.4f, Offset(cx, cy))
+        drawCircle(Color(0xFF212121).copy(alpha = alpha), r, Offset(cx, cy))
+        drawCircle(Color(0xFF78909C).copy(alpha = alpha), r * 0.85f, Offset(cx, cy))
+        drawCircle(Color(screwColor.colorHex).copy(alpha = alpha), r * 0.65f, Offset(cx, cy))
+        drawCircle(Color.White.copy(alpha = 0.4f * alpha), r * 0.3f, Offset(cx - r * 0.15f, cy - r * 0.15f))
 
         // Cross-slot indicator
-        val slotLen = r * 0.5f
-        drawLine(Color(0xFF546E7A).copy(alpha = alpha), Offset(cx - slotLen, cy), Offset(cx + slotLen, cy), r * 0.15f)
-        drawLine(Color(0xFF546E7A).copy(alpha = alpha), Offset(cx, cy - slotLen), Offset(cx, cy + slotLen), r * 0.15f)
+        val slotLen = r * 0.45f
+        drawLine(Color.Black.copy(alpha = 0.4f * alpha), Offset(cx - slotLen, cy), Offset(cx + slotLen, cy), r * 0.12f)
+        drawLine(Color.Black.copy(alpha = 0.4f * alpha), Offset(cx, cy - slotLen), Offset(cx, cy + slotLen), r * 0.12f)
     }
 }
