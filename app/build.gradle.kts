@@ -103,3 +103,17 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+tasks.register<JavaExec>("pregenerateExtremePuzzles") {
+    group = "puzzleverse"
+    description = "Runs the Arrow Escape Heavy Generator to pregenerate extreme puzzles"
+    dependsOn("compileDebugKotlin")
+    val compileTask = tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileDebugKotlin")
+    classpath = files(
+        compileTask.map { it.destinationDirectory },
+        configurations.getByName("debugRuntimeClasspath")
+    )
+    mainClass.set("com.funkyotc.puzzleverse.arrowescape.tools.PregenerateExtremePuzzlesRunnerKt")
+    standardOutput = System.out
+    errorOutput = System.err
+}

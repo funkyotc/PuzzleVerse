@@ -568,7 +568,7 @@ class ArrowEscapeGenerator {
             }
         }
 
-        if (filledCells < (validCells.size * 0.60f).toInt()) {
+        if (filledCells < (validCells.size * 0.35f).toInt()) {
             return emptyList()
         }
 
@@ -784,5 +784,141 @@ class ArrowEscapeGenerator {
 
         return if (state.isComplete()) depth else 0
     }
+
+    fun generateExtremeCandidateLayout(
+        width: Int,
+        height: Int,
+        shape: LevelShape = LevelShape.SQUARE,
+        random: Random = Random
+    ): List<Arrow> {
+        val minGridDim = minOf(width, height)
+        val minLen = 4
+        val maxLen = when {
+            minGridDim <= 30 -> 60
+            minGridDim <= 40 -> 90
+            else -> 120
+        }
+        val cand1 = generateExtremeCandidate(width, height, 0.45f, shape, minLen, maxLen, 1, random)
+        if (cand1.isNotEmpty()) return cand1
+        val cand2 = generateTestingCandidate(width, height, 0.40f, shape, minLen, maxLen, 2, random)
+        if (cand2.isNotEmpty()) return cand2
+        return generateCandidate(width, height, 0.35f, shape, minLen, maxLen, random)
+    }
+
+
+    fun evaluateCandidate(
+        arrows: List<Arrow>,
+        width: Int,
+        height: Int,
+        shape: LevelShape = LevelShape.SQUARE
+    ): CandidateStats {
+        if (arrows.isEmpty()) {
+            return CandidateStats(0, 0, 0, 0, 0f, 0, false, -1.0)
+        }
+
+        var validCellsCount = 0
+        for (r in 0 until height) {
+            for (c in 0 until width) {
+                if (shape.isCellInside(c, r, width, height)) {
+                    validCellsCount++
+                }
+            }
+        }
+        if (validCellsCount == 0) return CandidateStats(0, 0, 0, 0, 0f, 0, false, -1.0)
+
+        val grid = Array(height) { IntArray(width) }
+        var totalOccupied = 0
+        for (arrow in arrows) {
+            for (seg in arrow.segments) {
+                grid[seg.y][seg.x] = arrow.id
+                totalOccupied++
+            }
+        }
+
+        val density = totalOccupied.toFloat() / validCellsCount.toFloat()
+
+        var turns = 0
+        for (arrow in arrows) {
+            val segs = arrow.segments
+            for (i in 0 until segs.size - 2) {
+                val dx1 = segs[i + 1].x - segs[i].x
+                val dy1 = segs[i + 1].y - segs[i].y
+                val dx2 = segs[i + 2].x - segs[i + 1].x
+                val dy2 = segs[i + 2].y - segs[i + 1].y
+                if (dx1 != dx2 || dy1 != dy2) {
+                    turns++
+                }
+            }
+        }
+
+        var intersections = 0
+        var multiBlockers = 0
+
+        for (arrow in arrows) {
+            val head = arrow.segments.first()
+            val dir = arrow.direction
+            var cx = head.x + dir.dx
+            var cy = head.y + dir.dy
+
+            val seenBlockers = mutableSetOf<Int>()
+            while (shape.isCellInside(cx, cy, width, height)) {
+                val targetId = grid[cy][cx]
+                if (targetId != 0 && targetId != arrow.id) {
+                    intersections++
+                    seenBlockers.add(targetId)
+                }
+                cx += dir.dx
+                cy += dir.dy
+            }
+
+            if (seenBlockers.size >= 2) {
+                multiBlockers++
+            }
+        }
+
+        val starters = countStarterArrows(arrows, width, height, shape)
+        val depth = calculateDependencyDepth(arrows, width, height, shape)
+        val solvable = isPuzzleSolvable(arrows, width, height, shape)
+
+        val starterBonus = when {
+            starters == 1 -> 2000.0
+            starters == 2 -> 1200.0
+            starters == 3 -> 800.0
+            starters == 4 -> 400.0
+            starters <= 6 -> 100.0
+            else -> 0.0
+        }
+
+        val score = if (solvable) {
+            10.0 * depth + 5.0 * intersections + 8.0 * multiBlockers + 2.0 * turns + 100.0 * density + starterBonus
+        } else {
+            -1.0
+        }
+
+
+        return CandidateStats(
+            depth = depth,
+            intersections = intersections,
+            multiBlockers = multiBlockers,
+            turns = turns,
+            density = density,
+            starters = starters,
+            isSolvable = solvable,
+            score = score
+        )
+    }
+
 }
+
+data class CandidateStats(
+    val depth: Int,
+    val intersections: Int,
+    val multiBlockers: Int,
+    val turns: Int,
+    val density: Float,
+    val starters: Int,
+    val isSolvable: Boolean,
+    val score: Double
+)
+
 
