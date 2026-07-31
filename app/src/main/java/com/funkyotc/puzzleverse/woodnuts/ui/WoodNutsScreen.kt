@@ -59,6 +59,17 @@ import com.funkyotc.puzzleverse.core.ui.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import kotlin.math.sqrt
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -66,8 +77,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import com.funkyotc.puzzleverse.woodnuts.data.ColorBoard
 import com.funkyotc.puzzleverse.woodnuts.data.ScrewColor
+import kotlin.math.PI
+import kotlin.math.sin
 
 private val PLANK_PALETTE = listOf(
     Color(0xFF8D6E63), Color(0xFFA1887F), Color(0xFFBCAAA4),
@@ -77,6 +93,13 @@ private val PLANK_PALETTE = listOf(
 )
 
 private const val BOLT_UNSCREW_DURATION = 350
+
+data class FlyingScrewData(
+    val id: String,
+    val color: ScrewColor,
+    val startPos: Offset,
+    val targetPos: Offset
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +122,39 @@ fun WoodNutsScreen(
     val completionRepo = remember { PuzzleCompletionRepository(context, "Wood Screws") }
 
     val state = stateOpt ?: return
+
+    val boardSlotPositions = remember { mutableStateMapOf<String, Offset>() }
+    val traySlotPositions = remember { mutableStateMapOf<Int, Offset>() }
+    val flyingScrews = remember { mutableStateListOf<FlyingScrewData>() }
+    var rootOffset by remember { mutableStateOf(Offset.Zero) }
+
+    // Trigger flying screw animation when a bolt is unscrewed
+    LaunchedEffect(state.lastRemovedBoltId) {
+        val lastBoltId = state.lastRemovedBoltId
+        if (lastBoltId != null) {
+            val removedBolt = state.bolts.find { it.id == lastBoltId }
+            if (removedBolt != null) {
+                val matchingBoard = state.activeBoards.find { it.color == removedBolt.color }
+                val targetPos = if (matchingBoard != null) {
+                    val key = "${matchingBoard.id}_${(matchingBoard.filledCount - 1).coerceAtLeast(0)}"
+                    boardSlotPositions[key] ?: Offset(200f, 150f)
+                } else {
+                    val trayIdx = (state.trayScrews.size - 1).coerceAtLeast(0)
+                    traySlotPositions[trayIdx] ?: Offset(200f, 250f)
+                }
+
+                // Add flying screw animation
+                val startPos = Offset(300f, 600f) // Canvas relative start
+                val animData = FlyingScrewData(
+                    id = "${lastBoltId}_${System.currentTimeMillis()}",
+                    color = removedBolt.color,
+                    startPos = startPos,
+                    targetPos = targetPos
+                )
+                flyingScrews.add(animData)
+            }
+        }
+    }
 
     LaunchedEffect(state.isWon) {
         if (state.isWon) {
@@ -195,7 +251,10 @@ fun WoodNutsScreen(
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .onGloballyPositioned { rootOffset = it.positionInRoot() },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -210,13 +269,21 @@ fun WoodNutsScreen(
                     modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
 
-                // === 3-Hole Active Boards Section ===
-                ActiveBoardsRow(boards = state.activeBoards)
+                // === 3-Hole Active Boards Section (with enter/leave animations) ===
+                ActiveBoardsRow(
+                    boards = state.activeBoards,
+                    rootOffset = rootOffset,
+                    slotPositions = boardSlotPositions
+                )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // === 5-Hole Overflow Tray Section ===
-                OverflowTray(trayScrews = state.trayScrews)
+                OverflowTray(
+                    trayScrews = state.trayScrews,
+                    rootOffset = rootOffset,
+                    slotPositions = traySlotPositions
+                )
 
                 BoxWithConstraints(
                     modifier = Modifier.weight(1f).fillMaxSize().padding(8.dp),
@@ -316,12 +383,26 @@ fun WoodNutsScreen(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
+
+            // === Flying Screws Overlay Animation ===
+            for (flyingData in flyingScrews.toList()) {
+                key(flyingData.id) {
+                    FlyingScrewOverlay(
+                        data = flyingData,
+                        onComplete = { flyingScrews.remove(flyingData) }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ActiveBoardsRow(boards: List<ColorBoard>) {
+private fun ActiveBoardsRow(
+    boards: List<ColorBoard>,
+    rootOffset: Offset,
+    slotPositions: MutableMap<String, Offset>
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -331,59 +412,104 @@ private fun ActiveBoardsRow(boards: List<ColorBoard>) {
     ) {
         for (i in 0 until 3) {
             val board = boards.getOrNull(i)
-            if (board != null) {
-                val boardBgColor = Color(board.color.colorHex)
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF3E2723)),
-                    shape = RoundedCornerShape(8.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    modifier = Modifier
-                        .padding(horizontal = 2.dp)
-                        .weight(1f)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
-                    ) {
-                        Text(
-                            text = board.color.displayName,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = boardBgColor
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedContent(
+                    targetState = board,
+                    transitionSpec = {
+                        (slideInVertically { -it / 2 } + fadeIn() + scaleIn(initialScale = 0.85f)) togetherWith
+                                (slideOutVertically { it / 2 } + fadeOut() + scaleOut(targetScale = 0.85f))
+                    },
+                    label = "boardTransition"
+                ) { currentBoard ->
+                    if (currentBoard != null) {
+                        val boardBgColor = Color(currentBoard.color.colorHex)
+                        val isComplete = currentBoard.filledCount == 3
+                        val scale by animateFloatAsState(
+                            targetValue = if (isComplete) 1.08f else 1f,
+                            animationSpec = spring(dampingRatio = 0.5f),
+                            label = "boardPulse"
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3E2723)),
+                            shape = RoundedCornerShape(8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (isComplete) 8.dp else 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
                         ) {
-                            for (slot in 0 until 3) {
-                                val isFilled = slot < board.filledCount
-                                Canvas(modifier = Modifier.size(20.dp)) {
-                                    val r = size.minDimension / 2f
-                                    val center = Offset(size.width / 2f, size.height / 2f)
-                                    if (isFilled) {
-                                        drawCircle(Color(0xFF37474F), r, center)
-                                        drawCircle(boardBgColor, r * 0.75f, center)
-                                        drawCircle(Color.White.copy(alpha = 0.5f), r * 0.35f, center)
-                                    } else {
-                                        drawCircle(Color(0xFF1E1E1E), r, center)
-                                        drawCircle(Color.Black.copy(alpha = 0.6f), r * 0.8f, center)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = currentBoard.color.displayName + if (isComplete) " ✓" else "",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = boardBgColor
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    for (slot in 0 until 3) {
+                                        val isFilled = slot < currentBoard.filledCount
+                                        val slotScale by animateFloatAsState(
+                                            targetValue = if (isFilled) 1.2f else 1f,
+                                            animationSpec = spring(dampingRatio = 0.4f),
+                                            label = "slotFill"
+                                        )
+                                        Canvas(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .onGloballyPositioned { coordinates ->
+                                                    val pos = coordinates.positionInRoot() - rootOffset
+                                                    slotPositions["${currentBoard.id}_$slot"] = pos
+                                                }
+                                                .graphicsLayer {
+                                                    scaleX = slotScale
+                                                    scaleY = slotScale
+                                                }
+                                        ) {
+                                            val r = size.minDimension / 2f
+                                            val center = Offset(size.width / 2f, size.height / 2f)
+                                            if (isFilled) {
+                                                drawCircle(Color(0xFF37474F), r, center)
+                                                drawCircle(boardBgColor, r * 0.75f, center)
+                                                drawCircle(Color.White.copy(alpha = 0.5f), r * 0.35f, center)
+                                            } else {
+                                                drawCircle(Color(0xFF1E1E1E), r, center)
+                                                drawCircle(Color.Black.copy(alpha = 0.6f), r * 0.8f, center)
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
+                    } else {
+                        Spacer(modifier = Modifier.height(60.dp))
                     }
                 }
-            } else {
-                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun OverflowTray(trayScrews: List<ScrewColor>) {
+private fun OverflowTray(
+    trayScrews: List<ScrewColor>,
+    rootOffset: Offset,
+    slotPositions: MutableMap<Int, Offset>
+) {
     val isWarning = trayScrews.size >= 4
     val strokeColor = if (trayScrews.size >= 5) Color(0xFFE53935) else if (isWarning) Color(0xFFFB8C00) else Color(0xFF424242)
     
@@ -392,8 +518,7 @@ private fun OverflowTray(trayScrews: List<ScrewColor>) {
         shape = RoundedCornerShape(10.dp),
         border = androidx.compose.foundation.BorderStroke(2.dp, strokeColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
+        modifier = Modifier.padding(horizontal = 16.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -409,10 +534,24 @@ private fun OverflowTray(trayScrews: List<ScrewColor>) {
             )
             for (i in 0 until 5) {
                 val screwColor = trayScrews.getOrNull(i)
+                val isFilled = screwColor != null
+                val scale by animateFloatAsState(
+                    targetValue = if (isFilled) 1.15f else 1f,
+                    animationSpec = spring(dampingRatio = 0.4f),
+                    label = "traySlotScale"
+                )
                 Canvas(
                     modifier = Modifier
                         .padding(horizontal = 3.dp)
                         .size(22.dp)
+                        .onGloballyPositioned { coordinates ->
+                            val pos = coordinates.positionInRoot() - rootOffset
+                            slotPositions[i] = pos
+                        }
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        }
                 ) {
                     val r = size.minDimension / 2f
                     val center = Offset(size.width / 2f, size.height / 2f)
@@ -427,6 +566,48 @@ private fun OverflowTray(trayScrews: List<ScrewColor>) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FlyingScrewOverlay(
+    data: FlyingScrewData,
+    onComplete: () -> Unit
+) {
+    val progress = remember { Animatable(0f) }
+
+    LaunchedEffect(data.id) {
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing)
+        )
+        onComplete()
+    }
+
+    val t = progress.value
+    val currX = data.startPos.x + (data.targetPos.x - data.startPos.x) * t
+    val arcHeight = sin(t * PI.toFloat()) * 120f
+    val currY = data.startPos.y + (data.targetPos.y - data.startPos.y) * t - arcHeight
+    val currScale = 1f + sin(t * PI.toFloat()) * 0.35f
+    val spinAngle = t * 720f
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                translationX = currX
+                translationY = currY
+                scaleX = currScale
+                scaleY = currScale
+                rotationZ = spinAngle
+            }
+    ) {
+        val r = 14.dp.toPx()
+        val center = Offset.Zero
+        drawCircle(Color(0xFF212121), r, center)
+        drawCircle(Color(0xFF78909C), r * 0.85f, center)
+        drawCircle(Color(data.color.colorHex), r * 0.65f, center)
+        drawCircle(Color.White.copy(alpha = 0.5f), r * 0.3f, Offset(-r * 0.15f, -r * 0.15f))
     }
 }
 
