@@ -63,10 +63,10 @@ class StreakRepositoryTest {
         val today = 20000L
         val twoDaysAgo = today - 2
 
-        val initialStreak = Streak(gameId = "blockpuzzle", count = 10, lastCompletedEpochDay = twoDaysAgo)
+        val initialStreak = Streak(gameId = "wordle", count = 10, lastCompletedEpochDay = twoDaysAgo)
         streakRepository.saveStreak(initialStreak)
 
-        val result = streakRepository.recordDailyCompletion("blockpuzzle", today)
+        val result = streakRepository.recordDailyCompletion("wordle", today)
         assertEquals(1, result.count)
         assertEquals(today, result.lastCompletedEpochDay)
     }

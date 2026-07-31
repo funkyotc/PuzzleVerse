@@ -1,7 +1,7 @@
 # AGENTS.md — PuzzleVerse
 
 ## Project Overview
-Android app with multiple puzzle games (examples: sudoku, bonza, constellations, wordle, tfe (2048), minesweeper, nonogram, blockpuzzle, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess, hashi, tangrams). Seventeen games include pre-generated puzzle sets in the codebase; others use assets or runtime generation. Each game has Standard / Daily modes with streak tracking and resume.
+Android app with multiple puzzle games (examples: sudoku, bonza, constellations, wordle, tfe (2048), minesweeper, nonogram, kakuro, flowfree, shikaku, cubeshooter, pullpin, watersort, woodnuts, hexasort, chess, hashi, tangrams). Seventeen games include pre-generated puzzle sets in the codebase; others use assets or runtime generation. Each game has Standard / Daily modes with streak tracking and resume.
 
 ## Commands
 ```bash
