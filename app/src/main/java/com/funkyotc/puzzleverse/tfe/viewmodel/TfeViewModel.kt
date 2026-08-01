@@ -1,10 +1,12 @@
 package com.funkyotc.puzzleverse.tfe.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.core.todayEpochDay
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.tfe.data.Direction
+import com.funkyotc.puzzleverse.tfe.data.TfeRepository
 import com.funkyotc.puzzleverse.tfe.data.TfeState
 import com.funkyotc.puzzleverse.tfe.data.Tile
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,20 +15,36 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 class TfeViewModel(
-    private val streakRepository: StreakRepository? = null,
-    private val mode: String? = "standard"
+    context: Context? = null,
+    private val mode: String? = "standard",
+    private val forceNewGame: Boolean = false,
+    private val streakRepository: StreakRepository? = null
 ) : ViewModel() {
+    private val repository = TfeRepository(context)
+    private val boardKey = if (mode == "daily") "daily_tfe_board" else "standard_tfe_board"
+
     private val _state = MutableStateFlow(TfeState())
     val state: StateFlow<TfeState> = _state.asStateFlow()
 
     init {
-        startNewGame()
+        if (!forceNewGame) {
+            val savedState = repository.loadGame(boardKey)
+            if (savedState != null && savedState.tiles.isNotEmpty() && !savedState.isGameOver) {
+                val restoredTiles = savedState.tiles.map { it.copy(isNew = false, isMerged = false) }
+                _state.value = savedState.copy(tiles = restoredTiles)
+            } else {
+                startNewGame()
+            }
+        } else {
+            startNewGame()
+        }
     }
 
     fun startNewGame() {
         _state.value = TfeState(tiles = emptyList())
         addRandomTile()
         addRandomTile()
+        repository.saveGame(boardKey, _state.value)
     }
 
     private fun addRandomTile() {
@@ -149,6 +167,7 @@ class TfeViewModel(
             _state.update { it.copy(tiles = newTilesMerged, score = newScore) }
             addRandomTile()
             checkGameOver()
+            repository.saveGame(boardKey, _state.value)
         }
     }
 
@@ -172,6 +191,10 @@ class TfeViewModel(
         val isWon = st.tiles.any { it.value >= 2048 }
         _state.update { it.copy(isGameOver = !canMove, isWon = isWon) }
 
+        if (!canMove) {
+            repository.clearGame(boardKey)
+        }
+
         if (isWon && mode == "daily" && streakRepository != null) {
             val today = todayEpochDay()
             val streak = streakRepository.getStreak("tfe")
@@ -187,13 +210,15 @@ class TfeViewModel(
 }
 
 class TfeViewModelFactory(
-    private val streakRepository: StreakRepository,
-    private val mode: String?
+    private val context: Context? = null,
+    private val mode: String? = "standard",
+    private val forceNewGame: Boolean = false,
+    private val streakRepository: StreakRepository? = null
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TfeViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TfeViewModel(streakRepository, mode) as T
+            return TfeViewModel(context, mode, forceNewGame, streakRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

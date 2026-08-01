@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,15 @@ fun TfeScreen(
     streakRepository: StreakRepository,
     settingsRepository: SettingsRepository,
     mode: String? = "standard",
-    viewModel: TfeViewModel = viewModel(factory = TfeViewModelFactory(streakRepository, mode))
+    forceNewGame: Boolean = false,
+    viewModel: TfeViewModel = viewModel(
+        factory = TfeViewModelFactory(
+            context = LocalContext.current,
+            mode = mode,
+            forceNewGame = forceNewGame,
+            streakRepository = streakRepository
+        )
+    )
 ) {
     val state by viewModel.state.collectAsState()
     val soundManager = LocalSoundManager.current

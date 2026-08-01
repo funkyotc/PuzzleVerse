@@ -165,15 +165,13 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
             val today = com.funkyotc.puzzleverse.core.todayEpochDay()
             val isDailyCompleted = streak.lastCompletedEpochDay == today
 
-            if (gameId != "tfe") {
-                Spacer(modifier = Modifier.height(16.dp))
-                DailyChallengeMenuCard(
-                    streakCount = streak.count,
-                    isDailyCompleted = isDailyCompleted
-                ) {
-                    soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/$gameId/daily")
-                }
+            Spacer(modifier = Modifier.height(16.dp))
+            DailyChallengeMenuCard(
+                streakCount = streak.count,
+                isDailyCompleted = isDailyCompleted
+            ) {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                navController.navigate("game/$gameId/daily")
             }
         }
     }

@@ -124,7 +124,7 @@ fun HomeScreen(navController: NavController, streakRepository: StreakRepository)
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    val dailyGames = games.filter { it.id != "tfe" }
+                    val dailyGames = games
                     items(dailyGames) { game ->
                         val streak = streakRepository.getStreak(game.id)
                         val today = com.funkyotc.puzzleverse.core.todayEpochDay()
