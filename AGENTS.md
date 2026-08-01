@@ -54,7 +54,7 @@ git add -A && git commit -m "type(scope): description"
 
 ## Critical Gotchas
 - **JDK Path**: `gradle.properties` had `org.gradle.java.home` hardcoded — now commented out. Agents on Windows with Android Studio should be fine; non-standard setups may need to set `JAVA_HOME`.
-- **Pre-generated Data**: Daily/Standard puzzles use pre-generated Kotlin objects, NOT runtime generation. Modifying puzzle logic requires updating both sources.
+- **Pre-generated Data & Generators**: 18 games use pre-generated Kotlin objects or assets (`*Pregenerated.kt`, `assets/...`), while 3 games (`tfe`, `minesweeper`, `blockpuzzle`) use runtime procedural generation. Each pregenerated game has an individually runnable, pure Kotlin generator runner in `app/src/main/java/generators/<gameId>/` with a `fun main` entry point. Puzzle generation is completely decoupled from Gradle build tasks and unit test suites; runners are executed on-demand to update pre-baked puzzle files.
 - **No CI/CD**: No GitHub Actions or other CI workflows exist. Builds are manual.
 - **No opencode.json**: Repository lacks opencode configuration; consider creating one for custom instructions.
 - **Compose Multi-Touch Gestures**: Stacking standard `detectDragGestures` and `detectTapGestures` suppresses multi-finger input (e.g. tapping secondary finger while dragging). Use `awaitPointerEventScope` to track multi-pointer state explicitly.
@@ -66,5 +66,6 @@ git add -A && git commit -m "type(scope): description"
 - `gradle.properties` — JVM args, AndroidX flags
 - `app/src/main/java/com/funkyotc/puzzleverse/MainActivity.kt` — Navigation wiring, SoundManager init, theme setup
 - `app/src/main/java/com/funkyotc/puzzleverse/ui/screens/home/HomeScreen.kt` — Game list definition
+- `app/src/main/java/generators/` — Standalone pure Kotlin generator runners for all 18 pregenerated games
 - `app/src/main/assets/bonza/puzzles.json` — Bonza puzzle themes
 - `app/src/main/assets/wordle/valid_words.txt` — Wordle dictionary (5758 words)
