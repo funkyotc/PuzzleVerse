@@ -43,7 +43,7 @@ class BonzaViewModel(
     private val letterBoxSize = 1.0f
 
     init {
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch {
             _puzzle.value = generatePuzzle()
         }
     }
@@ -298,7 +298,7 @@ class BonzaViewModel(
     fun newGame() {
         if (mode == "daily") return // usually new game is disabled manually, but as fallback
         _isGameWon.value = false
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch {
             _puzzle.value = generatePuzzle()
         }
     }
@@ -345,8 +345,8 @@ class BonzaViewModel(
                 
                 val newRect = Rect(rx, ry, rx + w, ry + h)
                 val overlaps = placedBoxes.any { placed ->
-                    !(newRect.right <= placed.left || placed.right <= newRect.left ||
-                      newRect.bottom <= placed.top || placed.bottom <= newRect.top)
+                    !(newRect.right + 1 <= placed.left || placed.right + 1 <= newRect.left ||
+                      newRect.bottom + 1 <= placed.top || placed.bottom + 1 <= newRect.top)
                 }
                 
                 if (!overlaps) {
@@ -365,8 +365,8 @@ class BonzaViewModel(
                         val fy = ry.toFloat()
                         val newRect = Rect(fx, fy, fx + w, fy + h)
                         val overlaps = placedBoxes.any { placed ->
-                            !(newRect.right <= placed.left || placed.right <= newRect.left ||
-                              newRect.bottom <= placed.top || placed.bottom <= newRect.top)
+                            !(newRect.right + 1 <= placed.left || placed.right + 1 <= newRect.left ||
+                              newRect.bottom + 1 <= placed.top || placed.bottom + 1 <= newRect.top)
                         }
                         if (!overlaps) {
                             targetX = fx

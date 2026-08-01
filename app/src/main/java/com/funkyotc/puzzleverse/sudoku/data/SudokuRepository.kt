@@ -20,16 +20,17 @@ class SudokuRepository(
     fun saveBoard(board: SudokuBoard, key: String) {
         val boardJson = gson.toJson(board)
         sharedPreferences.edit { putString(key, boardJson) }
-        if (board.cells.isEmpty()) {
-            saveStateRepo.clearSaveState("sudoku")
-        } else {
-            val hasMoves = board.cells.any { it.number != 0 }
-            if (hasMoves) {
-                val mode = if (key.contains("daily")) "daily" else "standard"
-                saveStateRepo.saveGameState("sudoku", mode = mode)
-            } else {
-                saveStateRepo.clearSaveState("sudoku")
+        val hasMoves = board.cells.any { !it.isHint && (it.number != 0 || it.pencilMarks.isNotEmpty()) }
+        if (hasMoves) {
+            val mode = when {
+                key.startsWith("puzzle_") -> "puzzle"
+                key.contains("daily") -> "daily"
+                else -> "standard"
             }
+            val puzzleId = if (key.startsWith("puzzle_")) key.removePrefix("puzzle_") else null
+            saveStateRepo.saveGameState("sudoku", mode = mode, puzzleId = puzzleId)
+        } else {
+            saveStateRepo.clearSaveState("sudoku")
         }
     }
 

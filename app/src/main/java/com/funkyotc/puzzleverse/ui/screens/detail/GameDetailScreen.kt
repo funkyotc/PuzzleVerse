@@ -85,7 +85,12 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                 val modeLabel = saveMeta.mode.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                 MenuCard(text = "Resume Saved Game ($modeLabel)") {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                    navController.navigate("game/$gameId/${saveMeta.mode}")
+                    val route = if (saveMeta.puzzleId != null) {
+                        "game/$gameId/puzzle/${saveMeta.puzzleId}"
+                    } else {
+                        "game/$gameId/${saveMeta.mode}"
+                    }
+                    navController.navigate(route)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 MenuCard(text = "New Game") {
