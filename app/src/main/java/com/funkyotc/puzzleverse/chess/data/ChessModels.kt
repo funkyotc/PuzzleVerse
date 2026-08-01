@@ -37,6 +37,11 @@ data class ChessState(
     val isLost: Boolean = false,
     val moveAttempts: Int = 0,
     val correctMoveIndex: Int = 0,
+    val hintStage: Int = 0,
+    val hintSourceRow: Int = -1,
+    val hintSourceCol: Int = -1,
+    val hintTargetRow: Int = -1,
+    val hintTargetCol: Int = -1,
     val message: String = "Find the checkmate move"
 )
 

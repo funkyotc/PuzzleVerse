@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -155,6 +156,12 @@ fun ChessScreen(
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {
+            IconButton(onClick = {
+                soundManager.playSound(SoundManager.SOUND_ID_CLICK)
+                viewModel.requestHint()
+            }) {
+                Icon(Icons.Filled.Info, contentDescription = "Hint")
+            }
             if (mode != "daily") {
                 IconButton(onClick = {
                     soundManager.playSound(SoundManager.SOUND_ID_CLICK)
@@ -206,6 +213,9 @@ fun ChessScreen(
                     emptyList()
                 }
 
+                val hintSourceColor = Color(0xFFFFB300).copy(alpha = 0.6f)
+                val hintTargetColor = Color(0xFF00E676).copy(alpha = 0.6f)
+
                 Box(modifier = Modifier.size(boardSize)) {
                     // Draw Board and Highlights
                     Column(modifier = Modifier.fillMaxSize()) {
@@ -219,6 +229,8 @@ fun ChessScreen(
                                     val isLight = (row + col) % 2 == 0
                                     val isSelected = state.selectedRow == row && state.selectedCol == col
                                     val isLegalMove = legalMoves.any { it.first == row && it.second == col }
+                                    val isHintSource = state.hintStage >= 1 && state.hintSourceRow == row && state.hintSourceCol == col
+                                    val isHintTarget = state.hintStage == 2 && state.hintTargetRow == row && state.hintTargetCol == col
 
                                     val interactionSource = remember(row, col) { MutableInteractionSource() }
                                     Box(
@@ -227,8 +239,12 @@ fun ChessScreen(
                                             .fillMaxHeight()
                                             .background(if (isLight) lightSquareColor else darkSquareColor)
                                             .then(
-                                                if (isSelected) Modifier.background(selectedColor)
-                                                else Modifier
+                                                when {
+                                                    isHintSource -> Modifier.background(hintSourceColor)
+                                                    isHintTarget -> Modifier.background(hintTargetColor)
+                                                    isSelected -> Modifier.background(selectedColor)
+                                                    else -> Modifier
+                                                }
                                             )
                                             .clickable(
                                                 interactionSource = interactionSource,

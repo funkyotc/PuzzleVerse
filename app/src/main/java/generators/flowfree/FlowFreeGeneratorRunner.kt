@@ -15,7 +15,7 @@ data class PregeneratedPuzzle(
 
 /**
  * FlowFreeGeneratorRunner generates non-crossing color endpoint grid puzzles
- * into FlowFreePregenerated.kt.
+ * with 100% grid coverage and paths >= 3 cells into FlowFreePregenerated.kt.
  */
 fun main(args: Array<String>) {
     val random = Random(9999)
@@ -25,54 +25,83 @@ fun main(args: Array<String>) {
         intArrayOf(0, -1), intArrayOf(0, 1)
     )
 
-    fun generateRandomFilledGrid(size: Int, numColors: Int, rnd: Random): List<ColorDot>? {
+    fun generateGridPartition(size: Int, numColors: Int, rnd: Random): List<ColorDot>? {
+        val totalCells = size * size
         val grid = Array(size) { IntArray(size) { 0 } }
         val paths = Array(numColors + 1) { mutableListOf<Point>() }
 
-        val emptyCells = mutableListOf<Point>()
+        // Pick distinct random start points for each color
+        val allPoints = mutableListOf<Point>()
         for (r in 0 until size) {
             for (c in 0 until size) {
-                emptyCells.add(Point(r, c))
+                allPoints.add(Point(r, c))
             }
         }
-        emptyCells.shuffle(rnd)
+        allPoints.shuffle(rnd)
 
         for (i in 1..numColors) {
-            if (emptyCells.isEmpty()) return null
-            val start = emptyCells.removeAt(emptyCells.size - 1)
+            val start = allPoints[i - 1]
             paths[i].add(start)
             grid[start.r][start.c] = i
         }
 
-        var changed = true
-        while (changed) {
-            changed = false
-            val colorOrder = (1..numColors).shuffled(rnd)
-            for (i in colorOrder) {
-                val path = paths[i]
-                val head = path.last()
-                val validDirs = DIRECTIONS.filter { dir ->
+        val unvisitedCount = totalCells - numColors
+
+        // Helper recursive grow with backtracking
+        fun growPaths(remaining: Int): Boolean {
+            if (remaining == 0) {
+                // Verify all paths have length >= 3
+                return (1..numColors).all { paths[it].size >= 3 }
+            }
+
+            // Pick a color to grow (prioritize colors with fewest valid extension options to avoid dead ends)
+            val candidates = mutableListOf<Pair<Int, List<Point>>>()
+            for (i in 1..numColors) {
+                val head = paths[i].last()
+                val validNext = DIRECTIONS.mapNotNull { dir ->
                     val nr = head.r + dir[0]
                     val nc = head.c + dir[1]
-                    nr in 0 until size && nc in 0 until size && grid[nr][nc] == 0
+                    if (nr in 0 until size && nc in 0 until size && grid[nr][nc] == 0) {
+                        Point(nr, nc)
+                    } else null
                 }
-                if (validDirs.isNotEmpty()) {
-                    val dir = validDirs[rnd.nextInt(validDirs.size)]
-                    val next = Point(head.r + dir[0], head.c + dir[1])
-                    grid[next.r][next.c] = i
-                    path.add(next)
-                    emptyCells.remove(next)
-                    changed = true
+                if (validNext.isNotEmpty()) {
+                    candidates.add(i to validNext)
                 }
             }
+
+            if (candidates.isEmpty()) return false
+
+            // Sort colors by number of options (ascending) so constrained paths grow first
+            candidates.sortBy { it.second.size }
+
+            // Try extending the most constrained color
+            val (colorToGrow, options) = candidates.first()
+            val shuffledOptions = options.shuffled(rnd)
+
+            for (nextPt in shuffledOptions) {
+                grid[nextPt.r][nextPt.c] = colorToGrow
+                paths[colorToGrow].add(nextPt)
+
+                if (growPaths(remaining - 1)) {
+                    return true
+                }
+
+                // Backtrack
+                paths[colorToGrow].removeAt(paths[colorToGrow].lastIndex)
+                grid[nextPt.r][nextPt.c] = 0
+            }
+
+            return false
         }
 
-        if (emptyCells.isNotEmpty()) return null
+        if (!growPaths(unvisitedCount)) {
+            return null
+        }
 
         val dots = mutableListOf<ColorDot>()
         for (i in 1..numColors) {
             val p = paths[i]
-            if (p.size < 2) return null
             dots.add(ColorDot(i, p.first(), p.last()))
         }
         return dots
@@ -90,15 +119,16 @@ fun main(args: Array<String>) {
     for ((diff, size, numColors) in configs) {
         var added = 0
         var attempts = 0
-        while (added < 5 && attempts < 20000) {
+        while (added < 10 && attempts < 50000) {
             attempts++
-            val dots = generateRandomFilledGrid(size, numColors, random)
+            val dots = generateGridPartition(size, numColors, random)
             if (dots != null) {
                 added++
                 val id = "${diff}_${size}x${size}_puzzle_${String.format("%03d", added)}"
                 puzzles.add(PregeneratedPuzzle(id, size, diff, dots))
             }
         }
+        println("Generated $added puzzles for $diff (${size}x${size}) in $attempts attempts.")
     }
 
     // Write FlowFreePregenerated.kt
@@ -146,7 +176,7 @@ fun main(args: Array<String>) {
     sb.appendLine("}")
 
     val targetFile = File("app/src/main/java/com/funkyotc/puzzleverse/flowfree/data/FlowFreePregenerated.kt")
-    targetFile.parentFile.mkdirs()
+    targetFile.parentFile?.mkdirs()
     targetFile.writeText(sb.toString())
 
     println("Successfully generated FlowFreePregenerated.kt with ${puzzles.size} puzzles.")

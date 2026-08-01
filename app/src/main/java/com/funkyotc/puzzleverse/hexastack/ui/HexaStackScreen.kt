@@ -715,7 +715,8 @@ fun HexaStackScreen(
                                 }
                                 if (current != null) {
                                     val dropTarget = hoverCoord
-                                    if (dropTarget != null && !s.cells.containsKey(dropTarget)) {
+                                    val targetStack = if (dropTarget != null) s.cells[dropTarget] else null
+                                    if (dropTarget != null && (targetStack == null || targetStack.isEmpty())) {
                                         viewModel.place(slot, dropTarget)
                                     } else {
                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)

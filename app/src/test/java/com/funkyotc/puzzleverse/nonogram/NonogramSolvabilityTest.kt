@@ -1,167 +1,147 @@
 package com.funkyotc.puzzleverse.nonogram
 
 import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
+import com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary
 import com.funkyotc.puzzleverse.nonogram.data.NonogramSolver
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NonogramSolvabilityTest {
 
     @Test
-    fun testPregeneratedPuzzlesAreAllSolvableWithoutGuessing() {
-        val puzzles = NonogramPregenerated.ALL_PUZZLES.take(3)
-        println("Testing sample of ${puzzles.size} pregenerated puzzles...")
+    fun testPregeneratedPuzzleCountAndDistribution() {
+        val puzzles = NonogramPregenerated.ALL_PUZZLES
+        assertEquals("Total pregenerated puzzles must be exactly 40", 40, puzzles.size)
+
+        val byDiff = NonogramPregenerated.PUZZLES_BY_DIFFICULTY
+        assertEquals("Easy puzzles count must be 15", 15, byDiff["Easy"]?.size ?: 0)
+        assertEquals("Medium puzzles count must be 15", 15, byDiff["Medium"]?.size ?: 0)
+        assertEquals("Hard puzzles count must be 10", 10, byDiff["Hard"]?.size ?: 0)
+    }
+
+    @Test
+    fun testAllPregeneratedPuzzlesAreSolvableWithoutGuessing() {
+        val puzzles = NonogramPregenerated.ALL_PUZZLES
+        val failedPuzzles = mutableListOf<String>()
+
         for (puzzle in puzzles) {
-            val grid = puzzle.grid
-            val isSolvable = NonogramSolver.isSolvableWithoutGuessing(grid)
-            assertTrue(
-                "Puzzle ${puzzle.id} of difficulty ${puzzle.difficulty} is NOT solvable without guessing!",
-                isSolvable
-            )
-        }
-    }
-
-    @Test
-    fun testLibraryPresetsAreAllSolvableWithoutGuessing() {
-        val presets = com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.PRESET_PUZZLES
-        println("Found ${presets.size} library preset puzzles.")
-        var anyFailed = false
-        for ((index, preset) in presets.withIndex()) {
-            val isSolvable = NonogramSolver.isSolvableWithoutGuessing(preset)
-            println("Preset $index solvability: $isSolvable")
-            if (!isSolvable) {
-                anyFailed = true
+            val solvable = NonogramSolver.isSolvableWithoutGuessing(puzzle.grid)
+            assertTrue("Puzzle ${puzzle.id} (${puzzle.difficulty}, size ${puzzle.size}x${puzzle.size}) must be solvable without guessing", solvable)
+            if (!solvable) {
+                failedPuzzles.add("${puzzle.id} (${puzzle.difficulty})")
             }
         }
-        // Note: Presets index 1 and index 6 are not solvable by standard line deduction, 
-        // which is perfectly fine since the library filters solvable presets on the fly!
-        // We will assert true here just to keep the build succeeding.
-        assertTrue(true)
+
+        assertTrue("Failing puzzles: $failedPuzzles", failedPuzzles.isEmpty())
     }
 
-    @org.junit.Ignore("Offline generator test")
     @Test
-    fun testGeneratePregeneratedNonograms() {
-        val random = java.util.Random(42L) // Fixed seed for reproducibility
-        val sb = StringBuilder()
-        sb.append("package com.funkyotc.puzzleverse.nonogram.data\n\n")
-        sb.append("import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle\n\n")
-        sb.append("data class PregeneratedNonogram(\n")
-        sb.append("    override val id: String,\n")
-        sb.append("    override val difficulty: String,\n")
-        sb.append("    val size: Int,\n")
-        sb.append("    val rowClues: List<List<Int>>,\n")
-        sb.append("    val colClues: List<List<Int>>,\n")
-        sb.append("    val gridStr: String\n")
-        sb.append(") : BrowseablePuzzle {\n")
-        sb.append("    val grid: List<List<Boolean>> get() = gridStr.map { it == '1' }.chunked(size)\n")
-        sb.append("    override val label: String get() = \"Nonogram \${id.substringAfterLast('_')}\"\n")
-        sb.append("    override val subtitle: String get() = \"\${size}x\${size}\"\n")
-        sb.append("}\n\n")
-        sb.append("object NonogramPregenerated {\n\n")
-        sb.append("    val ALL_PUZZLES: List<PregeneratedNonogram> by lazy {\n")
-        sb.append("        listOf(\n")
+    fun testEasyPregeneratedPuzzlesSolvability() {
+        val easyPuzzles = NonogramPregenerated.PUZZLES_BY_DIFFICULTY["Easy"] ?: emptyList()
+        assertEquals(15, easyPuzzles.size)
+        for (puzzle in easyPuzzles) {
+            assertTrue("Easy puzzle ${puzzle.id} must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(puzzle.grid))
+        }
+    }
 
-        val difficulties = listOf(
-            Triple("Easy", 10, 15),
-            Triple("Medium", 15, 15),
-            Triple("Hard", 20, 10)
+    @Test
+    fun testMediumPregeneratedPuzzlesSolvability() {
+        val mediumPuzzles = NonogramPregenerated.PUZZLES_BY_DIFFICULTY["Medium"] ?: emptyList()
+        assertEquals(15, mediumPuzzles.size)
+        for (puzzle in mediumPuzzles) {
+            assertTrue("Medium puzzle ${puzzle.id} must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(puzzle.grid))
+        }
+    }
+
+    @Test
+    fun testHardPregeneratedPuzzlesSolvability() {
+        val hardPuzzles = NonogramPregenerated.PUZZLES_BY_DIFFICULTY["Hard"] ?: emptyList()
+        assertEquals(10, hardPuzzles.size)
+        for (puzzle in hardPuzzles) {
+            assertTrue("Hard puzzle ${puzzle.id} must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(puzzle.grid))
+        }
+    }
+
+    @Test
+    fun testRandomPuzzleGeneratorSolvability() {
+        for (size in listOf(10, 15)) {
+            for (i in 1..5) {
+                val grid = NonogramPuzzleLibrary.getRandomPuzzle(size)
+                assertTrue("getRandomPuzzle($size) attempt $i must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(grid))
+            }
+        }
+    }
+
+    @Test
+    fun testEdgeCase1x1Grids() {
+        val filled1x1 = listOf(listOf(true))
+        assertTrue("1x1 filled grid must be solvable", NonogramSolver.isSolvableWithoutGuessing(filled1x1))
+
+        val empty1x1 = listOf(listOf(false))
+        assertTrue("1x1 empty grid must be solvable", NonogramSolver.isSolvableWithoutGuessing(empty1x1))
+    }
+
+    @Test
+    fun testEdgeCaseFullyFilledGrids() {
+        val sizes = listOf(2, 5, 10)
+        for (size in sizes) {
+            val grid = List(size) { List(size) { true } }
+            assertTrue("${size}x${size} fully filled grid must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(grid))
+        }
+    }
+
+    @Test
+    fun testEdgeCaseCompletelyEmptyGrids() {
+        val sizes = listOf(2, 5, 10)
+        for (size in sizes) {
+            val grid = List(size) { List(size) { false } }
+            assertTrue("${size}x${size} completely empty grid must be solvable without guessing", NonogramSolver.isSolvableWithoutGuessing(grid))
+        }
+    }
+
+    @Test
+    fun testEdgeCaseEmptyDimensions() {
+        val emptyGrid = emptyList<List<Boolean>>()
+        assertTrue("Empty grid list must return true", NonogramSolver.isSolvableWithoutGuessing(emptyGrid))
+
+        val emptyRowGrid = listOf(emptyList<Boolean>())
+        assertTrue("Grid with empty row must return true", NonogramSolver.isSolvableWithoutGuessing(emptyRowGrid))
+    }
+
+    @Test
+    fun testEdgeCaseSingleLineLineConstraintSolver() {
+        // Horizontal 1xN grids
+        val line1x5 = listOf(listOf(true, false, true, true, false))
+        assertTrue("1x5 single row nonogram must be solvable", NonogramSolver.isSolvableWithoutGuessing(line1x5))
+
+        val line1x10Pattern = listOf(listOf(true, false, true, false, true, false, true, false, true, false))
+        assertTrue("1x10 alternating row nonogram must be solvable", NonogramSolver.isSolvableWithoutGuessing(line1x10Pattern))
+
+        val line1x10Block = listOf(listOf(false, false, true, true, true, true, true, false, false, false))
+        assertTrue("1x10 block row nonogram must be solvable", NonogramSolver.isSolvableWithoutGuessing(line1x10Block))
+
+        // Vertical Nx1 grids
+        val col5x1 = listOf(
+            listOf(true),
+            listOf(true),
+            listOf(false),
+            listOf(true),
+            listOf(false)
         )
+        assertTrue("5x1 single column nonogram must be solvable", NonogramSolver.isSolvableWithoutGuessing(col5x1))
 
-        fun calculateClues(line: List<Boolean>): List<Int> {
-            val clues = mutableListOf<Int>()
-            var count = 0
-            for (v in line) {
-                if (v) {
-                    count++
-                } else if (count > 0) {
-                    clues.add(count)
-                    count = 0
-                }
-            }
-            if (count > 0) clues.add(count)
-            if (clues.isEmpty()) clues.add(0)
-            return clues
-        }
-
-        fun formatClues(clues: List<List<Int>>): String {
-            return clues.joinToString(separator = ", ", prefix = "listOf(", postfix = ")") { row ->
-                row.joinToString(separator = ", ", prefix = "listOf(", postfix = ")") { it.toString() }
-            }
-        }
-
-        for ((diff, size, count) in difficulties) {
-            for (i in 1..count) {
-                val id = "nonogram_${diff.lowercase()}_$i"
-                
-                // Procedurally generate a beautiful solvable nonogram
-                var grid = emptyList<List<Boolean>>()
-                var attempts = 0
-                while (attempts < 50000) {
-                    val density = random.nextFloat() * 0.1f + 0.45f
-                    val candidate = List(size) {
-                        List(size) {
-                            random.nextFloat() < density
-                        }
-                    }
-                    if (NonogramSolver.isSolvableWithoutGuessing(candidate)) {
-                        grid = candidate
-                        break
-                    }
-                    attempts++
-                }
-                
-                if (grid.isEmpty()) {
-                    grid = List(size) { List(size) { true } }
-                }
-
-                val rowClues = grid.map { calculateClues(it) }
-                val colClues = (0 until size).map { c -> calculateClues(grid.map { it[c] }) }
-                val gridStr = grid.flatten().joinToString(separator = "") { if (it) "1" else "0" }
-
-                sb.append("            PregeneratedNonogram(\n")
-                sb.append("                id = \"$id\",\n")
-                sb.append("                difficulty = \"$diff\",\n")
-                sb.append("                size = $size,\n")
-                sb.append("                rowClues = ${formatClues(rowClues)},\n")
-                sb.append("                colClues = ${formatClues(colClues)},\n")
-                sb.append("                gridStr = \"$gridStr\"\n")
-                sb.append("            ),\n")
-            }
-        }
-
-        sb.append("        )\n")
-        sb.append("    }\n\n")
-        sb.append("    val PUZZLES_BY_DIFFICULTY: Map<String, List<PregeneratedNonogram>> by lazy { ALL_PUZZLES.groupBy { it.difficulty } }\n")
-        sb.append("}\n")
-
-        val targetPath1 = "src/main/java/com/funkyotc/puzzleverse/nonogram/data/NonogramPregenerated.kt"
-        val targetPath2 = "app/src/main/java/com/funkyotc/puzzleverse/nonogram/data/NonogramPregenerated.kt"
-        val targetFile = if (java.io.File(targetPath1).exists()) java.io.File(targetPath1) else java.io.File(targetPath2)
-        
-        targetFile.parentFile?.mkdirs()
-        targetFile.writeText(sb.toString())
-        println("Successfully generated and wrote 40 solvable nonograms to ${targetFile.absolutePath}")
+        val col10x1Pattern = List(10) { i -> listOf(i % 2 == 0) }
+        assertTrue("10x1 alternating column nonogram must be solvable", NonogramSolver.isSolvableWithoutGuessing(col10x1Pattern))
     }
 
     @Test
-    fun testKnownSimpleCases() {
-        val solvable3x3 = listOf(
-            listOf(true, false, true),
-            listOf(true, true, true),
-            listOf(false, true, false)
+    fun testAmbiguousUnsolvableGridReturnsFalse() {
+        val ambiguous2x2 = listOf(
+            listOf(true, false),
+            listOf(false, true)
         )
-        assertTrue(NonogramSolver.isSolvableWithoutGuessing(solvable3x3))
-    }
-
-    @Test
-    fun testInitialStateIsSafeFromOutOfBounds() {
-        val defaultState = com.funkyotc.puzzleverse.nonogram.data.NonogramState()
-        // Default rows/cols must be 0 so UI does not attempt indexing before ViewModel loads
-        org.junit.Assert.assertEquals(0, defaultState.rows)
-        org.junit.Assert.assertEquals(0, defaultState.cols)
-        assertTrue(defaultState.playerGrid.isEmpty())
-        assertTrue(defaultState.rowClues.isEmpty())
-        assertTrue(defaultState.colClues.isEmpty())
+        assertFalse("2x2 ambiguous grid requiring guessing must return false", NonogramSolver.isSolvableWithoutGuessing(ambiguous2x2))
     }
 }

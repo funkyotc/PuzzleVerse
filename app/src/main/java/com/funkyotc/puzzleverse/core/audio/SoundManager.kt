@@ -65,7 +65,7 @@ class SoundManager(private val context: Context) {
         sounds[SOUND_ID_CHESS_LAND] = soundPool?.load(context, R.raw.chess_land, 1) ?: 0
     }
 
-    fun playSound(soundId: Int, rate: Float = 1f, cooldownMs: Long = 0L) {
+    fun playSound(soundId: Int, rate: Float = 1f, cooldownMs: Long = 0L, volume: Float? = null) {
         val sharedPreferences = context.getSharedPreferences("SettingsPrefs", Context.MODE_PRIVATE)
         if (!sharedPreferences.getBoolean("sound_effects_enabled", true)) return
 
@@ -76,7 +76,18 @@ class SoundManager(private val context: Context) {
             lastPlayedAt[soundId] = now
         }
 
-        sounds[soundId]?.let { soundPool?.play(it, 0.6f, 0.6f, 1, 0, rate) }
+        val baseVolume = when (soundId) {
+            SOUND_ID_GLASS_CHIME, SOUND_ID_LINE_CLEAR -> 0.35f
+            SOUND_ID_CLICK, SOUND_ID_KEY_PRESS, SOUND_ID_PENCIL_ERASE -> 0.45f
+            SOUND_ID_BLAST_EXPLODE, SOUND_ID_LASER_SHOOT -> 0.45f
+            SOUND_ID_TILE_PLACE, SOUND_ID_BLOCK_DROP, SOUND_ID_THUD_DULL -> 0.55f
+            SOUND_ID_LIQUID_POUR, SOUND_ID_SNAP_CONNECT, SOUND_ID_MERGE_POP -> 0.55f
+            SOUND_ID_VICTORY, SOUND_ID_TRIUMPHANT_CHIME, SOUND_ID_SUCCESS -> 0.65f
+            else -> 0.5f
+        }
+        val finalVolume = volume ?: baseVolume
+
+        sounds[soundId]?.let { soundPool?.play(it, finalVolume, finalVolume, 1, 0, rate) }
     }
 
     fun release() {

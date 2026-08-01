@@ -314,21 +314,23 @@ fun main(args: Array<String>) {
     for ((idx, pattern) in PRESET_PATTERNS_10.withIndex()) {
         val grid = pattern.map { row -> row.map { it == '1' } }
         val size = 10
-        val rowClues = grid.map { calculateClues(it) }
-        val colClues = (0 until size).map { c -> calculateClues(grid.map { it[c] }) }
-        val gridStr = pattern.joinToString("")
+        if (NonogramSolver.isSolvableWithoutGuessing(grid)) {
+            val rowClues = grid.map { calculateClues(it) }
+            val colClues = (0 until size).map { c -> calculateClues(grid.map { it[c] }) }
+            val gridStr = pattern.joinToString("")
 
-        easyCount++
-        puzzles.add(
-            NonogramData(
-                id = "nonogram_easy_$easyCount",
-                difficulty = "Easy",
-                size = size,
-                rowClues = rowClues,
-                colClues = colClues,
-                gridStr = gridStr
+            easyCount++
+            puzzles.add(
+                NonogramData(
+                    id = "nonogram_easy_$easyCount",
+                    difficulty = "Easy",
+                    size = size,
+                    rowClues = rowClues,
+                    colClues = colClues,
+                    gridStr = gridStr
+                )
             )
-        )
+        }
     }
 
     // Procedural generation for remaining Easy (10x10), Medium (15x15), Hard (20x20)
@@ -364,8 +366,8 @@ fun main(args: Array<String>) {
         }
     }
 
-    generateProceduralPuzzles(5, 10, "Easy", easyCount + 1)
-    generateProceduralPuzzles(10, 15, "Medium", 1)
+    generateProceduralPuzzles(15 - easyCount, 10, "Easy", easyCount + 1)
+    generateProceduralPuzzles(15, 15, "Medium", 1)
     generateProceduralPuzzles(10, 20, "Hard", 1)
 
     // Format output file

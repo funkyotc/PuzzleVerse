@@ -63,6 +63,7 @@ class HexaStackGenTest {
      * order, first-fit cells — the LogicTest winnability player), to decide whether
      * strict-passing seeds are cheap enough to bias generation toward.
      */
+    @org.junit.Ignore("Offline generator runner")
     @Test
     fun strictGreedyStats() {
         val configs = listOf(
@@ -101,6 +102,7 @@ class HexaStackGenTest {
         return s.isWon
     }
 
+    @org.junit.Ignore("Offline generator runner")
     @Test
     fun generateSampleLevels() {
         val configs = listOf(
@@ -110,7 +112,7 @@ class HexaStackGenTest {
             Triple("Expert", HexaStackGenerator.Config(radius = 3, numColors = 5, targetFraction = 0.7, requireStrict = true), 15),
         )
         val out = java.io.File("build/hexastack-levels.txt")
-        out.parentFile.mkdirs()
+        out.parentFile?.mkdirs()
         out.printWriter().use { pw ->
             for ((difficulty, config, count) in configs) {
                 var successes = 0

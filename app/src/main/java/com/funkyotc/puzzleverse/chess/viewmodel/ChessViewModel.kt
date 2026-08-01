@@ -102,6 +102,42 @@ class ChessViewModel(
         return pieces
     }
 
+    fun requestHint() {
+        val st = _state.value
+        val p = puzzle ?: return
+        if (st.isGameOver || st.correctMoveIndex >= p.solutionMoves.size) return
+
+        val moveNotation = p.solutionMoves[st.correctMoveIndex]
+        if (moveNotation.length < 4) return
+        val fromSq = Square.fromValue(moveNotation.substring(0, 2).uppercase())
+        val toSq = Square.fromValue(moveNotation.substring(2, 4).uppercase())
+
+        val fromPos = rowColFromSquare(fromSq) ?: return
+        val toPos = rowColFromSquare(toSq) ?: return
+
+        if (st.hintStage == 0) {
+            _state.update {
+                it.copy(
+                    hintStage = 1,
+                    hintSourceRow = fromPos.first,
+                    hintSourceCol = fromPos.second,
+                    selectedRow = fromPos.first,
+                    selectedCol = fromPos.second,
+                    message = "Hint 1/2: Tap highlighted piece!"
+                )
+            }
+        } else {
+            _state.update {
+                it.copy(
+                    hintStage = 2,
+                    hintTargetRow = toPos.first,
+                    hintTargetCol = toPos.second,
+                    message = "Hint 2/2: Move to highlighted square!"
+                )
+            }
+        }
+    }
+
     fun onSquareClicked(row: Int, col: Int) {
         val st = _state.value
         if (st.isGameOver) return

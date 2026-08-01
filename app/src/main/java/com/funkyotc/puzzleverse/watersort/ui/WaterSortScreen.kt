@@ -203,8 +203,9 @@ fun WaterSortScreen(
             val bottles = state.bottles
             val cols = when {
                 bottles.size <= 4 -> bottles.size
-                bottles.size <= 8 -> 4
-                bottles.size <= 12 -> 5
+                bottles.size == 5 -> 3
+                bottles.size in 6..8 -> 4
+                bottles.size in 9..10 -> 5
                 else -> 6
             }
             val rows = (bottles.size + cols - 1) / cols
