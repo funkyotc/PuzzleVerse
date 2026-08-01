@@ -427,7 +427,7 @@ private fun ActiveBoardsRow(
                     label = "boardTransition"
                 ) { currentBoard ->
                     if (currentBoard != null) {
-                        val boardBgColor = Color(currentBoard.color.colorHex)
+                        val boardColor = Color(currentBoard.color.colorHex)
                         val isComplete = currentBoard.filledCount == 3
                         val scale by animateFloatAsState(
                             targetValue = if (isComplete) 1.08f else 1f,
@@ -435,8 +435,14 @@ private fun ActiveBoardsRow(
                             label = "boardPulse"
                         )
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3E2723)),
-                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = boardColor.copy(alpha = 0.22f)
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = 3.dp,
+                                color = if (isComplete) Color.White else boardColor
+                            ),
+                            shape = RoundedCornerShape(10.dp),
                             elevation = CardDefaults.cardElevation(defaultElevation = if (isComplete) 8.dp else 4.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -447,15 +453,8 @@ private fun ActiveBoardsRow(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 4.dp)
+                                modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp)
                             ) {
-                                Text(
-                                    text = currentBoard.color.displayName + if (isComplete) " ✓" else "",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = boardBgColor
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceEvenly,
                                     verticalAlignment = Alignment.CenterVertically,
@@ -470,7 +469,7 @@ private fun ActiveBoardsRow(
                                         )
                                         Canvas(
                                             modifier = Modifier
-                                                .size(20.dp)
+                                                .size(22.dp)
                                                 .onGloballyPositioned { coordinates ->
                                                     val pos = coordinates.positionInRoot() - rootOffset
                                                     slotPositions["${currentBoard.id}_$slot"] = pos
@@ -484,7 +483,7 @@ private fun ActiveBoardsRow(
                                             val center = Offset(size.width / 2f, size.height / 2f)
                                             if (isFilled) {
                                                 drawCircle(Color(0xFF37474F), r, center)
-                                                drawCircle(boardBgColor, r * 0.75f, center)
+                                                drawCircle(boardColor, r * 0.75f, center)
                                                 drawCircle(Color.White.copy(alpha = 0.5f), r * 0.35f, center)
                                             } else {
                                                 drawCircle(Color(0xFF1E1E1E), r, center)
@@ -496,7 +495,7 @@ private fun ActiveBoardsRow(
                             }
                         }
                     } else {
-                        Spacer(modifier = Modifier.height(60.dp))
+                        Spacer(modifier = Modifier.height(52.dp))
                     }
                 }
             }
