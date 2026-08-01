@@ -118,29 +118,19 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
                         }
                     }
                     "cubeshooter" -> {
-                        MenuCard(text = "Easy") {
+                        MenuCard(text = "Easy (15x15)") {
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             navController.navigate("game/cubeshooter/easy")
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        MenuCard(text = "Medium") {
+                        MenuCard(text = "Medium (20x20)") {
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             navController.navigate("game/cubeshooter/medium")
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        MenuCard(text = "Hard") {
+                        MenuCard(text = "Hard (30x30)") {
                             soundManager.playSound(SoundManager.SOUND_ID_CLICK)
                             navController.navigate("game/cubeshooter/hard")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        MenuCard(text = "Pictures") {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/cubeshooter/pictures")
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        MenuCard(text = "Hard Pictures") {
-                            soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                            navController.navigate("game/cubeshooter/hard_pictures")
                         }
                     }
                     else -> {

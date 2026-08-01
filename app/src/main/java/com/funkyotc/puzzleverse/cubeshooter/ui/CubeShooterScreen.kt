@@ -142,10 +142,11 @@ fun CubeShooterScreen(
             } else null
         } else null
 
+        val pictureName = state.level.name.ifEmpty { "Picture" }
         GameEndDialog(
             isWon = true,
-            title = "Victory!",
-            message = "You cleared all cubes! Final Score: ${state.score}",
+            title = "Victory! - $pictureName",
+            message = "You completed '$pictureName'!\nFinal Score: ${state.score}",
             mode = mode,
             gameId = "cubeshooter",
             currentDifficulty = currentDifficulty,
@@ -181,7 +182,7 @@ fun CubeShooterScreen(
     }
 
     StandardGameLayout(
-        title = "Cube Shooter",
+        title = if (state.level.name.isNotEmpty()) "Cube Shooter: ${state.level.name}" else "Cube Shooter",
         navController = navController,
         onHowToClick = { showHowToDialog = true },
         actions = {
@@ -876,6 +877,60 @@ private fun getTrackCellCoordinates(index: Int, cols: Int, rows: Int): Pair<Int,
         else -> {
             val r = (rows + 2) - (idx - (topCount + rightCount + topCount))
             Pair(r, 0)
+        }
+    }
+}
+
+@Composable
+fun CompletedPicturePreviewCard(
+    level: com.funkyotc.puzzleverse.cubeshooter.data.Level,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        modifier = modifier
+            .padding(16.dp)
+            .wrapContentSize()
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = level.name.ifEmpty { "Completed Picture" },
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Canvas(
+                modifier = Modifier
+                    .size(200.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF1E1E2C))
+                    .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+            ) {
+                val cols = level.cols
+                val rows = level.rows
+                val cellW = size.width / cols
+                val cellH = size.height / rows
+
+                for (r in 0 until rows) {
+                    for (c in 0 until cols) {
+                        val colorId = level.grid.getOrNull(r)?.getOrNull(c)
+                        if (colorId != null) {
+                            val color = getComposeColor(colorId)
+                            drawRect(
+                                color = color,
+                                topLeft = Offset(c * cellW, r * cellH),
+                                size = Size(cellW, cellH)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

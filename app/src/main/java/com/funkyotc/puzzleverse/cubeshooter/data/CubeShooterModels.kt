@@ -29,6 +29,7 @@ data class TankReturn(val id: String, val tank: Tank)
 
 data class Level(
     val id: String,
+    val name: String = "",
     val difficulty: String,
     val cols: Int,
     val rows: Int,

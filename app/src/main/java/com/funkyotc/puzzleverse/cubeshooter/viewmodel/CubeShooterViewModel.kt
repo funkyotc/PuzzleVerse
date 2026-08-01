@@ -38,8 +38,6 @@ class CubeShooterViewModel(
                     "easy" -> "Easy"
                     "medium" -> "Medium"
                     "hard" -> "Hard"
-                    "pictures" -> "Pictures"
-                    "hard pictures", "hard_pictures", "hardpictures" -> "Hard Pictures"
                     else -> null
                 }
                 if (diffName != null) {
@@ -52,6 +50,7 @@ class CubeShooterViewModel(
 
         val level = Level(
             id = selectedLevel.id,
+            name = selectedLevel.name,
             difficulty = selectedLevel.difficulty,
             cols = selectedLevel.cols,
             rows = selectedLevel.rows,
