@@ -10,10 +10,9 @@ data class SudokuCell(
 )
 
 class SudokuBoard(val cells: List<SudokuCell>) {
-    private val cellMap: Map<Pair<Int, Int>, SudokuCell> = cells.associateBy { it.row to it.col }
 
     fun getCell(row: Int, col: Int): SudokuCell {
-        return cellMap[row to col]
+        return cells.firstOrNull { it.row == row && it.col == col }
             ?: throw IllegalStateException("Cell not found at row $row, col $col")
     }
 

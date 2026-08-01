@@ -7,7 +7,7 @@ import androidx.core.content.edit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONObject
+import com.google.gson.Gson
 
 data class SaveStateMetadata(
     val gameId: String,
@@ -26,6 +26,7 @@ class SaveStateRepository(
 ) {
     private val prefs: SharedPreferences = context?.getSharedPreferences("PuzzleVerseSaveStates", Context.MODE_PRIVATE)
         ?: InMemorySharedPreferences()
+    private val gson = Gson()
 
     private val _savedGameIds = MutableStateFlow(loadSavedGameIds())
     val savedGameIds: StateFlow<Set<String>> = _savedGameIds.asStateFlow()
@@ -49,21 +50,14 @@ class SaveStateRepository(
     }
 
     fun hasSaveState(gameId: String): Boolean {
-        return _savedGameIds.value.contains(gameId)
+        return _savedGameIds.value.contains(gameId) || prefs.contains("save_$gameId")
     }
 
     fun getSaveState(gameId: String): SaveStateMetadata? {
         if (!hasSaveState(gameId)) return null
         val rawJson = prefs.getString("save_$gameId", null) ?: return null
         return try {
-            val obj = JSONObject(rawJson)
-            SaveStateMetadata(
-                gameId = obj.getString("gameId"),
-                mode = obj.optString("mode", "standard"),
-                puzzleId = if (obj.has("puzzleId") && !obj.isNull("puzzleId")) obj.getString("puzzleId") else null,
-                timestamp = obj.optLong("timestamp", System.currentTimeMillis()),
-                jsonState = if (obj.has("jsonState") && !obj.isNull("jsonState")) obj.getString("jsonState") else null
-            )
+            gson.fromJson(rawJson, SaveStateMetadata::class.java)
         } catch (e: Exception) {
             null
         }
@@ -77,19 +71,13 @@ class SaveStateRepository(
             timestamp = System.currentTimeMillis(),
             jsonState = jsonState
         )
-        val obj = JSONObject().apply {
-            put("gameId", metadata.gameId)
-            put("mode", metadata.mode)
-            put("puzzleId", metadata.puzzleId)
-            put("timestamp", metadata.timestamp)
-            put("jsonState", metadata.jsonState)
-        }
+        val jsonStr = gson.toJson(metadata)
 
         val currentSet = loadSavedGameIds().toMutableSet()
         currentSet.add(gameId)
 
         prefs.edit {
-            putString("save_$gameId", obj.toString())
+            putString("save_$gameId", jsonStr)
             putStringSet("active_save_games", currentSet)
         }
         _savedGameIds.value = currentSet
