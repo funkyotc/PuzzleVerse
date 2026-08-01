@@ -29,13 +29,15 @@ class TfeViewModel(
     init {
         if (!forceNewGame) {
             val savedState = repository.loadGame(boardKey)
-            if (savedState != null && savedState.tiles.isNotEmpty() && !savedState.isGameOver) {
+            @Suppress("SENSELESS_COMPARISON")
+            if (savedState != null && savedState.tiles != null && savedState.tiles.isNotEmpty() && !savedState.isGameOver && !savedState.isWon) {
                 val restoredTiles = savedState.tiles.map { it.copy(isNew = false, isMerged = false) }
                 _state.value = savedState.copy(tiles = restoredTiles)
             } else {
                 startNewGame()
             }
         } else {
+            repository.clearGame(boardKey)
             startNewGame()
         }
     }
@@ -168,6 +170,8 @@ class TfeViewModel(
             addRandomTile()
             checkGameOver()
             repository.saveGame(boardKey, _state.value)
+        } else {
+            checkGameOver()
         }
     }
 
@@ -191,7 +195,7 @@ class TfeViewModel(
         val isWon = st.tiles.any { it.value >= 2048 }
         _state.update { it.copy(isGameOver = !canMove, isWon = isWon) }
 
-        if (!canMove) {
+        if (!canMove || isWon) {
             repository.clearGame(boardKey)
         }
 

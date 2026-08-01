@@ -18,26 +18,36 @@ class TfeRepository(
     private val gson = Gson()
     private val saveStateRepo = SaveStateRepository(context)
 
+    @Suppress("SENSELESS_COMPARISON")
     fun saveGame(key: String, state: TfeState) {
         try {
             val json = gson.toJson(state)
-            sharedPreferences.edit { putString("savedState_$key", json) }
             val mode = if (key.contains("daily")) "daily" else "standard"
-            if (!state.isGameOver && (state.tiles.isNotEmpty() || state.score > 0)) {
+            if (!state.isGameOver && !state.isWon && state.tiles != null && (state.tiles.isNotEmpty() || state.score > 0)) {
+                sharedPreferences.edit { putString("savedState_$key", json) }
                 saveStateRepo.saveGameState("tfe", mode = mode)
             } else {
-                saveStateRepo.clearSaveState("tfe")
+                clearGame(key)
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    @Suppress("SENSELESS_COMPARISON")
     fun loadGame(key: String): TfeState? {
         return try {
             val json = sharedPreferences.getString("savedState_$key", null)
             if (json != null) {
-                gson.fromJson(json, TfeState::class.java)
+                val state = gson.fromJson(json, TfeState::class.java)
+                if (state != null && state.tiles != null && state.tiles.isNotEmpty() && !state.isGameOver && !state.isWon) {
+                    state
+                } else {
+                    if (state != null) {
+                        clearGame(key)
+                    }
+                    null
+                }
             } else {
                 null
             }
