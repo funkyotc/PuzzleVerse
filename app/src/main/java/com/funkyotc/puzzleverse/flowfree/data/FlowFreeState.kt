@@ -1,8 +1,8 @@
 package com.funkyotc.puzzleverse.flowfree.data
 
 enum class FlowDifficulty(val gridSize: Int, val numColors: Int, val label: String) {
-    EASY(5, 4, "Easy"),
-    MEDIUM(6, 5, "Medium"),
+    EASY(5, 5, "Easy"),
+    MEDIUM(6, 6, "Medium"),
     HARD(7, 6, "Hard"),
     EXPERT(8, 7, "Expert")
 }

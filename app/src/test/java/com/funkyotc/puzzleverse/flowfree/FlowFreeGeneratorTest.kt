@@ -30,6 +30,18 @@ class FlowFreeGeneratorTest {
                 assertFalse("Duplicate endpoint detected in puzzle ${puzzle.id}", points.contains(end))
                 points.add(end)
             }
+
+            // Verify singular 100% coverage solution using FlowSolver
+            val solverDots = dots.map { 
+                generators.flowfree.ColorDot(
+                    it.colorId, 
+                    generators.flowfree.Point(it.start.r, it.start.c), 
+                    generators.flowfree.Point(it.end.r, it.end.c)
+                ) 
+            }
+            val solver = generators.flowfree.FlowSolver(size, solverDots)
+            val solutions = solver.countFullCoverageSolutions(maxSolutions = 2)
+            assertEquals("Puzzle ${puzzle.id} must have exactly 1 full-coverage solution", 1, solutions)
         }
     }
 }

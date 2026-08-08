@@ -26,7 +26,26 @@ class FlowSolver:
             self.dot_map[en] = cid
             self.dot_pairs[cid] = (st, en)
 
-    def solve(self, max_solutions=2, max_steps=5000):
+        self.neighbors = {}
+        for r in range(size):
+            for c in range(size):
+                nbrs = []
+                for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < size and 0 <= nc < size:
+                        nbrs.append((nr, nc))
+                self.neighbors[(r, c)] = nbrs
+
+        self.color_sorted_nbrs = {}
+        for cid, (st, en) in self.dot_pairs.items():
+            self.color_sorted_nbrs[cid] = {}
+            for r in range(size):
+                for c in range(size):
+                    nbrs = list(self.neighbors[(r, c)])
+                    nbrs.sort(key=lambda n: abs(n[0]-en[0]) + abs(n[1]-en[1]))
+                    self.color_sorted_nbrs[cid][(r, c)] = nbrs
+
+    def solve(self, max_solutions=2, max_steps=100000):
         """Find up to max_solutions full-coverage solutions."""
         grid = [[0] * self.size for _ in range(self.size)]
         solutions_found = []
@@ -37,14 +56,6 @@ class FlowSolver:
             key=lambda c: abs(self.dot_pairs[c][0][0] - self.dot_pairs[c][1][0]) + abs(self.dot_pairs[c][0][1] - self.dot_pairs[c][1][1])
         )
 
-        def get_neighbors(r, c):
-            res = []
-            for dr, dc in [(-1,0), (1,0), (0,-1), (0,1)]:
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < self.size and 0 <= nc < self.size:
-                    res.append((nr, nc))
-            return res
-
         heads = {}
         step_count = [0]
 
@@ -52,12 +63,13 @@ class FlowSolver:
             if grid[r][c] != 0:
                 return False
             is_dot = (r, c) in self.dot_map
-            avail = sum(1 for nr, nc in get_neighbors(r, c) if grid[nr][nc] == 0 or (nr, nc) == heads.get(curr_cid))
+            curr_head = heads.get(curr_cid)
+            avail = sum(1 for nr, nc in self.neighbors[(r, c)] if grid[nr][nc] == 0 or (nr, nc) == curr_head)
             min_req = 1 if is_dot else 2
             return avail < min_req
 
         def check_local_prune(r, c, curr_cid):
-            for nr, nc in get_neighbors(r, c):
+            for nr, nc in self.neighbors[(r, c)]:
                 if is_dead_end(nr, nc, curr_cid):
                     return True
             return False
@@ -90,8 +102,7 @@ class FlowSolver:
                     return
 
             r, c = curr_pos
-            nbrs = get_neighbors(r, c)
-            nbrs.sort(key=lambda n: abs(n[0]-end_pt[0]) + abs(n[1]-end_pt[1]))
+            nbrs = self.color_sorted_nbrs[cid][(r, c)]
 
             for nr, nc in nbrs:
                 if (nr, nc) == end_pt:
@@ -121,6 +132,8 @@ class FlowSolver:
         heads[first_cid] = f_start
         backtrack(0, f_start)
 
+        if step_count[0] > max_steps:
+            return []  # Search timed out, candidate rejected
         return solutions_found
 
 def generate_initial_snake_paths(size, num_colors):
@@ -146,7 +159,7 @@ def generate_initial_snake_paths(size, num_colors):
 
     return paths
 
-def mutate_paths(size, num_colors, initial_paths, iterations=200):
+def mutate_paths(size, num_colors, initial_paths, iterations=40):
     min_len = 3
     paths = [list(p) for p in initial_paths]
     
@@ -207,7 +220,8 @@ def generate_partition_puzzle(size, num_colors):
     min_len = 3
     for attempt in range(500):
         initial = generate_initial_snake_paths(size, num_colors)
-        iterations = random.randint(80, 250)
+        max_it = 40 if size <= 6 else 25
+        iterations = random.randint(10, max_it)
         paths = mutate_paths(size, num_colors, initial, iterations=iterations)
         
         valid = True
@@ -217,7 +231,7 @@ def generate_partition_puzzle(size, num_colors):
                 valid = False
                 break
             st, en = p[0], p[-1]
-            if abs(st[0]-en[0]) + abs(st[1]-en[1]) < 2:
+            if abs(st[0]-en[0]) + abs(st[1]-en[1]) < 1:
                 valid = False
                 break
             dots.append({
@@ -231,11 +245,11 @@ def generate_partition_puzzle(size, num_colors):
 
         # Verify uniqueness with FlowSolver
         solver = FlowSolver(size, dots)
-        solutions = solver.solve(max_solutions=2, max_steps=4000)
+        solutions = solver.solve(max_solutions=2, max_steps=3000)
         if len(solutions) == 1:
-            return dots, paths
+            return dots
 
-    return None, None
+    return None
 
 def create_puzzles():
     script_dir = Path(__file__).parent
@@ -244,8 +258,8 @@ def create_puzzles():
     difficulty_map = {
         "Easy": (5, 5, 5),      # size, colors, count
         "Medium": (6, 6, 5),
-        "Hard": (7, 7, 5),
-        "Expert": (8, 8, 5)
+        "Hard": (7, 6, 5),
+        "Expert": (8, 7, 5)
     }
 
     random.seed(42)
@@ -259,19 +273,19 @@ def create_puzzles():
 
         generated = 0
         attempts = 0
-        while generated < count and attempts < 1000:
+        while generated < count and attempts < 10000:
             attempts += 1
-            dots, paths = generate_partition_puzzle(size, num_colors)
+            dots = generate_partition_puzzle(size, num_colors)
             if dots:
                 generated += 1
                 puzzle_data = {"dots": dots}
                 puzzle_file = folder / f"puzzle_{generated:03d}.json"
                 with open(puzzle_file, 'w') as f:
                     json.dump(puzzle_data, f, indent=2)
-                print(f"[{diff_name}] Generated puzzle {generated}/{count} (size {size}x{size}, {num_colors} colors)")
+                print(f"[{diff_name}] Generated puzzle {generated}/{count} (size {size}x{size}, {num_colors} colors)", flush=True)
         
         if generated < count:
-            print(f"Warning: Generated {generated}/{count} puzzles for {diff_name}")
+            print(f"Warning: Generated {generated}/{count} puzzles for {diff_name}", flush=True)
 
 if __name__ == "__main__":
     create_puzzles()
