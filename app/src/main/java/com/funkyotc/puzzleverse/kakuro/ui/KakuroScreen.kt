@@ -175,7 +175,7 @@ fun KakuroScreen(
                                                         indication = null
                                                     ) {
                                                         soundManager.playSound(SoundManager.SOUND_ID_CLICK)
-                                                        selectedCell = Pair(r, c)
+                                                if (!cell.isGiven) selectedCell = Pair(r, c)
                                                     }.animateTapFeedback(cellInteractionSource)
                                                 } else Modifier
                                             )
@@ -314,7 +314,7 @@ fun KakuroCellView(cell: KakuroCell, isSelected: Boolean) {
                     text = cell.playerValue.toString(),
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (cell.isGiven) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.animatePiecePlacement(trigger = cell.playerValue)
                 )
             }

@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.dailyIndex
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
+import com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.nonogram.data.CellState
 import com.funkyotc.puzzleverse.nonogram.data.NonogramState
@@ -17,7 +21,8 @@ import kotlinx.coroutines.launch
 class NonogramViewModel(
     private val streakRepository: StreakRepository? = null,
     private val mode: String? = "standard",
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
     private val _state = MutableStateFlow(NonogramState())
     val state: StateFlow<NonogramState> = _state.asStateFlow()
@@ -29,19 +34,19 @@ class NonogramViewModel(
     }
 
     fun startNewGame() {
-        val baseSolution = if (puzzleId != null) {
-            val pregen = com.funkyotc.puzzleverse.nonogram.data.NonogramPregenerated.ALL_PUZZLES.find { it.id == puzzleId }
-            pregen?.grid
-        } else {
-            null
+        val baseSolution = when {
+            puzzleId != null -> requireNotNull(NonogramPregenerated.ALL_PUZZLES.find { it.id == puzzleId }) {
+                "Unknown Nonogram puzzle: $puzzleId"
+            }.grid
+            mode == "daily" -> NonogramPregenerated.ALL_PUZZLES[dailyIndex(daySource.epochDay(), NonogramPregenerated.ALL_PUZZLES.size)].grid
+            else -> null
         }
 
-        val finalSolution = if (baseSolution != null && com.funkyotc.puzzleverse.nonogram.data.NonogramSolver.isSolvableWithoutGuessing(baseSolution)) {
-            baseSolution
-        } else {
-            val targetSize = baseSolution?.size ?: 10
-            com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle(targetSize)
+        if (baseSolution != null) require(com.funkyotc.puzzleverse.nonogram.data.NonogramSolver.isSolvableWithoutGuessing(baseSolution)) {
+            "Selected Nonogram puzzle is invalid: ${puzzleId ?: "daily"}"
         }
+        val finalSolution = baseSolution
+            ?: com.funkyotc.puzzleverse.nonogram.data.NonogramPuzzleLibrary.getRandomPuzzle(10)
 
         val rows = finalSolution.size
         val cols = if (rows > 0) finalSolution[0].size else 0

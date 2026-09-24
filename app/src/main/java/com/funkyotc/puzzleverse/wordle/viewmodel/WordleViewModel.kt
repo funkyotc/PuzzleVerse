@@ -7,6 +7,9 @@ import com.funkyotc.puzzleverse.wordle.model.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.dailyIndex
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 import kotlin.random.Random
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import android.content.Context
@@ -15,7 +18,8 @@ class WordleViewModel(
     private val mode: String?,
     private val streakRepository: StreakRepository,
     private val statsRepository: WordleStatsRepository,
-    private val dictionary: List<String>
+    private val dictionary: List<String>,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
 
     private val _wordleState = MutableStateFlow<WordleState?>(null)
@@ -29,8 +33,11 @@ class WordleViewModel(
         val emptyGuesses = List(6) { 
             WordleGuess(List(5) { WordleLetter(' ', LetterState.EMPTY) })
         }
-        val seed = if (mode == "daily") todayEpochDay() else System.currentTimeMillis()
-        val solution = dictionary.random(Random(seed))
+        val solution = if (mode == "daily") {
+            dictionary[dailyIndex(daySource.epochDay(), dictionary.size)]
+        } else {
+            dictionary.random(Random(System.currentTimeMillis()))
+        }
         _wordleState.value = WordleState(
             guesses = emptyGuesses, 
             solution = solution, 

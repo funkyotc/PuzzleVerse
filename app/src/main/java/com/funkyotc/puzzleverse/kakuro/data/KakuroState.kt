@@ -9,7 +9,8 @@ data class KakuroCell(
     val clue: Clue? = null, // Only for CellType.CLUE
     val playerValue: Int? = null, // Only for CellType.PLAYER_INPUT
     val r: Int,
-    val c: Int
+    val c: Int,
+    val isGiven: Boolean = false
 )
 
 data class KakuroState(

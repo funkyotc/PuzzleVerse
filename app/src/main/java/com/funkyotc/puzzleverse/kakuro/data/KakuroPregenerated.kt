@@ -1,14 +1,54 @@
 package com.funkyotc.puzzleverse.kakuro.data
 
+import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
+
 data class PregeneratedKakuro(
-    val id: String,
-    val difficulty: String,
+    override val id: String,
+    override val difficulty: String,
     val rows: Int,
     val cols: Int,
-    val grid: List<List<KakuroCell>>
-)
+    val grid: List<List<KakuroCell>>,
+    val givens: Map<Pair<Int, Int>, Int> = emptyMap()
+) : BrowseablePuzzle {
+    override val label: String get() = "Kakuro ${id.substringAfterLast('_')}"
+    override val subtitle: String get() = "${rows}x${cols}"
+
+    val startingGrid: List<List<KakuroCell>> get() = grid.mapIndexed { r, row ->
+        row.mapIndexed { c, cell ->
+            givens[r to c]?.let { cell.copy(playerValue = it, isGiven = true) } ?: cell
+        }
+    }
+}
 
 object KakuroPregenerated {
+
+    /** Fixed starting digits selected against the shipped clue sets to leave one winning assignment. */
+    private val GIVENS_BY_ID: Map<String, Map<Pair<Int, Int>, Int>> = mapOf(
+        "kakuro_easy_1" to mapOf((1 to 2) to 9, (2 to 1) to 5, (2 to 2) to 3),
+        "kakuro_easy_2" to mapOf((1 to 1) to 3, (2 to 2) to 1, (3 to 3) to 7),
+        "kakuro_easy_3" to mapOf((3 to 3) to 7, (1 to 1) to 1),
+        "kakuro_easy_4" to mapOf((1 to 2) to 2, (2 to 2) to 6),
+        "kakuro_easy_5" to mapOf((3 to 3) to 4),
+        "kakuro_easy_6" to mapOf((3 to 3) to 5, (1 to 1) to 2),
+        "kakuro_easy_7" to mapOf((2 to 1) to 9, (2 to 2) to 2, (1 to 2) to 8),
+        "kakuro_easy_8" to mapOf((2 to 2) to 5, (1 to 1) to 7),
+        "kakuro_easy_9" to mapOf((2 to 2) to 1, (1 to 1) to 5),
+        "kakuro_easy_10" to mapOf((1 to 2) to 2, (2 to 1) to 9),
+        "kakuro_medium_1" to mapOf((1 to 4) to 8, (2 to 3) to 1, (2 to 2) to 6),
+        "kakuro_medium_2" to mapOf((2 to 3) to 4, (2 to 1) to 1),
+        "kakuro_medium_3" to mapOf((2 to 3) to 5, (1 to 4) to 4, (2 to 4) to 8, (1 to 1) to 6),
+        "kakuro_medium_4" to mapOf((2 to 1) to 4, (2 to 2) to 7, (1 to 2) to 1, (2 to 3) to 1),
+        "kakuro_medium_5" to mapOf((2 to 3) to 7, (1 to 4) to 1, (1 to 1) to 8),
+        "kakuro_medium_6" to mapOf((2 to 1) to 3, (1 to 2) to 7),
+        "kakuro_medium_7" to mapOf((1 to 4) to 9, (2 to 3) to 3, (1 to 1) to 1, (3 to 3) to 1, (2 to 2) to 2),
+        "kakuro_medium_8" to mapOf((3 to 2) to 3, (2 to 1) to 3, (2 to 2) to 8),
+        "kakuro_hard_1" to mapOf((2 to 2) to 8, (2 to 4) to 4, (1 to 2) to 1),
+        "kakuro_hard_2" to mapOf((3 to 1) to 8, (2 to 1) to 7, (2 to 2) to 4, (2 to 4) to 9, (4 to 3) to 2),
+        "kakuro_hard_3" to mapOf((1 to 2) to 9, (2 to 1) to 8, (2 to 2) to 5, (2 to 4) to 4, (3 to 4) to 5, (4 to 3) to 3),
+        "kakuro_hard_4" to mapOf((3 to 1) to 3, (2 to 2) to 5, (3 to 4) to 1, (2 to 1) to 8),
+        "kakuro_hard_5" to mapOf((3 to 1) to 5, (3 to 4) to 5, (2 to 1) to 3, (1 to 2) to 6, (4 to 3) to 9),
+        "kakuro_hard_6" to mapOf((4 to 3) to 5, (3 to 4) to 6, (2 to 1) to 5, (2 to 2) to 2, (3 to 1) to 1),
+    )
 
     val ALL_PUZZLES: List<PregeneratedKakuro> by lazy {
         listOf(
@@ -200,7 +240,7 @@ object KakuroPregenerated {
                 listOf(KakuroCell(CellType.BLACK, null, null, 5, 0), KakuroCell(CellType.BLACK, null, null, 5, 1), KakuroCell(CellType.CLUE, Clue(10, null), null, 5, 2), KakuroCell(CellType.PLAYER_INPUT, null, null, 5, 3), KakuroCell(CellType.PLAYER_INPUT, null, null, 5, 4), KakuroCell(CellType.BLACK, null, null, 5, 5), KakuroCell(CellType.BLACK, null, null, 5, 6)),
                 listOf(KakuroCell(CellType.BLACK, null, null, 6, 0), KakuroCell(CellType.BLACK, null, null, 6, 1), KakuroCell(CellType.BLACK, null, null, 6, 2), KakuroCell(CellType.BLACK, null, null, 6, 3), KakuroCell(CellType.BLACK, null, null, 6, 4), KakuroCell(CellType.BLACK, null, null, 6, 5), KakuroCell(CellType.BLACK, null, null, 6, 6)),
             )),
-        )
+        ).map { it.copy(givens = GIVENS_BY_ID.getValue(it.id)) }
     }
 
     val PUZZLES_BY_DIFFICULTY: Map<String, List<PregeneratedKakuro>> by lazy { ALL_PUZZLES.groupBy { it.difficulty } }

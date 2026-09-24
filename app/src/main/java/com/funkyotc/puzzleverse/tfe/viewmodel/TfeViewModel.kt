@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.tfe.data.Direction
 import com.funkyotc.puzzleverse.tfe.data.TfeRepository
@@ -18,7 +20,8 @@ class TfeViewModel(
     context: Context? = null,
     private val mode: String? = "standard",
     private val forceNewGame: Boolean = false,
-    private val streakRepository: StreakRepository? = null
+    private val streakRepository: StreakRepository? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
     private val repository = TfeRepository(context)
     private val boardKey = if (mode == "daily") "daily_tfe_board" else "standard_tfe_board"
@@ -30,7 +33,8 @@ class TfeViewModel(
         if (!forceNewGame) {
             val savedState = repository.loadGame(boardKey)
             @Suppress("SENSELESS_COMPARISON")
-            if (savedState != null && savedState.tiles != null && savedState.tiles.isNotEmpty() && !savedState.isGameOver && !savedState.isWon) {
+            if (savedState != null && savedState.tiles != null && savedState.tiles.isNotEmpty() && !savedState.isGameOver && !savedState.isWon &&
+                (mode != "daily" || savedState.challengeEpochDay == daySource.epochDay())) {
                 val restoredTiles = savedState.tiles.map { it.copy(isNew = false, isMerged = false) }
                 _state.value = savedState.copy(tiles = restoredTiles)
             } else {
@@ -43,7 +47,9 @@ class TfeViewModel(
     }
 
     fun startNewGame() {
-        _state.value = TfeState(tiles = emptyList())
+        val day = if (mode == "daily") daySource.epochDay() else null
+        _state.value = TfeState(tiles = emptyList(), challengeEpochDay = day,
+            randomState = if (day != null) day * 6364136223846793005L + 1442695040888963407L else 0L)
         addRandomTile()
         addRandomTile()
         repository.saveGame(boardKey, _state.value)
@@ -64,16 +70,24 @@ class TfeViewModel(
         
         if (emptyCells.isEmpty()) return
         
-        val (r, c) = emptyCells.random()
-        val newValue = if (Math.random() < 0.9) 2 else 4
+        val (position, newValue, nextRandomState) = if (mode == "daily") {
+            val positionState = current.randomState * 6364136223846793005L + 1442695040888963407L
+            val valueState = positionState * 6364136223846793005L + 1442695040888963407L
+            Triple(emptyCells[((positionState ushr 1) % emptyCells.size).toInt()],
+                if ((valueState ushr 1) % 10 < 9) 2 else 4, valueState)
+        } else {
+            Triple(emptyCells.random(), if (Math.random() < 0.9) 2 else 4, current.randomState)
+        }
+        val (r, c) = position
         
         val newTile = Tile(id = Tile.createId(), value = newValue, row = r, col = c, isNew = true)
         val newTiles = current.tiles + newTile
         
-        _state.update { it.copy(tiles = newTiles) }
+        _state.update { it.copy(tiles = newTiles, randomState = nextRandomState) }
     }
 
     fun move(direction: Direction) {
+        if (refreshDailyIfNeeded()) return
         val current = _state.value
         if (current.isGameOver) return
         
@@ -173,6 +187,14 @@ class TfeViewModel(
         } else {
             checkGameOver()
         }
+    }
+
+    /** Returns true when an expired Daily run was replaced. */
+    fun refreshDailyIfNeeded(): Boolean {
+        if (mode != "daily" || _state.value.challengeEpochDay == daySource.epochDay()) return false
+        repository.clearGame(boardKey)
+        startNewGame()
+        return true
     }
 
     private fun checkGameOver() {

@@ -3,6 +3,10 @@ package com.funkyotc.puzzleverse.arrowescape.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.arrowescape.data.ArrowEscapePregenerated
+import com.funkyotc.puzzleverse.core.dailyIndex
+import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 import com.funkyotc.puzzleverse.arrowescape.model.Arrow
 import com.funkyotc.puzzleverse.arrowescape.model.GridState
 import com.funkyotc.puzzleverse.arrowescape.model.LevelShape
@@ -18,7 +22,8 @@ class ArrowEscapeViewModel(
     private val streakRepository: StreakRepository,
     private val settingsRepository: SettingsRepository,
     private val mode: String,
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArrowEscapeUiState())
@@ -32,7 +37,16 @@ class ArrowEscapeViewModel(
     }
 
     private fun loadPuzzle() {
-        val specificPuzzle = if (puzzleId != null) ArrowEscapePregenerated.getPuzzleById(puzzleId) else null
+        val specificPuzzle = when {
+            puzzleId != null -> requireNotNull(ArrowEscapePregenerated.getPuzzleById(puzzleId)) {
+                "Unknown Arrow Escape puzzle: $puzzleId"
+            }
+            mode == "daily" -> {
+                val puzzles = requireNotNull(ArrowEscapePregenerated.PUZZLES_BY_DIFFICULTY["Medium"])
+                puzzles[dailyIndex(daySource.epochDay(), puzzles.size)]
+            }
+            else -> null
+        }
         
         val arrows: List<Arrow>
         val width: Int

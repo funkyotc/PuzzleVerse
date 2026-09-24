@@ -6,6 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.dailyIndex
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortLevel
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortRepository
@@ -27,10 +30,11 @@ class HexaSortViewModel(
     private val mode: String? = null,
     private val forceNewGame: Boolean = false,
     private val streakRepository: StreakRepository,
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
 
-    private val repository = HexaSortRepository(context)
+    private val repository = HexaSortRepository(context, daySource = daySource)
     private val completionRepo = PuzzleCompletionRepository(context, "Hexa Sort")
     private val gridKey = when {
         mode == "daily" -> "daily_hexasort_grid"
@@ -88,9 +92,8 @@ class HexaSortViewModel(
                 HexaSortPregenerated.getPuzzleById(puzzleId)?.toLevel()
             }
             mode == "daily" -> {
-                val rng = Random(todayEpochDay())
                 val puzzles = HexaSortPregenerated.ALL_PUZZLES
-                puzzles[rng.nextInt(puzzles.size)]?.toLevel()
+                puzzles[dailyIndex(daySource.epochDay(), puzzles.size)]?.toLevel()
             }
             else -> {
                 HexaSortPregenerated.ALL_PUZZLES.randomOrNull()?.toLevel()

@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -74,6 +75,10 @@ import com.funkyotc.puzzleverse.tangrams.data.TangramsPregenerated
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
+import com.funkyotc.puzzleverse.core.DailyRolloverTracker
+import kotlinx.coroutines.delay
 
 val LocalSoundManager = staticCompositionLocalOf<SoundManager> { error("No SoundManager provided") }
 
@@ -124,10 +129,33 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository: StreakRepository, onInitialLoad: () -> Unit) {
+fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository: StreakRepository,
+                       daySource: UtcDaySource = SystemUtcDaySource, onInitialLoad: () -> Unit) {
     val navController = rememberNavController()
+    val saveStateRepo = LocalSaveStateRepository.current
+    LaunchedEffect(navController, daySource) {
+        val rollover = DailyRolloverTracker(daySource)
+        var savedDay = daySource.epochDay()
+        while (true) {
+            delay(1_000)
+            val currentDay = daySource.epochDay()
+            if (currentDay != savedDay) {
+                saveStateRepo.expireDailySaveStates()
+                savedDay = currentDay
+            }
+            val entry = navController.currentBackStackEntry
+            val route = rollover.routeToReload(entry?.arguments?.getString("gameId"),
+                entry?.arguments?.getString("mode"))
+            if (route != null && entry != null) {
+                navController.navigate(route) {
+                    popUpTo(entry.destination.id) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
     NavHost(
-        navController = navController, 
+        navController = navController,
         startDestination = "home",
         enterTransition = {
             slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(220)) +
@@ -146,11 +174,11 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                     fadeOut(animationSpec = tween(220))
         }
     ) {
-        composable("home") { 
+        composable("home") {
             onInitialLoad()
             HomeScreen(navController, streakRepository)
         }
-        composable("settings") { 
+        composable("settings") {
             SettingsScreen(settingsRepository, onBackPress = { navController.popBackStack() })
         }
         composable(
@@ -172,28 +200,37 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
+            val routeStreakRepository = remember(backStackEntry.id) {
+                if (mode == "daily") streakRepository.forDailyRun(daySource.epochDay()) else streakRepository
+            }
+
+            LaunchedEffect(backStackEntry.id, gameId, mode) {
+                if (mode == "daily" && gameId != null) {
+                    streakRepository.markActiveDailyRun(gameId, daySource.epochDay())
+                }
+            }
 
             when (gameId) {
-                "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
-                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
-                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, streakRepository = streakRepository!!, settingsRepository = settingsRepository!!)
-                "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "tangrams" -> TangramsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = routeStreakRepository)
+                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "tfe" -> TfeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "chess" -> ChessScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hashi" -> HashiScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "tangrams" -> TangramsScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 else -> {
                     GameScreen(
                         navController = navController,
@@ -213,28 +250,38 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
             val gameId = backStackEntry.arguments?.getString("gameId")
             val mode = backStackEntry.arguments?.getString("mode")
             val saveStateRepo = LocalSaveStateRepository.current
+            val routeStreakRepository = remember(backStackEntry.id) {
+                if (mode == "daily") streakRepository.forDailyRun(daySource.epochDay()) else streakRepository
+            }
 
             if (gameId != null) {
                 androidx.compose.runtime.LaunchedEffect(gameId, mode) {
-                    saveStateRepo.clearSaveState(gameId)
+                    saveStateRepo.clearSaveState(gameId, onlyMode = if (mode == "daily") "daily" else null)
                     saveStateRepo.saveGameState(gameId, mode ?: "standard")
                 }
             }
 
             when (gameId) {
-                "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
-                "tangrams" -> TangramsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = streakRepository)
-                "tfe" -> TfeScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = streakRepository, settingsRepository = settingsRepository)
+                "sudoku" -> SudokuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "bonza" -> BonzaScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "constellations" -> ConstellationsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = routeStreakRepository)
+                "wordle" -> WordleScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "minesweeper" -> MinesweeperScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "nonogram" -> NonogramScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "kakuro" -> KakuroScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "shikaku" -> ShikakuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hexastack" -> HexaStackScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "chess" -> ChessScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "hashi" -> HashiScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "arrowescape" -> ArrowEscapeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "tangrams" -> TangramsScreen(navController = navController, mode = mode, settingsRepository = settingsRepository, streakRepository = routeStreakRepository)
+                "tfe" -> TfeScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 else -> {
                     // For other games, you might want to handle the "new" case differently
                     GameScreen(
@@ -394,7 +441,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 title = "Kakuro Puzzles",
                 gameName = "Kakuro",
                 navController = navController,
-                puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY.mapValues { it.value.map { p -> p as com.funkyotc.puzzleverse.core.data.BrowseablePuzzle } },
+                puzzlesByDifficulty = KakuroPregenerated.PUZZLES_BY_DIFFICULTY,
                 difficultyOrder = listOf("Easy", "Medium", "Hard"),
                 initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/kakuro/puzzle/${puzzle.id}") }

@@ -15,6 +15,8 @@ data class PregeneratedPuzzle(
 )
 
 class FlowSolver(val size: Int, val dots: List<ColorDot>) {
+    var wasTruncated: Boolean = false
+        private set
     private val numColors = dots.size
     private val dotMap = HashMap<Point, Int>()
     private val dotPairs = HashMap<Int, Pair<Point, Point>>()
@@ -64,7 +66,8 @@ class FlowSolver(val size: Int, val dots: List<ColorDot>) {
         }
     }
 
-    fun countFullCoverageSolutions(maxSolutions: Int = 2, maxSteps: Int = 2000): Int {
+    fun countFullCoverageSolutions(maxSolutions: Int = 2, maxSteps: Int = 1_000_000): Int {
+        wasTruncated = false
         val grid = Array(size) { IntArray(size) { 0 } }
         var solutionsFound = 0
         val pathLengths = IntArray(numColors + 1)
@@ -103,7 +106,11 @@ class FlowSolver(val size: Int, val dots: List<ColorDot>) {
 
         fun backtrack(colorIdx: Int, currPos: Point) {
             stepCount++
-            if (stepCount > maxSteps || solutionsFound >= maxSolutions) return
+            if (stepCount > maxSteps) {
+                wasTruncated = true
+                return
+            }
+            if (solutionsFound >= maxSolutions) return
 
             val cid = colorOrder[colorIdx]
             val (_, endPt) = dotPairs[cid]!!
@@ -163,7 +170,6 @@ class FlowSolver(val size: Int, val dots: List<ColorDot>) {
         heads[firstCid] = fStart
         backtrack(0, fStart)
 
-        if (stepCount > maxSteps) return 0
         return solutionsFound
     }
 }
@@ -267,8 +273,8 @@ fun main(args: Array<String> = emptyArray()) {
         for (attempt in 1..2000) {
             val dots = generateSerpentinePath(size, numColors, rnd) ?: continue
             val solver = FlowSolver(size, dots)
-            val count = solver.countFullCoverageSolutions(maxSolutions = 2, maxSteps = 2000)
-            if (count == 1) {
+            val count = solver.countFullCoverageSolutions(maxSolutions = 2, maxSteps = 1_000_000)
+            if (count == 1 && !solver.wasTruncated) {
                 return dots
             }
         }

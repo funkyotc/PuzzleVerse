@@ -3,6 +3,10 @@ package com.funkyotc.puzzleverse.kakuro.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.dailyIndex
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
+import com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.kakuro.data.CellType
 import com.funkyotc.puzzleverse.kakuro.data.Clue
@@ -16,7 +20,8 @@ import kotlinx.coroutines.flow.update
 class KakuroViewModel(
     private val streakRepository: StreakRepository? = null,
     private val mode: String? = "standard",
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
     private val _state = MutableStateFlow(KakuroState())
     val state: StateFlow<KakuroState> = _state.asStateFlow()
@@ -26,12 +31,10 @@ class KakuroViewModel(
     }
 
     fun startNewGame() {
-        val grid = if (puzzleId != null) {
-            val allPuzzles = com.funkyotc.puzzleverse.kakuro.data.KakuroPregenerated.PUZZLES_BY_DIFFICULTY.values.flatten()
-            val pregen = allPuzzles.find { it.id == puzzleId }
-            pregen?.grid ?: com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
-        } else {
-            com.funkyotc.puzzleverse.kakuro.data.KakuroPuzzleLibrary.getRandomPuzzle()
+        val grid = when {
+            puzzleId != null -> requireNotNull(KakuroPregenerated.ALL_PUZZLES.find { it.id == puzzleId }) { "Unknown Kakuro puzzle: $puzzleId" }.startingGrid
+            mode == "daily" -> KakuroPregenerated.ALL_PUZZLES[dailyIndex(daySource.epochDay(), KakuroPregenerated.ALL_PUZZLES.size)].startingGrid
+            else -> KakuroPregenerated.ALL_PUZZLES.random().startingGrid
         }
         val rows = grid.size
         val cols = if (rows > 0) grid[0].size else 0
@@ -47,7 +50,7 @@ class KakuroViewModel(
     fun setCellValue(r: Int, c: Int, value: Int) {
         val st = _state.value
         if (st.isWon) return
-        if (st.grid[r][c].type != CellType.PLAYER_INPUT) return
+        if (st.grid[r][c].type != CellType.PLAYER_INPUT || st.grid[r][c].isGiven) return
         
         val newGrid = st.grid.map { it.toMutableList() }.toMutableList()
         val currentVal = newGrid[r][c].playerValue

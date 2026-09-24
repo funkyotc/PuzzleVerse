@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
+import kotlin.random.Random
 import com.funkyotc.puzzleverse.minesweeper.data.MineCell
 import com.funkyotc.puzzleverse.minesweeper.data.MinesweeperState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +16,8 @@ import kotlinx.coroutines.flow.update
 
 class MinesweeperViewModel(
     private val streakRepository: StreakRepository? = null,
-    private val mode: String? = "standard"
+    private val mode: String? = "standard",
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
     private val difficulty = when (mode?.lowercase()) {
         "easy", "daily" -> com.funkyotc.puzzleverse.minesweeper.data.MinesweeperDifficulty.EASY
@@ -27,12 +31,14 @@ class MinesweeperViewModel(
         totalMines = difficulty.mines
     ))
     val state: StateFlow<MinesweeperState> = _state.asStateFlow()
+    private var challengeEpochDay = daySource.epochDay()
 
     init {
         startNewGame()
     }
 
     fun startNewGame() {
+        challengeEpochDay = daySource.epochDay()
         val rows = difficulty.rows
         val cols = difficulty.cols
         val totalMines = difficulty.mines
@@ -62,7 +68,13 @@ class MinesweeperViewModel(
             }
         }
         
-        allPositions.shuffle()
+        if (mode == "daily") {
+            val seed = challengeEpochDay * 6364136223846793005L +
+                firstClickRow * 65537L + firstClickCol
+            allPositions.shuffle(Random(seed))
+        } else {
+            allPositions.shuffle()
+        }
         val minePositions = allPositions.take(st.totalMines).toSet()
         
         val newGrid = st.grid.map { it.toMutableList() }.toMutableList()
@@ -93,6 +105,7 @@ class MinesweeperViewModel(
     }
 
     fun revealCell(row: Int, col: Int) {
+        if (mode == "daily" && challengeEpochDay != daySource.epochDay()) startNewGame()
         val st = _state.value
         if (st.isGameOver || st.isWon) return
         if (st.grid[row][col].isRevealed || st.grid[row][col].isFlagged) return

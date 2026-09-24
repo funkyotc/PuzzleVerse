@@ -20,7 +20,8 @@ data class PregeneratedKakuro(
     val difficulty: String,
     val rows: Int,
     val cols: Int,
-    val grid: List<List<KakuroCell>>
+    val grid: List<List<KakuroCell>>,
+    val givens: Map<Pair<Int, Int>, Int>
 )
 
 /**
@@ -203,7 +204,12 @@ fun main(args: Array<String>) {
                 val rows = layout.size
                 val cols = layout[0].split(" ").size
                 val id = "kakuro_${diff.lowercase()}_$added"
-                puzzles.add(PregeneratedKakuro(id, diff, rows, cols, grid))
+                // Each run sum determines its last hidden digit when every
+                // other input is fixed. This conservative reveal rule keeps
+                // regenerated boards unique under the game's clue rules.
+                val inputs = grid.flatten().filter { it.type == CellType.PLAYER_INPUT }
+                val givens = inputs.dropLast(1).associate { (it.r to it.c) to solution[it.r][it.c] }
+                puzzles.add(PregeneratedKakuro(id, diff, rows, cols, grid, givens))
             }
         }
     }
@@ -216,13 +222,22 @@ fun main(args: Array<String>) {
     val sb = StringBuilder()
     sb.appendLine("package com.funkyotc.puzzleverse.kakuro.data")
     sb.appendLine()
+    sb.appendLine("import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle")
+    sb.appendLine()
     sb.appendLine("data class PregeneratedKakuro(")
-    sb.appendLine("    val id: String,")
-    sb.appendLine("    val difficulty: String,")
+    sb.appendLine("    override val id: String,")
+    sb.appendLine("    override val difficulty: String,")
     sb.appendLine("    val rows: Int,")
     sb.appendLine("    val cols: Int,")
-    sb.appendLine("    val grid: List<List<KakuroCell>>")
-    sb.appendLine(")")
+    sb.appendLine("    val grid: List<List<KakuroCell>>,")
+    sb.appendLine("    val givens: Map<Pair<Int, Int>, Int>")
+    sb.appendLine(") : BrowseablePuzzle {")
+    sb.appendLine("    override val label: String get() = \"Kakuro \${id.substringAfterLast('_')}\"")
+    sb.appendLine("    override val subtitle: String get() = \"\${rows}x\${cols}\"")
+    sb.appendLine("    val startingGrid: List<List<KakuroCell>> get() = grid.mapIndexed { r, row ->")
+    sb.appendLine("        row.mapIndexed { c, cell -> givens[r to c]?.let { cell.copy(playerValue = it, isGiven = true) } ?: cell }")
+    sb.appendLine("    }")
+    sb.appendLine("}")
     sb.appendLine()
     sb.appendLine("object KakuroPregenerated {")
     sb.appendLine()
@@ -247,6 +262,10 @@ fun main(args: Array<String>) {
             sb.append(cellStrs.joinToString(", "))
             sb.appendLine("),")
         }
+        sb.appendLine("            ), mapOf(")
+        for ((pos, digit) in p.givens) {
+            sb.appendLine("                (${pos.first} to ${pos.second}) to $digit,")
+        }
         sb.appendLine("            )),")
     }
 
@@ -256,8 +275,9 @@ fun main(args: Array<String>) {
     sb.appendLine("    val PUZZLES_BY_DIFFICULTY: Map<String, List<PregeneratedKakuro>> by lazy { ALL_PUZZLES.groupBy { it.difficulty } }")
     sb.appendLine("}")
 
-    val targetFile = File("app/src/main/java/com/funkyotc/puzzleverse/kakuro/data/KakuroPregenerated.kt")
-    targetFile.parentFile.mkdirs()
+    val targetFile = File(args.firstOrNull()
+        ?: "app/src/main/java/com/funkyotc/puzzleverse/kakuro/data/KakuroPregenerated.kt")
+    targetFile.parentFile?.mkdirs()
     targetFile.writeText(sb.toString())
 
     println("Successfully generated KakuroPregenerated.kt with ${puzzles.size} puzzles.")

@@ -19,7 +19,9 @@ data class TfeState(
     val tiles: List<Tile> = emptyList(),
     val score: Int = 0,
     val isGameOver: Boolean = false,
-    val isWon: Boolean = false
+    val isWon: Boolean = false,
+    val challengeEpochDay: Long? = null,
+    val randomState: Long = 0L
 ) {
     fun tileAt(r: Int, c: Int): Tile? = tiles.find { it.row == r && it.col == c }
     fun hasEmptyCell(): Boolean = tiles.size < 16

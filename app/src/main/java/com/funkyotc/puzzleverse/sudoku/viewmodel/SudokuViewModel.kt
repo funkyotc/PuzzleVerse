@@ -15,19 +15,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 
 class SudokuViewModel(
     context: Context,
     private val mode: String?,
     private val forceNewGame: Boolean,
     private val streakRepository: StreakRepository,
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
 
     private val generator = SudokuGenerator()
-    private val repository = SudokuRepository(context)
+    private val repository = SudokuRepository(context, daySource = daySource)
     private val completionRepo = PuzzleCompletionRepository(context, "Sudoku")
-    private val dailyChallengeSeed = todayEpochDay()
+    private val dailyChallengeSeed = daySource.epochDay()
     private val boardKey = if (mode == "daily") "daily_sudoku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_sudoku_board"
 
     private val _board: MutableStateFlow<SudokuBoard>

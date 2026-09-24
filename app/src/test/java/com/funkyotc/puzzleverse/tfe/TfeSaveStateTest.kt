@@ -5,6 +5,8 @@ import android.content.ContextWrapper
 import android.content.SharedPreferences
 import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 import com.funkyotc.puzzleverse.core.data.SaveStateRepository
+import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.UtcDaySource
 import com.funkyotc.puzzleverse.tfe.data.Direction
 import com.funkyotc.puzzleverse.tfe.data.TfeRepository
 import com.funkyotc.puzzleverse.tfe.data.TfeState
@@ -25,6 +27,43 @@ private class FakeTestContext : ContextWrapper(null) {
 }
 
 class TfeSaveStateTest {
+
+    @Test
+    fun dailyTilesAndSpawnsAreReproducibleAcrossInstallationsAndResume() {
+        val clock = UtcDaySource { 20_000L }
+        val first = TfeViewModel(context = FakeTestContext(), mode = "daily", daySource = clock)
+        val resumedContext = FakeTestContext()
+        val second = TfeViewModel(context = resumedContext, mode = "daily", daySource = clock)
+        fun layout(state: TfeState) = state.tiles.map { Triple(it.row, it.col, it.value) }.sortedWith(compareBy({ it.first }, { it.second }))
+        assertEquals(layout(first.state.value), layout(second.state.value))
+        val moves = listOf(Direction.LEFT, Direction.UP, Direction.RIGHT, Direction.DOWN)
+        moves.forEach { first.move(it); second.move(it) }
+        assertEquals(layout(first.state.value), layout(second.state.value))
+        assertEquals(first.state.value.randomState, second.state.value.randomState)
+        val restored = TfeViewModel(context = resumedContext, mode = "daily", daySource = clock)
+        assertEquals(layout(second.state.value), layout(restored.state.value))
+        assertEquals(second.state.value.randomState, restored.state.value.randomState)
+        second.move(Direction.LEFT)
+        restored.move(Direction.LEFT)
+        assertEquals(layout(second.state.value), layout(restored.state.value))
+    }
+
+    @Test
+    fun expiredAndUndatedDailySavesAreReplaced() {
+        val day = longArrayOf(20_000L)
+        val clock = UtcDaySource { day[0] }
+        val vm = TfeViewModel(context = context, mode = "daily", daySource = clock)
+        day[0]++
+        assertTrue(vm.refreshDailyIfNeeded())
+        assertEquals(20_001L, vm.state.value.challengeEpochDay)
+        assertFalse(vm.refreshDailyIfNeeded())
+
+        tfeRepo.saveGame("daily_tfe_board", TfeState(
+            tiles = listOf(Tile(id = "legacy", value = 128, row = 0, col = 0)), score = 500))
+        val reopened = TfeViewModel(context = context, mode = "daily", daySource = clock)
+        assertEquals(0, reopened.state.value.score)
+        assertEquals(20_001L, reopened.state.value.challengeEpochDay)
+    }
 
     private lateinit var context: FakeTestContext
     private lateinit var tfeRepo: TfeRepository
@@ -76,7 +115,8 @@ class TfeSaveStateTest {
             Tile(id = "tile-d1", value = 16, row = 2, col = 2),
             Tile(id = "tile-d2", value = 32, row = 3, col = 3)
         )
-        val dailyState = TfeState(tiles = testTiles, score = 250, isGameOver = false, isWon = false)
+        val dailyState = TfeState(tiles = testTiles, score = 250, isGameOver = false, isWon = false,
+            challengeEpochDay = todayEpochDay(), randomState = 123L)
         tfeRepo.saveGame("daily_tfe_board", dailyState)
 
         assertTrue("SaveStateRepository must record active save state for TFE daily mode", saveStateRepo.hasSaveState("tfe"))

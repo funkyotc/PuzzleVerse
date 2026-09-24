@@ -8,7 +8,9 @@ data class PregeneratedWaterSortLevel(
     override val difficulty: String,
     val bottles: List<List<Int>>,
     val numColors: Int,
-    val height: Int
+    val height: Int,
+    /** Pours that solve this level; each pair is a source and destination bottle index. */
+    val winningMoves: List<Pair<Int, Int>>
 ) : BrowseablePuzzle {
     override val label: String get() = id.substringAfterLast('_')
     override val subtitle: String get() = "$numColors colors, ${bottles.size} bottles"
@@ -29,11 +31,7 @@ object WaterSortPregenerated {
         return pool?.random() ?: ALL_LEVELS.first()
     }
 
-    /**
-     * Generates levels by construction: each color gets a complete stack of [height]
-     * layers, which are then shuffled across the filled bottles. Because the reverse
-     * (un-pour) is always possible, every generated puzzle is guaranteed solvable.
-     */
+    /** Scramble solved bottles only with moves whose inverse is a legal one-layer pour. */
     private fun generateLevels(): List<PregeneratedWaterSortLevel> {
         val levels = mutableListOf<PregeneratedWaterSortLevel>()
         var seed = 1
@@ -93,22 +91,31 @@ object WaterSortPregenerated {
         val id = "watersort_${difficulty.lowercase()}_${seed.toString().padStart(3, '0')}"
         val rand = Random(seed * 2654435761L)
 
-        val pool = mutableListOf<Int>()
-        repeat(numColors) { color ->
-            repeat(height) { pool.add(color) }
+        val bottles = MutableList(numColors + emptyBottles) { index ->
+            if (index < numColors) MutableList(height) { index } else mutableListOf()
         }
-        val shuffled = pool.shuffled(rand)
-
-        val filledCount = numColors
-        val bottles = mutableListOf<List<Int>>()
-        var cursor = 0
-        repeat(filledCount) {
-            val slice = shuffled.subList(cursor, cursor + height)
-            cursor += height
-            bottles.add(slice.toList())
+        val reverseMoves = mutableListOf<Pair<Int, Int>>()
+        val targetMoves = numColors * height * 4
+        repeat(targetMoves) {
+            val choices = buildList {
+                for (from in bottles.indices) for (to in bottles.indices) {
+                    if (from == to || bottles[from].isEmpty() || bottles[to].size == height) continue
+                    val color = bottles[from].last()
+                    // The inverse will pour back onto this bottle. It must be
+                    // empty or still have the same top color after removing one.
+                    if (bottles[from].size > 1 && bottles[from][bottles[from].lastIndex - 1] != color) continue
+                    // A distinct destination top keeps the moved group at size one.
+                    if (bottles[to].lastOrNull() == color) continue
+                    add(from to to)
+                }
+            }
+            if (choices.isEmpty()) return@repeat
+            val (from, to) = choices.random(rand)
+            bottles[to].add(bottles[from].removeAt(bottles[from].lastIndex))
+            reverseMoves.add(to to from)
         }
-        repeat(emptyBottles) { bottles.add(emptyList()) }
-
-        return PregeneratedWaterSortLevel(id, difficulty, bottles, numColors, height)
+        if (reverseMoves.isEmpty()) error("Could not scramble $id")
+        return PregeneratedWaterSortLevel(id, difficulty, bottles.map { it.toList() },
+            numColors, height, reverseMoves.asReversed())
     }
 }

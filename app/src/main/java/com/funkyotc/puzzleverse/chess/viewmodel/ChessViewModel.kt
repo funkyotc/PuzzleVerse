@@ -187,7 +187,7 @@ class ChessViewModel(
             chessBoard.doMove(move)
 
             val nextIndex = st.correctMoveIndex + 1
-            if (nextIndex >= p.solutionMoves.size) {
+            if (nextIndex >= p.solutionMoves.size && chessBoard.isMated) {
                 _state.update {
                     it.copy(
                         selectedRow = -1, selectedCol = -1,
@@ -197,6 +197,15 @@ class ChessViewModel(
                     )
                 }
                 handleWin()
+            } else if (nextIndex >= p.solutionMoves.size) {
+                _state.update {
+                    it.copy(
+                        selectedRow = -1, selectedCol = -1,
+                        isGameOver = true, isWon = false,
+                        correctMoveIndex = nextIndex,
+                        message = "Puzzle data error: the final position is not checkmate."
+                    )
+                }
             } else {
                 _state.update {
                     it.copy(

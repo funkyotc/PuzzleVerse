@@ -1,11 +1,31 @@
 package com.funkyotc.puzzleverse.streak.data
 
 import com.funkyotc.puzzleverse.test.FakeSharedPreferences
+import com.funkyotc.puzzleverse.core.UtcDaySource
+import com.funkyotc.puzzleverse.core.data.InMemorySharedPreferences
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
 class StreakRepositoryTest {
+
+    @Test
+    fun activeRunCannotCreditAChallengeAfterUtcRollover() {
+        val day = longArrayOf(20_000L)
+        val repository = StreakRepository(sharedPreferences = InMemorySharedPreferences(),
+            daySource = UtcDaySource { day[0] })
+        repository.markActiveDailyRun("chess", day[0])
+        val oldScreen = repository.forDailyRun(day[0])
+        day[0]++
+        repository.saveStreak(Streak("chess", count = 1, lastCompletedEpochDay = day[0]))
+        assertEquals(0, repository.getStreak("chess").count)
+        repository.markActiveDailyRun("chess", day[0])
+        oldScreen.saveStreak(Streak("chess", count = 1, lastCompletedEpochDay = day[0]))
+        assertEquals(0, repository.getStreak("chess").count)
+        assertEquals(0, oldScreen.recordDailyCompletion("chess", day[0]).count)
+        repository.forDailyRun(day[0]).saveStreak(Streak("chess", count = 1, lastCompletedEpochDay = day[0]))
+        assertEquals(1, repository.getStreak("chess").count)
+    }
 
     private lateinit var streakRepository: StreakRepository
 

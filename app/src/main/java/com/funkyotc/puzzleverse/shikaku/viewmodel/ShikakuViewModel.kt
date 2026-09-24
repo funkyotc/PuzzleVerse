@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import com.funkyotc.puzzleverse.core.todayEpochDay
+import com.funkyotc.puzzleverse.core.SystemUtcDaySource
+import com.funkyotc.puzzleverse.core.UtcDaySource
 
 class ShikakuViewModel(
     context: Context? = null,
@@ -23,13 +25,14 @@ class ShikakuViewModel(
     private val forceNewGame: Boolean = false,
     private val streakRepository: StreakRepository? = null,
     private val settingsRepository: SettingsRepository? = null,
-    private val puzzleId: String? = null
+    private val puzzleId: String? = null,
+    private val daySource: UtcDaySource = SystemUtcDaySource
 ) : ViewModel() {
 
     private val generator = ShikakuGenerator(System.currentTimeMillis())
-    private val repository = ShikakuRepository(context)
+    private val repository = ShikakuRepository(context, daySource = daySource)
     private val completionRepo = PuzzleCompletionRepository(context, "Shikaku")
-    private val dailyChallengeSeed = todayEpochDay()
+    private val dailyChallengeSeed = daySource.epochDay()
     private val boardKey = if (mode == "daily") "daily_shikaku_board" else if (puzzleId != null) "puzzle_${puzzleId}" else "standard_shikaku_board"
 
     private val _board = MutableStateFlow(generateInitialBoard())

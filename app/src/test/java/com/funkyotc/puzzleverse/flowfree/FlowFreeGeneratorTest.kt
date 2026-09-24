@@ -12,23 +12,25 @@ class FlowFreeGeneratorTest {
         assertTrue("FlowFreePregenerated should contain puzzles", allPuzzles.isNotEmpty())
         assertEquals(20, allPuzzles.size)
 
+        val failures = mutableListOf<String>()
         for (puzzle in allPuzzles) {
             val size = puzzle.size
             val dots = puzzle.dots
 
             // Verify dot endpoints are distinct and within bounds
             val points = mutableSetOf<Pair<Int, Int>>()
+            val structuralIssues = mutableListOf<String>()
             for (dot in dots) {
                 val start = Pair(dot.start.r, dot.start.c)
                 val end = Pair(dot.end.r, dot.end.c)
-                assertTrue("Start point within bounds", dot.start.r in 0 until size && dot.start.c in 0 until size)
-                assertTrue("End point within bounds", dot.end.r in 0 until size && dot.end.c in 0 until size)
-                assertNotEquals("Start and end should not be identical", start, end)
-
-                assertFalse("Duplicate endpoint detected in puzzle ${puzzle.id}", points.contains(start))
-                points.add(start)
-                assertFalse("Duplicate endpoint detected in puzzle ${puzzle.id}", points.contains(end))
-                points.add(end)
+                if (dot.start.r !in 0 until size || dot.start.c !in 0 until size ||
+                    dot.end.r !in 0 until size || dot.end.c !in 0 until size) structuralIssues += "endpoint out of bounds"
+                if (start == end) structuralIssues += "identical endpoints"
+                if (!points.add(start) || !points.add(end)) structuralIssues += "duplicate endpoint"
+            }
+            if (structuralIssues.isNotEmpty()) {
+                failures += "${puzzle.id}: ${structuralIssues.distinct().joinToString()}"
+                continue
             }
 
             // Verify singular 100% coverage solution using FlowSolver
@@ -40,8 +42,11 @@ class FlowFreeGeneratorTest {
                 ) 
             }
             val solver = generators.flowfree.FlowSolver(size, solverDots)
-            val solutions = solver.countFullCoverageSolutions(maxSolutions = 2)
-            assertEquals("Puzzle ${puzzle.id} must have exactly 1 full-coverage solution", 1, solutions)
+            val solutions = solver.countFullCoverageSolutions(maxSolutions = 2, maxSteps = 1_000_000)
+            if (solutions != 1 || solver.wasTruncated) {
+                failures += "${puzzle.id}: $solutions solution(s)${if (solver.wasTruncated) " (search limit reached)" else ""}"
+            }
         }
+        assertTrue("Invalid or unproved Flow Free boards: ${failures.joinToString()}", failures.isEmpty())
     }
 }

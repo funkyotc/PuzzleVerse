@@ -1,7 +1,7 @@
 # AGENTS.md — PuzzleVerse
 
 ## Project Overview
-Android app with 20 games listed in `ui/screens/home/HomeScreen.kt`. Eighteen have checked-in puzzle data or assets; 2048 and Minesweeper generate boards at runtime. The UI offers Standard / Daily entry points for each game, plus puzzle browsers for 17 games. Do not assume daily boards are identical across devices: Minesweeper and 2048 use unseeded randomness.
+Android app with 20 games listed in `ui/screens/home/HomeScreen.kt`. Eighteen have checked-in puzzle data or assets; 2048 and Minesweeper generate boards at runtime. The UI offers Standard / Daily entry points for each game, plus puzzle browsers for 17 games. Daily 2048 uses a UTC-day seed and persisted random state. Daily Minesweeper uses the UTC day and first-tap cell as its seed so the opening remains safe.
 
 ## Commands
 ```bash
@@ -22,6 +22,11 @@ gradlew.bat connectedDebugAndroidTest
 
 # Lint
 gradlew.bat lintDebug
+
+# Navigation coverage and emulator route smoke (use a disposable test device)
+python scripts/check_navigation_coverage.py
+# Set PUZZLEVERSE_CLEAR_TEST_SAVES=1 only when the test device's saves may be cleared.
+python scripts/emulator_route_smoke.py
 
 # Commit changes after completing a task
 ## Use the git-commit skill for conventional commit message generation
@@ -55,7 +60,7 @@ git add -A && git commit -m "type(scope): description"
 ## Critical Gotchas
 - **JDK Path**: `gradle.properties` had `org.gradle.java.home` hardcoded — now commented out. Agents on Windows with Android Studio should be fine; non-standard setups may need to set `JAVA_HOME`.
 - **Pre-generated Data & Generators**: 17 games have `*Pregenerated.kt` files and Wordle has a checked-in word list. The 18 corresponding generator runners under `app/src/main/java/generators/` run on demand, outside normal Gradle build and test tasks. `tfe` and `minesweeper` use runtime generation.
-- **CI**: `.github/workflows/build-debug.yml` runs unit tests and a debug build on pull requests and pushes to `master`. Its Java setup requests 11 while the Gradle daemon toolchain requests 21; verify CI before relying on it.
+- **CI**: `.github/workflows/build-debug.yml` runs unit tests and a debug build on pull requests and pushes to `master` with JDK 21. Verify a live CI run before relying on it as a release gate.
 - **No opencode.json**: Repository lacks opencode configuration; consider creating one for custom instructions.
 - **Compose Multi-Touch Gestures**: Stacking standard `detectDragGestures` and `detectTapGestures` suppresses multi-finger input (e.g. tapping secondary finger while dragging). Use `awaitPointerEventScope` to track multi-pointer state explicitly.
 - **SVG Silhouette Paths**: Composite puzzle silhouettes must combine constituent SVG piece paths via geometric `Path.Op.UNION` to strip internal edges and render clean outer outlines.

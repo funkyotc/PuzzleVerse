@@ -39,6 +39,7 @@ import com.funkyotc.puzzleverse.core.audio.SoundManager
 import com.funkyotc.puzzleverse.core.data.LocalSaveStateRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import com.funkyotc.puzzleverse.sudoku.data.SudokuRepository
+import com.funkyotc.puzzleverse.ui.screens.home.games
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,7 +54,7 @@ fun GameDetailScreen(navController: NavController, gameId: String?, streakReposi
         return
     }
 
-    val gameName = gameId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    val gameName = games.firstOrNull { it.id == gameId }?.name ?: gameId
     val sudokuRepository = remember { SudokuRepository(context) }
     val saveMeta = saveStateRepository.getSaveState(gameId)
     val hasSavedGame = saveMeta != null

@@ -1,5 +1,7 @@
 # PuzzleVerse game audit — 2026-09-24
 
+> **Correction after implementation:** The Flow Free solver's default 2,000-step limit returned zero when its search was truncated. Rechecking every board with a one-million-step limit and an explicit truncation flag found exactly one full-coverage solution for all 20 boards. The original finding below records what the initial audit observed; the boards were not replaced.
+
 ## Scope and evidence
 
 This audit covers all 20 Home games, their detail menus, Standard and Daily launch routes, puzzle browser routes, daily selection, and the available generator checks. I built the debug APK, ran the JVM suite and lint, installed the APK on the `Medium_Phone` emulator (1080 × 2400), and opened each Standard screen. I also checked Daily and puzzle-browser entry points from the detail menus. These launch checks do not prove full gameplay, touch accuracy, wins, save recovery, or a date rollover. No game code or puzzle data was changed.

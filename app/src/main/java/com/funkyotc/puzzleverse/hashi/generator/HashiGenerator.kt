@@ -40,6 +40,9 @@ class HashiGenerator(private val seed: Long = Random.nextLong()) {
 
             if (nx !in 1 until width - 1 || ny !in 1 until height - 1) continue
             if (islandsMap.containsKey(Pair(nx, ny))) continue
+            // A new island cannot sit on an existing bridge: that would split
+            // the old edge without updating its endpoints' required counts.
+            if (gridOccupied[ny][nx]) continue
 
             // Check line of sight (no existing islands between)
             var blocked = false
