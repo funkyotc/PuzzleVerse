@@ -19,10 +19,11 @@ data class WallSegment(
     val x: Float,
     val y: Float,
     val w: Float,
-    val h: Float
+    val h: Float,
+    val angle: Float = 0f
 )
 
-/** A colored cup on the floor. A matching-color ball resting inside is captured. */
+/** A colored receiver: radius is its half-width; its opening is 48 units tall. */
 data class CupData(
     val id: String,
     val x: Float,
@@ -44,7 +45,9 @@ data class PinData(
     val pullDx: Float = 0f,
     val pullDy: Float = 0f,
     val removed: Boolean = false,
-    val isPulling: Boolean = false
+    val isPulling: Boolean = false,
+    val unlockAfter: Int = 0,
+    val label: String = ""
 )
 
 /** Initial ball placement. Color 0 = grey (must be colored by contact). */
@@ -53,7 +56,8 @@ data class BallSpawn(
     val x: Float,
     val y: Float,
     val color: Int,
-    val radius: Float = 14f
+    val radius: Float = 14f,
+    val isBomb: Boolean = false
 )
 
 data class PullPinLevel(
@@ -62,11 +66,14 @@ data class PullPinLevel(
     val walls: List<WallSegment>,
     val cups: List<CupData>,
     val pins: List<PinData>,
-    val balls: List<BallSpawn>
+    val balls: List<BallSpawn>,
+    val title: String = "Pull the Pin",
+    val lesson: String = "Color every grey ball before opening the exit.",
+    val solution: List<String> = emptyList()
 ) : BrowseablePuzzle {
     override val label: String get() = id.substringAfterLast('_')
     override val subtitle: String
-        get() = "${cups.size} cups - ${balls.size} balls"
+        get() = "$title · ${balls.count { !it.isBomb }} balls"
 }
 
 enum class GameStatus {

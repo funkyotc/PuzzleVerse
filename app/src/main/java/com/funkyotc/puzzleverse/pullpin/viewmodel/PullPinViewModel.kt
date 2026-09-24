@@ -5,272 +5,119 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.funkyotc.puzzleverse.core.data.PuzzleCompletionRepository
 import com.funkyotc.puzzleverse.core.todayEpochDay
-import com.funkyotc.puzzleverse.pullpin.data.BallRuntime
-import com.funkyotc.puzzleverse.pullpin.data.GameStatus
-import com.funkyotc.puzzleverse.pullpin.data.PinData
-import com.funkyotc.puzzleverse.pullpin.data.PullPinLevel
-import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
-import com.funkyotc.puzzleverse.pullpin.data.PullPinState
-import com.funkyotc.puzzleverse.pullpin.physics.PullPinPhysicsEngine
+import com.funkyotc.puzzleverse.pullpin.data.*
+import com.funkyotc.puzzleverse.pullpin.physics.PullPinSession
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlin.math.hypot
 
 class PullPinViewModel(
     private val streakRepository: StreakRepository?,
     private val mode: String?,
     private val puzzleId: String?
 ) : ViewModel() {
-
-    private val _state = MutableStateFlow<PullPinState?>(null)
+    private var campaignIndex = 0
+    private var challengeDay = todayEpochDay()
+    private var session = PullPinSession(selectLevel())
+    private val _state = MutableStateFlow<PullPinState?>(session.state)
     val state: StateFlow<PullPinState?> = _state.asStateFlow()
-
-    private val physicsEngine = PullPinPhysicsEngine()
-
-    private var physicsJob: Job? = null
-
-    // Cache: radiusById only depends on level, never changes per tick
-    private var radiusById: Map<String, Float> = emptyMap()
-
     private var completionRepo: PuzzleCompletionRepository? = null
+    val canUndo get() = session.canUndo
+    var paused = false
+    var backgroundPaused = false
 
     init {
-        startNewGame()
-        startPhysicsLoop()
-    }
-
-    fun setCompletionRepo(repo: PuzzleCompletionRepository) {
-        completionRepo = repo
-    }
-
-    fun startNewGame() {
-        val level = selectLevel()
-
-        val balls = level.balls.map { BallRuntime(it.id, it.x, it.y, it.color) }
-        val pins = level.pins.map { it.copy() }
-
-        _state.value = PullPinState(
-            level = level,
-            balls = balls,
-            pins = pins,
-            moves = 0,
-            status = GameStatus.IDLE,
-            lostReason = null
-        )
-
-        // Pre-compute radius map (depends only on level)
-        radiusById = level.balls.associate { it.id to it.radius }
-
-        physicsEngine.initWorld(level)
-    }
-
-    private fun startPhysicsLoop() {
-        physicsJob?.cancel()
-        physicsJob = viewModelScope.launch {
-            var lastFrame = System.currentTimeMillis()
+        viewModelScope.launch {
             while (isActive) {
-                val now = System.currentTimeMillis()
-                val dt = if (lastFrame == 0L) 1.0 / 60.0
-                         else ((now - lastFrame) / 1000.0).coerceAtMost(1.0 / 60.0)
-                lastFrame = now
-
-                val s = _state.value ?: run { delay(16); continue }
-                if (s.status == GameStatus.WON || s.status == GameStatus.LOST) { delay(16); continue }
-
-                physicsEngine.step(dt)
-                val transforms = physicsEngine.getBallTransforms()
-
-                var updated = false
-                val newBalls = s.balls.map { b ->
-                    val t = transforms[b.id]
-                    if (t != null) {
-                        if (t.first != b.x || t.second != b.y) updated = true
-                        b.copy(x = t.first, y = t.second)
-                    } else b
-                }.toMutableList()
-
-                // Color merge: grey balls take the color of a nearby colored ball.
-                for (i in newBalls.indices) {
-                    val b = newBalls[i]
-                    if (b.color == 0 && !b.captured) {
-                        val rA = radiusById[b.id] ?: 14f
-                        for (j in newBalls.indices) {
-                            if (i == j) continue
-                            val o = newBalls[j]
-                            if (o.color == 0 || o.captured) continue
-                            val rB = radiusById[o.id] ?: 14f
-                            val d = hypot(b.x - o.x, b.y - o.y)
-                            if (d <= rA + rB + 30f) {
-                                newBalls[i] = b.copy(color = o.color)
-                                updated = true
-                                break
-                            }
-                        }
-                    }
+                if (!paused && !backgroundPaused) {
+                    if (mode == "daily" && challengeDay != todayEpochDay()) startNewGame()
+                    val before = session.state.status
+                    session.step()
+                    _state.value = session.state
+                    if (before != GameStatus.WON && session.state.status == GameStatus.WON) onWin()
                 }
-
-                // Cup capture / wrong-cup / grey-in-cup detection.
-                var lostReason: String? = null
-                var lost = false
-                for (i in newBalls.indices) {
-                    val b = newBalls[i]
-                    if (b.captured) continue
-                    for (cup in s.level.cups) {
-                        val d = hypot(b.x - cup.x, b.y - cup.y)
-                        if (d <= cup.radius) {
-                            if (b.color == 0) {
-                                lostReason = "A grey ball fell into a cup!"
-                                lost = true
-                                break
-                            } else if (b.color != cup.color) {
-                                lostReason = "A ball landed in the wrong cup!"
-                                lost = true
-                                break
-                            } else {
-                                newBalls[i] = b.copy(captured = true, inCup = true)
-                                updated = true
-                            }
-                        }
-                    }
-                    if (lost) break
-                }
-
-                // Out of bounds.
-                if (!lost) {
-                    for (i in newBalls.indices) {
-                        val b = newBalls[i]
-                        if (!b.outOfBounds && physicsEngine.isBallOutOfBounds(b.id)) {
-                            newBalls[i] = b.copy(outOfBounds = true)
-                            lostReason = "A ball fell out of the world!"
-                            lost = true
-                            updated = true
-                            break
-                        }
-                    }
-                }
-
-                // Win check: every cup has a matching captured ball.
-                val cupColors = s.level.cups.map { it.color }
-                val won = cupColors.all { color ->
-                    newBalls.any { it.captured && it.color == color }
-                }
-
-                var status = s.status
-                when {
-                    lost -> {
-                        status = GameStatus.LOST
-                        updated = true
-                    }
-                    won -> {
-                        status = GameStatus.WON
-                        updated = true
-                    }
-                }
-
-                if (updated || status != s.status) {
-                    val finalState = s.copy(
-                        balls = newBalls,
-                        status = status,
-                        lostReason = if (status == GameStatus.LOST) lostReason else null
-                    )
-                    _state.value = finalState
-                    if (status == GameStatus.WON) onWin()
-                }
-
                 delay(16)
             }
         }
     }
 
-    fun removePin(pinId: String) {
-        val current = _state.value ?: return
-        if (current.status == GameStatus.WON || current.status == GameStatus.LOST) return
-
-        val idx = current.pins.indexOfFirst { it.id == pinId && !it.removed && !it.isPulling }
-        if (idx == -1) return
-
-        val newPins = current.pins.toMutableList()
-        newPins[idx] = newPins[idx].copy(isPulling = true)
-
-        _state.value = current.copy(
-            pins = newPins,
-            moves = current.moves + 1,
-            status = GameStatus.RUNNING
-        )
-
-        viewModelScope.launch {
-            delay(220)
-            finishRemovePin(pinId)
+    fun setCompletionRepo(repo: PuzzleCompletionRepository) {
+        val firstConnection = completionRepo == null
+        completionRepo = repo
+        if (firstConnection && mode != "daily" && puzzleId == null && session.state.moves == 0) {
+            campaignIndex = levelPool().indexOfFirst { !repo.isCompleted(it.id) }.coerceAtLeast(0)
+            session = PullPinSession(selectLevel())
+            _state.value = session.state
         }
     }
 
-    private fun finishRemovePin(pinId: String) {
-        val current = _state.value ?: return
-        if (current.status == GameStatus.WON || current.status == GameStatus.LOST) return
+    /** New game advances the campaign; retry always keeps the current layout. */
+    fun startNewGame() {
+        if (mode != "daily" && puzzleId == null) campaignIndex++
+        challengeDay = todayEpochDay()
+        session = PullPinSession(selectLevel())
+        _state.value = session.state
+    }
 
-        val idx = current.pins.indexOfFirst { it.id == pinId }
-        if (idx == -1) return
+    fun retry() {
+        session = PullPinSession(session.level)
+        _state.value = session.state
+    }
 
-        val newPins = current.pins.toMutableList()
-        newPins[idx] = newPins[idx].copy(removed = true, isPulling = false)
+    fun undo() {
+        if (session.state.status == GameStatus.WON) return
+        session = session.undo()
+        _state.value = session.state
+    }
 
-        physicsEngine.removePin(pinId)
+    fun removePin(id: String): Boolean {
+        val accepted = session.pull(id)
+        _state.value = session.state
+        return accepted
+    }
 
-        _state.value = current.copy(pins = newPins)
-        }
+    fun hint(): String {
+        val s = session.state
+        if (s.status == GameStatus.LOST) return "Undo your last pull, or retry this board."
+        val next = s.level.solution.firstOrNull { id -> s.pins.any { it.id == id && !it.removed } }
+            ?: return "Wait for the remaining balls to reach their cups."
+        val pin = s.pins.first { it.id == next }
+        if (pin.isPulling) return "Let the balls settle before the next pull."
+        if (pin.unlockAfter > session.rescued) return "Save ${pin.unlockAfter - session.rescued} more balls to unlock this exit."
+        val lane = next.substringAfterLast('_').toInt() + 1
+        return if (next.startsWith("mix")) "Pull MIX in chamber $lane, then wait for all grey balls to gain color."
+        else if (next.startsWith("drain")) "Wait for the lower reservoir in chamber $lane to gain color, then pull DRAIN."
+        else "When chamber $lane has no grey balls left, pull its EXIT pin."
+    }
 
     private fun onWin() {
-        val current = _state.value ?: return
-        if (mode == "daily" && streakRepository != null) {
-            val streak = streakRepository.getStreak("pullpin")
-            val today = todayEpochDay()
-            if (streak.lastCompletedEpochDay != today) {
-                val newCount = if (streak.lastCompletedEpochDay == today - 1) streak.count + 1 else 1
-                streakRepository.saveStreak(
-                    streak.copy(count = newCount, lastCompletedEpochDay = today)
-                )
-            }
+        if (mode == "daily" && challengeDay == todayEpochDay()) {
+            streakRepository?.recordDailyCompletion("pullpin", challengeDay)
         }
-        if (mode == "puzzle" && puzzleId != null && completionRepo != null) {
-            completionRepo!!.markCompleted(puzzleId)
-        }
+        completionRepo?.markCompleted(session.level.id)
     }
 
+    private fun levelPool(): List<PullPinLevel> =
+        PullPinPregenerated.PUZZLES_BY_DIFFICULTY.entries.firstOrNull { it.key.equals(mode, true) }?.value
+            ?: PullPinPregenerated.ALL_LEVELS
+
     private fun selectLevel(): PullPinLevel {
-        val allLevels = PullPinPregenerated.ALL_LEVELS
-        if (allLevels.isEmpty()) error("No pullpin levels available")
-
-        if (puzzleId != null) {
-            return allLevels.find { it.id == puzzleId } ?: allLevels.first()
-        }
-
-        return when {
-            mode == "daily" -> {
-                val today = todayEpochDay()
-                allLevels[(today % allLevels.size).toInt()]
-            }
-            mode == "easy" -> PullPinPregenerated.PUZZLES_BY_DIFFICULTY["Easy"]?.random() ?: allLevels.first()
-            mode == "medium" -> PullPinPregenerated.PUZZLES_BY_DIFFICULTY["Medium"]?.random() ?: allLevels.first()
-            mode == "hard" -> PullPinPregenerated.PUZZLES_BY_DIFFICULTY["Hard"]?.random() ?: allLevels.first()
-            mode == "expert" -> PullPinPregenerated.PUZZLES_BY_DIFFICULTY["Expert"]?.random() ?: allLevels.first()
-            else -> allLevels.random()
-        }
+        val all = PullPinPregenerated.ALL_LEVELS
+        if (puzzleId != null) return all.firstOrNull { it.id == puzzleId }
+            ?: error("Unknown Pull the Pin puzzle: $puzzleId")
+        if (mode == "daily") return all[Math.floorMod(challengeDay, all.size.toLong()).toInt()]
+        val pool = levelPool()
+        return pool[campaignIndex % pool.size]
     }
 }
 
 class PullPinViewModelFactory(
-    private val streakRepository: StreakRepository?,
-    private val mode: String?,
-    private val puzzleId: String?
+    private val streakRepository: StreakRepository?, private val mode: String?, private val puzzleId: String?
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return PullPinViewModel(streakRepository, mode, puzzleId) as T
-    }
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = PullPinViewModel(streakRepository, mode, puzzleId) as T
 }

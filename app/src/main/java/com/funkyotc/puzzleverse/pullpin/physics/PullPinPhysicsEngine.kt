@@ -1,10 +1,6 @@
 package com.funkyotc.puzzleverse.pullpin.physics
 
-import com.funkyotc.puzzleverse.pullpin.data.BallSpawn
-import com.funkyotc.puzzleverse.pullpin.data.CupData
-import com.funkyotc.puzzleverse.pullpin.data.PinData
 import com.funkyotc.puzzleverse.pullpin.data.PullPinLevel
-import com.funkyotc.puzzleverse.pullpin.data.WallSegment
 import com.funkyotc.puzzleverse.pullpin.data.WORLD_H
 import com.funkyotc.puzzleverse.pullpin.data.WORLD_W
 import org.dyn4j.dynamics.Body
@@ -23,7 +19,9 @@ class PullPinPhysicsEngine {
     init {
         // Gravity points toward +y, which we treat as "down" to match the
         // screen/world coordinate system (y grows downward, bottom = WORLD_H).
-        world.gravity = Vector2(0.0, 900.0)
+        world.gravity = Vector2(0.0, 9.0)
+        // dyn4j uses metres. Scale the 400 x 700 drawing coordinates by 100
+        // so its contact tolerances and correction limits remain appropriate.
     }
 
     fun initWorld(level: PullPinLevel) {
@@ -35,12 +33,13 @@ class PullPinPhysicsEngine {
         for (wall in level.walls) {
             val body = Body()
             val fixture = BodyFixture(
-                Geometry.createRectangle(wall.w.toDouble(), wall.h.toDouble())
+                Geometry.createRectangle(wall.w / 100.0, wall.h / 100.0)
             )
             fixture.friction = 0.4
             fixture.restitution = 0.1
             body.addFixture(fixture)
-            body.translate(wall.x + wall.w / 2.0, wall.y + wall.h / 2.0)
+            body.rotate(Math.toRadians(wall.angle.toDouble()))
+            body.translate((wall.x + wall.w / 2.0) / 100, (wall.y + wall.h / 2.0) / 100)
             body.setMass(MassType.INFINITE)
             world.addBody(body)
         }
@@ -50,12 +49,12 @@ class PullPinPhysicsEngine {
             if (pin.removed) continue
             val body = Body()
             val fixture = BodyFixture(
-                Geometry.createRectangle(pin.w.toDouble(), pin.h.toDouble())
+                Geometry.createRectangle(pin.w / 100.0, pin.h / 100.0)
             )
             fixture.friction = 0.4
             fixture.restitution = 0.1
             body.addFixture(fixture)
-            body.translate(pin.x + pin.w / 2.0, pin.y + pin.h / 2.0)
+            body.translate((pin.x + pin.w / 2.0) / 100, (pin.y + pin.h / 2.0) / 100)
             body.setMass(MassType.INFINITE)
             world.addBody(body)
             pinBodies[pin.id] = body
@@ -64,12 +63,12 @@ class PullPinPhysicsEngine {
         // Dynamic ball bodies.
         for (ball in level.balls) {
             val body = Body()
-            val fixture = BodyFixture(Geometry.createCircle(ball.radius.toDouble()))
+            val fixture = BodyFixture(Geometry.createCircle(ball.radius / 100.0))
             fixture.density = 1.0
             fixture.friction = 0.3
-            fixture.restitution = 0.2
+            fixture.restitution = 0.05
             body.addFixture(fixture)
-            body.translate(ball.x.toDouble(), ball.y.toDouble())
+            body.translate(ball.x / 100.0, ball.y / 100.0)
             body.setMass(MassType.NORMAL)
             world.addBody(body)
             ballBodies[ball.id] = body
@@ -87,26 +86,25 @@ class PullPinPhysicsEngine {
         world.step(1, dt)
     }
 
+    fun removeBall(id: String) {
+        ballBodies.remove(id)?.let { world.removeBody(it) }
+    }
+
+    fun isSettled(): Boolean = ballBodies.values.all { it.isAtRest }
+
     fun getBallTransforms(): Map<String, Pair<Float, Float>> {
         val transforms = mutableMapOf<String, Pair<Float, Float>>()
         for ((id, body) in ballBodies) {
             val transform = body.transform
-            transforms[id] = transform.translationX.toFloat() to transform.translationY.toFloat()
+            transforms[id] = (transform.translationX * 100).toFloat() to (transform.translationY * 100).toFloat()
         }
         return transforms
     }
 
-    fun getBallColors(): Map<String, Int> {
-        // Colors are owned by the ViewModel; the engine does not mutate them.
-        // Return any colors tracked alongside spawns by re-reading from nothing here.
-        // Kept for API completeness; the ViewModel supplies authoritative colors.
-        return emptyMap()
-    }
-
     fun isBallOutOfBounds(ballId: String): Boolean {
         val body = ballBodies[ballId] ?: return false
-        val x = body.transform.translationX
-        val y = body.transform.translationY
+        val x = body.transform.translationX * 100
+        val y = body.transform.translationY * 100
         return y > WORLD_H + 50f ||
             x < -50f ||
             x > WORLD_W + 50f

@@ -2,7 +2,7 @@
 
 Status: active implementation plan; implementation evidence and remaining proof gaps are tracked in the [verification record](game-fix-verification-2026-09-24.md). Source: [game audit](game-audit-2026-09-24.md). The [older implementation plan](implementation_plan.md) is a historical proposal, not a completion report.
 
-Phases 1–3 are implemented with automated checks. Phase 4 remains open for Pull the Pin pin-order wins, Hexa Sort two-shuffle wins, Wood Screws plank-fall wins, complete touch playthroughs, a device midnight check, replay-dialog interactions, a clean emulator sweep without an ANR, and a live CI run. The verification record separates what passed from what is still unproven.
+Phases 1–3 are implemented with automated checks. Pull the Pin now has all-level pin-order proof in the [rework record](pullpin-rework-2026-09-24.md). Phase 4 remains open for Hexa Sort two-shuffle wins, Wood Screws plank-fall wins, complete touch playthroughs, a device midnight check, replay-dialog interactions, a clean emulator sweep without an ANR, and a live CI run. The verification record separates what passed from what is still unproven.
 
 ## Acceptance contract
 

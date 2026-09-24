@@ -25,6 +25,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,6 +48,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -55,18 +65,14 @@ import com.funkyotc.puzzleverse.core.ui.GameEndDialog
 import com.funkyotc.puzzleverse.core.ui.GameHowToDialog
 import com.funkyotc.puzzleverse.core.ui.StandardGameLayout
 import com.funkyotc.puzzleverse.pullpin.data.BallRuntime
-import com.funkyotc.puzzleverse.pullpin.data.CupData
 import com.funkyotc.puzzleverse.pullpin.data.GameStatus
-import com.funkyotc.puzzleverse.pullpin.data.PinData
 import com.funkyotc.puzzleverse.pullpin.data.PullPinState
-import com.funkyotc.puzzleverse.pullpin.data.WallSegment
 import com.funkyotc.puzzleverse.pullpin.data.WORLD_H
 import com.funkyotc.puzzleverse.pullpin.data.WORLD_W
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModel
 import com.funkyotc.puzzleverse.pullpin.viewmodel.PullPinViewModelFactory
 import com.funkyotc.puzzleverse.settings.data.SettingsRepository
 import com.funkyotc.puzzleverse.streak.data.StreakRepository
-import kotlinx.coroutines.launch
 
 private val BALL_COLORS = mapOf(
     0 to Color(0xFFB0BEC5), // Grey / Uncolored
@@ -102,10 +108,25 @@ fun PullPinScreen(
     var showHowToPlay by remember { mutableStateOf(false) }
     var showWinDialog by remember { mutableStateOf(false) }
     var showLoseDialog by remember { mutableStateOf(false) }
-    var prevInCup by remember { mutableStateOf(setOf<Int>()) }
+    var prevInCup by remember { mutableStateOf(setOf<String>()) }
+    var hint by remember { mutableStateOf<String?>(null) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) viewModel.backgroundPaused = true
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) viewModel.backgroundPaused = false
+        }
+        viewModel.backgroundPaused = !lifecycleOwner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer); viewModel.backgroundPaused = true }
+    }
+    LaunchedEffect(showHowToPlay, hint) { viewModel.paused = showHowToPlay || hint != null }
+    if (hint != null) AlertDialog(onDismissRequest = { hint = null },
+        title = { Text("A little nudge") }, text = { Text(hint!!) },
+        confirmButton = { TextButton(onClick = { hint = null }) { Text("Got it") } })
 
-    LaunchedEffect(streakRepository) {
-        streakRepository?.let {
+    LaunchedEffect(context) {
+        run {
             viewModel.setCompletionRepo(
                 PuzzleCompletionRepository(context, "PullPin")
             )
@@ -122,13 +143,13 @@ fun PullPinScreen(
                 showLoseDialog = true
                 soundManager.playSound(SoundManager.SOUND_ID_FAILURE)
             }
-            else -> {}
+            else -> { showWinDialog = false; showLoseDialog = false }
         }
     }
 
-    LaunchedEffect(state?.moves) {
+    LaunchedEffect(state?.balls?.count { it.captured }) {
         state?.let { s ->
-            val nowInCup = s.balls.filter { it.inCup }.map { it.color }.toSet()
+            val nowInCup = s.balls.filter { it.inCup }.map { it.id }.toSet()
             val newInCup = nowInCup - prevInCup
             if (newInCup.isNotEmpty()) {
                 soundManager.playSound(SoundManager.SOUND_ID_COIN_COLLECT)
@@ -140,7 +161,7 @@ fun PullPinScreen(
     if (showHowToPlay) {
         GameHowToDialog(
             title = "How to Play",
-            instructions = "Pull the Pin is a logic physics puzzle!\n\n• Tap on pin handles to pull them out.\n• Colored balls fall and roll under gravity.\n• Grey balls have no color. They must touch colored balls to gain color.\n• Guide all balls into their matching colored cups.\n• Avoid letting grey balls or wrong colors enter the cups!",
+            instructions = "Pull the Pin is a logic physics puzzle!\n\n• Tap on pin handles to pull them out.\n• Colored balls fall and roll under gravity.\n• Grey balls have no color. They must touch colored balls to gain color.\n• Guide all balls into their matching colored cups.\n• Avoid letting grey balls or wrong colors enter the cups!\n• Keep bombs sealed: you do not need to pull every pin.\n• Numbered locks open after you rescue enough balls.\n• Undo rewinds your last pull; Retry keeps the same board.",
             onDismiss = { showHowToPlay = false }
         )
     }
@@ -182,39 +203,25 @@ fun PullPinScreen(
                 onPlayAgainClick = {
                     showWinDialog = false
                     prevInCup = emptySet()
-                    viewModel.startNewGame()
+                    if (mode == "daily") navController.navigate("game/pullpin/standard/new") { popUpTo("home") }
+                    else viewModel.startNewGame()
                 },
                 onNextPuzzleClick = nextPuzzleAction
             )
         }
         if (showLoseDialog) {
-            GameEndDialog(
-                isWon = false,
-                title = "Defeat!",
-                message = "${s.lostReason ?: "You ran out of pins or balls got stuck."}\n\nTap Retry to try again!",
-                mode = mode,
-                gameId = "pullpin",
-                currentDifficulty = currentDifficulty,
-                onMainMenuClick = {
-                    showLoseDialog = false
-                    navController.navigate("home") { popUpTo(0) }
-                },
-                onBackToListClick = {
-                    showLoseDialog = false
-                    val route = if (currentDifficulty != null) "pullpin/puzzles?difficulty=$currentDifficulty" else "pullpin/puzzles"
-                    navController.navigate(route) { popUpTo("home") }
-                },
-                onPlayAgainClick = {
-                    showLoseDialog = false
-                    prevInCup = emptySet()
-                    viewModel.startNewGame()
-                }
+            AlertDialog(
+                onDismissRequest = { showLoseDialog = false },
+                title = { Text("Try another approach") },
+                text = { Text(s.lostReason ?: "Try a different pin order.") },
+                confirmButton = { TextButton(onClick = { showLoseDialog = false; viewModel.undo() }) { Text("Undo last pull") } },
+                dismissButton = { TextButton(onClick = { showLoseDialog = false; viewModel.retry() }) { Text("Retry level") } }
             )
         }
     }
 
     StandardGameLayout(
-        title = state?.let { "Pull the Pin (${it.level.difficulty})" } ?: "Pull the Pin",
+        title = "Pull the Pin",
         navController = navController,
         onHowToClick = { showHowToPlay = true },
         actions = {
@@ -223,14 +230,15 @@ fun PullPinScreen(
                 prevInCup = emptySet()
                 showLoseDialog = false
                 showWinDialog = false
-                viewModel.startNewGame()
+                viewModel.retry()
             }) {
                 Icon(Icons.Filled.Refresh, contentDescription = "Restart")
             }
         }
     ) { paddingValues ->
         state?.let { gameState ->
-            val ballsRemaining = gameState.balls.count { !it.captured }
+            val safeIds = gameState.level.balls.filter { !it.isBomb }.map { it.id }.toSet()
+            val ballsRemaining = gameState.balls.count { it.id in safeIds && !it.captured }
 
             Column(
                 modifier = Modifier
@@ -239,12 +247,16 @@ fun PullPinScreen(
                     .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(gameState.level.title, style = MaterialTheme.typography.titleLarge)
+                Text("${gameState.level.difficulty} · Level ${gameState.level.label}", style = MaterialTheme.typography.labelMedium)
+                Text(gameState.level.lesson, style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Text(
-                        text = "Balls: $ballsRemaining/${gameState.balls.size}",
+                        text = "Saved: ${safeIds.size - ballsRemaining}/${safeIds.size}",
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
@@ -255,8 +267,13 @@ fun PullPinScreen(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { showLoseDialog = false; viewModel.undo() }, enabled = viewModel.canUndo && gameState.status != GameStatus.WON) { Text("Undo") }
+                    TextButton(onClick = { hint = viewModel.hint() }) { Text("Hint") }
+                    TextButton(onClick = { viewModel.retry() }) { Text("Retry") }
+                }
                 PullPinColorLegend(
-                    balls = gameState.balls,
+                    balls = gameState.balls.filter { it.id in safeIds },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -268,8 +285,11 @@ fun PullPinScreen(
                         .fillMaxWidth()
                         .weight(1f),
                     onPinTap = { pinId ->
-                        soundManager.playSound(SoundManager.SOUND_ID_METAL_SHING)
-                        viewModel.removePin(pinId)
+                        if (viewModel.removePin(pinId)) soundManager.playSound(SoundManager.SOUND_ID_METAL_SHING)
+                        else gameState.pins.firstOrNull { it.id == pinId }?.let { pin ->
+                            val needed = pin.unlockAfter - gameState.balls.count { it.captured }
+                            if (needed > 0) hint = "Rescue $needed more balls to unlock this exit."
+                        }
                     }
                 )
             }
@@ -329,6 +349,8 @@ private fun PullPinBoard(
     onPinTap: (String) -> Unit
 ) {
     val density = LocalDensity.current
+    val currentState by rememberUpdatedState(state)
+    val currentTap by rememberUpdatedState(onPinTap)
 
     BoxWithConstraints(
         modifier = modifier.fillMaxSize()
@@ -352,16 +374,32 @@ private fun PullPinBoard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
+                .semantics {
+                    contentDescription = "${state.level.title}. ${state.balls.count { it.captured }} balls saved."
+                    customActions = state.pins.filter { !it.removed && !it.isPulling }.map { pin ->
+                        val chamber = pin.id.substringAfterLast('_').toIntOrNull()?.plus(1) ?: 1
+                        CustomAccessibilityAction("${pin.label}, chamber $chamber" +
+                            if (pin.unlockAfter > state.balls.count { it.captured }) ", locked" else "") {
+                            currentTap(pin.id)
+                            true
+                        }
+                    }
+                }
+                .pointerInput(scalePx, offsetX, offsetY) {
                     detectTapGestures { offset ->
                         val wx = (offset.x - offsetX) / scalePx
                         val wy = (offset.y - offsetY) / scalePx
-                        val pin = state.pins.firstOrNull { p ->
+                        val touchPad = with(density) { 24.dp.toPx() } / scalePx
+                        val pin = currentState.pins.filter { p ->
                             !p.removed && !p.isPulling &&
-                                wx >= p.x && wx <= p.x + p.w &&
-                                wy >= p.y && wy <= p.y + p.h
+                                wx >= p.x - touchPad && wx <= p.x + p.w + touchPad &&
+                                kotlin.math.abs(wy - p.y - p.h / 2f) <= touchPad
+                        }.minByOrNull { p ->
+                            val dx = (wx - (p.x + p.w / 2f))
+                            val dy = (wy - (p.y + p.h / 2f))
+                            dx * dx + dy * dy
                         }
-                        pin?.let { onPinTap(it.id) }
+                        pin?.let { currentTap(it.id) }
                     }
                 }
         ) {
@@ -377,64 +415,59 @@ private fun PullPinBoard(
 }
 
 private fun DrawScope.drawWorld(state: PullPinState, pinProgress: Map<String, Float>) {
-    with(this) {
-        state.level.walls.forEach { w: WallSegment ->
-            drawRect(
-                color = Color(0xFF37474F),
-                topLeft = Offset(w.x, w.y),
-                size = Size(w.w, w.h)
-            )
+    drawRoundRect(Color(0xFF111D32), size = Size(WORLD_W, WORLD_H), cornerRadius = CornerRadius(18f))
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = android.graphics.Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+    }
+    fun label(text: String, x: Float, y: Float, size: Float = 12f, color: Int = android.graphics.Color.WHITE) {
+        paint.textSize = size
+        paint.color = color
+        drawContext.canvas.nativeCanvas.drawText(text, x, y, paint)
+    }
+    state.level.walls.forEach { w ->
+        rotate(w.angle, Offset(w.x + w.w / 2f, w.y + w.h / 2f)) {
+            drawRoundRect(Color(0xFF344861), Offset(w.x, w.y), Size(w.w, w.h), CornerRadius(3f))
+            drawLine(Color(0xFF627A94), Offset(w.x, w.y), Offset(w.x + w.w, w.y), 2f)
         }
-
-        state.level.cups.forEach { cup: CupData ->
-            val cupColor = BALL_COLORS[cup.color] ?: Color.Gray
-            drawCircle(
-                color = cupColor.copy(alpha = 0.25f),
-                radius = cup.radius,
-                center = Offset(cup.x, cup.y)
-            )
-            drawCircle(
-                color = cupColor,
-                radius = cup.radius,
-                center = Offset(cup.x, cup.y),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f)
-            )
-        }
-
-        state.balls.forEach { b: BallRuntime ->
-            if (b.outOfBounds) return@forEach
-            val radius = if (b.captured) 14f * 0.7f else 14f
-            drawCircle(
-                color = BALL_COLORS[b.color] ?: Color.Gray,
-                radius = radius,
-                center = Offset(b.x, b.y)
-            )
-            drawCircle(
-                color = Color.Black.copy(alpha = 0.35f),
-                radius = radius,
-                center = Offset(b.x, b.y),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
-            )
-        }
-
-        state.pins.forEach { p: PinData ->
-            if (p.removed) return@forEach
-            val progress = pinProgress[p.id] ?: 0f
-            val slide = Offset(p.pullDx, p.pullDy) * 60f * progress
-            val topLeft = Offset(p.x + slide.x, p.y + slide.y)
-            drawRoundRect(
-                color = Color(0xFFB0BEC5),
-                topLeft = topLeft,
-                size = Size(p.w, p.h),
-                cornerRadius = CornerRadius(p.h / 2f)
-            )
-            val handleX = topLeft.x + p.w - p.h / 2f
-            val handleY = topLeft.y + p.h / 2f
-            drawCircle(
-                color = Color(0xFF546E7A),
-                radius = p.h * 0.45f,
-                center = Offset(handleX, handleY)
-            )
-        }
+    }
+    state.level.cups.forEach { cup ->
+        val color = BALL_COLORS[cup.color] ?: Color.Gray
+        val width = cup.radius * 2
+        drawRoundRect(color.copy(alpha = .22f), Offset(cup.x - width / 2, cup.y - 24), Size(width, 48f), CornerRadius(10f))
+        drawLine(color, Offset(cup.x - width / 2, cup.y - 24), Offset(cup.x - width / 2, cup.y + 24), 4f)
+        drawLine(color, Offset(cup.x + width / 2, cup.y - 24), Offset(cup.x + width / 2, cup.y + 24), 4f)
+        drawLine(color, Offset(cup.x - width / 2, cup.y + 24), Offset(cup.x + width / 2, cup.y + 24), 4f)
+        val count = state.balls.count { it.captured && it.color == cup.color }
+        label("${cup.color}  |  $count", cup.x, cup.y + 8, 17f)
+    }
+    val spawns = state.level.balls.associateBy { it.id }
+    state.balls.filter { !it.captured && !it.outOfBounds }.forEach { b ->
+        val spawn = spawns.getValue(b.id)
+        val radius = spawn.radius
+        val color = if (spawn.isBomb) Color(0xFF25232E) else BALL_COLORS[b.color] ?: Color.Gray
+        drawCircle(Color.Black.copy(alpha = .3f), radius + 2f, Offset(b.x + 2, b.y + 3))
+        drawCircle(color, radius, Offset(b.x, b.y))
+        drawCircle(if (spawn.isBomb) Color(0xFFFF6875) else Color.White.copy(alpha = .55f), radius,
+            Offset(b.x, b.y), style = androidx.compose.ui.graphics.drawscope.Stroke(1.5f))
+        if (spawn.isBomb) {
+            drawLine(Color(0xFFFF6875), Offset(b.x + 3, b.y - radius), Offset(b.x + 8, b.y - radius - 7), 3f)
+            label("!", b.x, b.y + 5, 15f)
+        } else label(if (b.color == 0) "?" else "${b.color}", b.x, b.y + 4, 11f, android.graphics.Color.BLACK)
+    }
+    val saved = state.balls.count { it.captured }
+    state.pins.filter { !it.removed }.forEach { p ->
+        val progress = pinProgress[p.id] ?: 0f
+        val slide = Offset(p.pullDx, p.pullDy) * 70f * progress
+        val origin = Offset(p.x, p.y) + slide
+        val locked = saved < p.unlockAfter
+        val danger = p.id.startsWith("hazard")
+        val color = when { locked -> Color(0xFF9C8BDD); danger -> Color(0xFFFF6875); else -> Color(0xFFFFCA68) }
+        drawRoundRect(color, origin, Size(p.w, p.h), CornerRadius(5f))
+        val handle = Offset(if (p.pullDx < 0) origin.x else origin.x + p.w, origin.y + p.h / 2)
+        drawCircle(Color(0xFF111D32), 12f, handle)
+        drawCircle(color, 12f, handle, style = androidx.compose.ui.graphics.drawscope.Stroke(4f))
+        label(if (locked) "${p.unlockAfter - saved}" else if (p.pullDx < 0) "<" else ">", handle.x, handle.y + 4, 12f)
+        label(if (locked) "SAVE ${p.unlockAfter - saved}" else p.label.uppercase(), p.x + p.w / 2, p.y + 29, 10f)
     }
 }
