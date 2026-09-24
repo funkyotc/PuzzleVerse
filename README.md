@@ -1,89 +1,42 @@
-### **Project: PuzzleVerse - Daily & Standard Puzzles**
+# PuzzleVerse
 
-### **1. High-Level Summary**
+PuzzleVerse is a native Android puzzle hub built with Kotlin and Jetpack Compose. The home screen lists 20 games, with Standard and Daily entry points, local progress, and daily streaks. Some games also offer a puzzle browser or difficulty choices.
 
-The goal is to create a polished, engaging, and user-friendly native Android application named "PuzzleVerse". The app will serve as a hub for multiple classic puzzle games, each with two modes: a "Standard" mode for casual play and a "Daily Challenge" mode that is consistent for all users each day. The initial game roster will include Sudoku, Bonza, Constellations, and Wordle.
+## Games
 
-The application will be built using modern, best-practice Android development technologies to ensure it is robust, maintainable, and has a high-quality feel. This document reflects the current state of the application, using the Sudoku game as a template for future development.
+Sudoku, Bonza, Constellations, Wordle, 2048, Minesweeper, Nonogram, Kakuro, Flow Free, Shikaku, Cube Shooter, Pull the Pin, Water Sort, Wood Screws, Hexa Sort, Hexa Stack, Chess, Hashi, Arrow Escape, and Tangrams.
 
-### **2. Core Features**
+The game catalog lives in [`HomeScreen.kt`](app/src/main/java/com/funkyotc/puzzleverse/ui/screens/home/HomeScreen.kt). Route wiring and puzzle browsers live in [`MainActivity.kt`](app/src/main/java/com/funkyotc/puzzleverse/MainActivity.kt). Daily mode is available from the UI for all 20 games, but do not assume every daily board is the same across devices: Minesweeper places mines with an unseeded shuffle after the first tap, and 2048 adds random tiles.
 
-*   **Game Hub:** A central home screen to browse and select from the available puzzle games.
-*   **Dual Game Modes:**
-    *   **Standard Play:** Generate unique, random puzzles on-demand for unlimited play.
-    *   **Daily Challenge:** A single, unique puzzle for each game, refreshed every 24 hours.
-*   **Resume Puzzle:** For standard games, progress is automatically saved, allowing users to resume an unfinished puzzle.
-*   **Daily Challenge Streak:** The app tracks the number of consecutive days a user has completed a daily challenge for each game. This streak is displayed on the home screen.
-*   **Five Initial Games:**
-    *   **Sudoku:** Classic 9x9 number grid puzzle.
-    *   **Bonza:** A word puzzle where users connect word fragments on a grid.
-    *   **Constellations:** A logic game where the goal is to place stars in every row, column, and color region.
-    *   **Wordle:** The popular 5-letter word guessing game.
-*   **Local Progress Storage:** User progress for daily challenges, standard games, and streaks are saved on the device.
-*   **Fullscreen Mode:** The app runs in an immersive fullscreen mode, hiding the system status and navigation bars.
-*   **Launch Animation:** A simple and elegant launch animation using the app's adaptive icon.
+## Build and test
 
-### **3. Sudoku - The Template Game**
+Use Android Studio with the Android SDK for API 36 and a JDK 21 installation. The Gradle wrapper is 9.5.0, and the daemon toolchain requests JDK 21. Java source and target compatibility are set to 11. The app supports Android 7.0 (API 24) and later.
 
-The Sudoku game has been implemented with a polished UI and a robust set of features. It should be used as a template for the design and functionality of all other games in PuzzleVerse.
+From PowerShell:
 
-**Sudoku Features:**
-*   **Game Board:** A clean, easy-to-read 9x9 grid with thicker borders for the 3x3 blocks.
-*   **Number Input:** A 3x3 number pad for quick and intuitive number entry.
-*   **Highlighting:**
-    *   The selected cell, row, column, and 3x3 block are highlighted.
-    *   All other instances of the selected number are also highlighted.
-*   **Pencil Mode:** Allows users to enter notes in a cell. The pencil button and number pad are visually distinct when this mode is active.
-*   **Erase Button:** A dedicated button to clear the contents of a selected cell.
-*   **Undo Button:** Reverts the last move.
-*   **Victory Detection:** The app automatically detects when the puzzle is solved and displays a congratulatory message.
-*   **New Puzzle Generation:** For standard mode, users can generate a new, random puzzle at any time via a "Shuffle" button in the title bar, with a confirmation dialog to prevent accidental resets.
+```powershell
+.\gradlew.bat assembleDebug
+.\gradlew.bat testDebugUnitTest
+.\gradlew.bat lintDebug
+```
 
-### **4. Technology Stack & Architecture**
+On Linux or macOS, use `./gradlew` instead. Instrumented tests require a connected device or emulator: `connectedDebugAndroidTest`. Build variants include `debug`, `staging` (application ID suffix `.staging`), `release`, and `finalRelease` (minification and resource shrinking). The debug APK is written to `app/build/outputs/apk/debug/`.
 
-*   **Language:** **Kotlin**
-*   **UI Toolkit:** **Jetpack Compose**
-*   **Architecture:** **MVVM (Model-View-ViewModel)**
-*   **Navigation:** **Compose Navigation**
-*   **Data Persistence:** **SharedPreferences** with **Gson** for serialization.
-*   **Splash Screen API:** For the launch animation.
+If the wrapper chooses an unwritable Gradle cache, set `GRADLE_USER_HOME` to a writable directory before running it. Do not append `2>&1` to the PowerShell build commands; it can obscure Gradle error output.
 
-### **5. UI/UX Design Principles**
+GitHub Actions runs unit tests and a debug build on pull requests and pushes to `master` in [`.github/workflows/build-debug.yml`](.github/workflows/build-debug.yml). The workflow's Java setup currently specifies 11 while the Gradle daemon requests 21; see the [project review](docs/project-review-2026-09-24.md) before relying on CI status.
 
-*   **Theme:** A clean, minimalist, and modern aesthetic based on **Material Design 3**.
-*   **User Flow:**
-    1.  **App Launch** -> **Splash Screen** -> **Home Screen** (Displays a grid of games with streak counters).
-    2.  **Select a Game** -> **Game Detail Screen** (Presents "Standard Game" (with "Resume" or "New Game" options) and "Daily Challenge" options).
-    3.  **Select a Mode** -> **Game Board Screen**.
-*   **Game Screen Layout:**
-    *   **`Scaffold`:** Each game screen is built using a `Scaffold`.
-    *   **`TopAppBar`:** A `TopAppBar` displays the game's title, a back button, and game-specific actions (e.g., "New Puzzle").
-    *   **Content:** The main game content is displayed in the body of the `Scaffold`, with appropriate padding to account for the system bars.
+## Project layout
 
-### **6. Development Plan (Updated)**
+- `app/src/main/java/com/funkyotc/puzzleverse/`: game UI, ViewModels, data, navigation, settings, sound, streaks, and shared save metadata.
+- `app/src/main/java/generators/`: standalone generator runners used on demand to update checked-in puzzle data. They are separate from normal Gradle build and test tasks.
+- `app/src/main/assets/`: Bonza puzzle JSON, the Wordle dictionary, and Tangrams SVGs.
+- `app/src/test/`: JVM tests for game logic, generators, save state, audio, and streaks.
+- `app/src/androidTest/`: Android instrumented test source.
+- `docs/archive/`: older game notes and plans. [`docs/implementation_plan.md`](docs/implementation_plan.md) is a historical proposal, not a verified completion record.
 
-**Phase 1: Project Foundation & Core UI (Complete)**
-*   Project setup with Kotlin and Jetpack Compose.
-*   Core navigation structure implemented.
-*   Main UI components designed and built.
+State is stored locally using `SharedPreferences` repositories. [`SaveStateRepository.kt`](app/src/main/java/com/funkyotc/puzzleverse/core/data/SaveStateRepository.kt) tracks resume metadata; several games have their own board repositories. Settings include sound effects and unlockable themes. `MainActivity` supplies the sound and save repositories through Compose locals.
 
-**Phase 2: First Game Implementation - Sudoku (Complete)**
-*   Data models and game logic developed.
-*   Interactive Sudoku board UI created.
-*   "Daily Challenge" and "Standard" modes implemented.
-*   Local data storage for game state and streaks integrated.
-*   Advanced features like pencil mode, highlighting, and undo implemented.
+## Current review
 
-**Phase 3: Implementing the Remaining Games**
-*Using the Sudoku implementation as a template:*
-1.  **For each game (Wordle, Bonza, Constellations):**
-    *   Implement the game's data models and logic within a `ViewModel`.
-    *   Create the interactive game board UI using Jetpack Compose, following the `Scaffold` and `TopAppBar` pattern.
-    *   Implement the `Standard` and `Daily Challenge` modes, using the `ViewModelFactory` to handle puzzle loading and generation.
-    *   Integrate streak tracking for daily challenges.
-    *   Add any game-specific actions (e.g., a "Hint" button) to the `TopAppBar` or an action row at the bottom of the screen.
-
-**Phase 4: Polish, Settings & Refinement**
-1.  Add user settings (e.g., theme selection, sound on/off).
-2.  Add sound effects for user interactions.
-3.  Conduct thorough testing and bug fixing across all games and devices.
+The [September 2026 project review](docs/project-review-2026-09-24.md) records the code and documentation findings plus build and test evidence. It is a snapshot, not a release certification.
