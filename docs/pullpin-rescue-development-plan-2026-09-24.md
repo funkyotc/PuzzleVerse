@@ -2,7 +2,7 @@
 
 Date: 2026-09-24
 
-Status: approved design direction; implementation has not started. This task writes the plan only. Complete each phase's gate before moving to the next; prototype feel acceptance precedes campaign expansion.
+Status: Phase 0 complete; rescue gameplay implementation has not started. The [Phase 0 replacement boundary and baseline](pullpin-rescue-phase-0-2026-09-24.md) records the inspected infrastructure, storage policy and verification. Next: Phase 1, one simulated catch-basin rescue. Complete each phase's gate before moving to the next; prototype feel acceptance precedes campaign expansion.
 
 This plan replaces the coloured-ball-and-cup design direction. The [previous rework record](pullpin-rework-2026-09-24.md) documents that implementation and its validation, not completion of this rescue game. The [older archived plan](archive/pullpin-plan.md) is historical. Existing game-audit results do not prove the new rules or levels.
 
