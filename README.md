@@ -30,6 +30,7 @@ GitHub Actions runs unit tests and a debug build on pull requests and pushes to 
 
 - `app/src/main/java/com/funkyotc/puzzleverse/`: game UI, ViewModels, data, navigation, settings, sound, streaks, and shared save metadata.
 - `app/src/main/java/generators/`: standalone generator runners used on demand to update checked-in puzzle data. They are separate from normal Gradle build and test tasks.
+- `scripts/`: supplementary puzzle and asset generation utilities. Run scripts that write under `app/` from the repository root.
 - `app/src/main/assets/`: Bonza puzzle JSON, the Wordle dictionary, and Tangrams SVGs.
 - `app/src/test/`: JVM tests for game logic, generators, save state, audio, and streaks.
 - `app/src/androidTest/`: Android instrumented test source.

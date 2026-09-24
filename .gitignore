@@ -33,3 +33,7 @@ keystore-password.txt
 build_log.txt
 compile_out.txt
 .kilo
+
+# Python generator caches
+__pycache__/
+*.py[cod]

@@ -40,16 +40,9 @@ fun main(args: Array<String>) {
     println("TANGRAM SVG SILHOUETTE VECTOR ASSET GENERATOR RUNNER")
     println("==========================================================================")
 
-    val assetDirectories = listOf(
-        File("app/src/main/assets/tangrams"),
-        File("tangram-svg"),
-        File("manual-tangrams"),
-        File("C:/Users/funky/AppDev/PuzzleVerse/app/src/main/assets/tangrams")
-    )
-
-    val assetDir = assetDirectories.find { it.exists() && it.isDirectory }
-    if (assetDir == null) {
-        println("Error: Could not find tangrams asset directory!")
+    val assetDir = File("app/src/main/assets/tangrams")
+    if (!assetDir.isDirectory) {
+        println("Error: Could not find ${assetDir.path}; run this generator from the repository root.")
         return
     }
 
