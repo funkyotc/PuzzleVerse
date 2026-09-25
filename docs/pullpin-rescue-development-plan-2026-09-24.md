@@ -2,7 +2,7 @@
 
 Date: 2026-09-24
 
-Status: Phases 0 and 1 complete. The [Phase 0 replacement boundary and baseline](pullpin-rescue-phase-0-2026-09-24.md) records the storage policy; the [Phase 1 physics verification](pullpin-rescue-phase-1-2026-09-25.md) records one isolated catch-basin rescue and measured timed traces. The [Phase 2 prototype record](pullpin-rescue-phase-2-2026-09-25.md) documents three playable levels and emulator observations. The [Phase 3 campaign record](pullpin-rescue-phase-3-2026-09-25.md) documents production route and progress integration at the user's request, keeping the campaign to those three proven levels. Phase 2's physical-device and user-feel gate remains open; it does not yet authorize expansion beyond this initial set.
+Status: Phases 0–3 are implemented as recorded in the [Phase 0 boundary](pullpin-rescue-phase-0-2026-09-24.md), [Phase 1 physics record](pullpin-rescue-phase-1-2026-09-25.md), [Phase 2 prototype record](pullpin-rescue-phase-2-2026-09-25.md), and [Phase 3 campaign record](pullpin-rescue-phase-3-2026-09-25.md). The user subsequently requested phases 4 and 5; the [Phase 4–5 record](pullpin-rescue-phase-4-5-2026-09-25.md) tracks the expansion and release evidence. The physical-device and user-feel gates remain open, and automated checks alone do not close them.
 
 This plan replaces the coloured-ball-and-cup design direction. The [previous rework record](pullpin-rework-2026-09-24.md) documents that implementation and its validation, not completion of this rescue game. The [older archived plan](archive/pullpin-plan.md) is historical. Existing game-audit results do not prove the new rules or levels.
 

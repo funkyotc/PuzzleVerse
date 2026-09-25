@@ -10,10 +10,11 @@ data class KingGeometry(val x: Double, val floorY: Double, val bodyWidth: Double
 }
 data class RescuePin(val id: String, val shape: WallSegment, val label: String)
 data class TimedPull(val tick: Int, val pinId: String)
-enum class RescueObjective { SURVIVE }
+enum class RescueObjective { SURVIVE, CLEAR, ESCAPE }
 data class RescueLevel(val id: String, val walls: List<WallSegment>, val pins: List<RescuePin>,
     val stones: List<StoneSpawn>, val king: KingGeometry,
     val objective: RescueObjective = RescueObjective.SURVIVE,
+    val exitX: Double? = null,
     val solution: List<TimedPull> = emptyList(),
     val title: String = "Divert the stones",
     val lesson: String = "Open a catch basin before stones bury the king.") {
@@ -22,6 +23,7 @@ data class RescueLevel(val id: String, val walls: List<WallSegment>, val pins: L
         require(pins.map { it.id }.distinct().size == pins.size)
         require(stones.all { it.radius > 0 && it.x.isFinite() && it.y.isFinite() })
         require(king.bodyWidth > 0 && king.bodyHeight > 0 && king.headRadius > 0)
+        require(objective != RescueObjective.ESCAPE || exitX != null)
     }
 }
 data class StoneState(val id: String, val x: Double, val y: Double, val radius: Double,
@@ -38,4 +40,5 @@ data class BurialCoverage(val left: Double = 0.0, val right: Double = 0.0,
 }
 data class RescueState(val tick: Int, val status: RescueStatus, val stones: List<StoneState>,
     val pins: List<PinState>, val burial: BurialCoverage = BurialCoverage(),
-    val burialTicks: Int = 0, val settledTicks: Int = 0, val lossReason: String? = null)
+    val burialTicks: Int = 0, val settledTicks: Int = 0, val lossReason: String? = null,
+    val king: KingGeometry? = null, val exitReached: Boolean = false, val bodyClear: Boolean = false)

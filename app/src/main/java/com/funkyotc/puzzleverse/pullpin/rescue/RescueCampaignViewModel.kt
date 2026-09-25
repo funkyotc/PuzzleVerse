@@ -89,7 +89,11 @@ class RescueCampaignViewModel(
     fun hint(): String {
         val next = session.level.solution.firstOrNull { action ->
             session.state.pins.any { it.pin.id == action.pinId && it.acceptedTick == null }
-        } ?: return "The route is open. Keep the king's head clear while the stones settle."
+        } ?: return when (session.level.objective) {
+            RescueObjective.SURVIVE -> "The route is open. Keep the king's head clear while the stones settle."
+            RescueObjective.CLEAR -> "The route is open. Clear the stones around the king's body."
+            RescueObjective.ESCAPE -> "The route is open. The king must reach the blue exit."
+        }
         return session.level.pins.first { it.id == next.pinId }.label + "."
     }
     private fun publish() { _ui.value = RescueCampaignUiState(levelIndex, session.state) }

@@ -5,7 +5,7 @@ import com.funkyotc.puzzleverse.core.data.BrowseablePuzzle
 /** Versioned production IDs never inherit completion from the retired ball campaign. */
 object RescueCampaign {
     const val VERSION = 1
-    val levels: List<RescueLevel> = RescuePrototype.levels.mapIndexed { index, prototype ->
+    val levels: List<RescueLevel> = (RescuePrototype.levels + RescueExpansion.levels).mapIndexed { index, prototype ->
         prototype.copy(id = "pullpin_rescue_v1_${(index + 1).toString().padStart(3, '0')}")
     }
     val puzzles: List<RescuePuzzle> = levels.mapIndexed { index, level ->

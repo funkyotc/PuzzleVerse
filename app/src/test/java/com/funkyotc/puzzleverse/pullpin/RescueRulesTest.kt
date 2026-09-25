@@ -58,6 +58,38 @@ class RescueRulesTest {
         assertEquals(RescueStatus.LOST, next.status)
     }
 
+    @Test fun drainingDuringBurialGraceResetsExposure() {
+        var observed = state(pile()).copy(burialTicks = RescueSession.BURIAL_GRACE_TICKS - 2)
+        observed = advance(observed)
+        assertEquals(RescueStatus.RUNNING, observed.status)
+        val drained = observed.stones.filter { it.y > king.headY + 12 }
+        observed = advance(observed, drained)
+        assertEquals(0, observed.burialTicks)
+        assertEquals(RescueStatus.RUNNING, observed.status)
+    }
+
+    @Test fun fullClearAndEscapeHaveDedicatedWinPredicates() {
+        val byBody = StoneState("body", king.x, king.floorY - 10, 4.5)
+        val previous = state(listOf(byBody)).copy(settledTicks = RescueSession.SETTLE_TICKS - 1)
+        val clearLevel = level.copy(objective = RescueObjective.CLEAR)
+        val blocked = RescueRules.evaluate(clearLevel, previous, 1, emptyList(), previous.stones)
+        assertEquals(RescueStatus.RUNNING, blocked.status)
+        assertFalse(blocked.bodyClear)
+        val remote = listOf(byBody.copy(x = 40.0))
+        val free = RescueRules.evaluate(clearLevel, previous.copy(stones = remote), 1, emptyList(), remote)
+        assertEquals(RescueStatus.WON, free.status)
+        val escapeLevel = level.copy(objective = RescueObjective.ESCAPE, exitX = 260.0)
+        val short = RescueRules.evaluate(escapeLevel, previous.copy(stones = remote), 1,
+            emptyList(), remote, king.copy(x = 250.0))
+        assertEquals(RescueStatus.RUNNING, short.status)
+        val arrived = RescueRules.evaluate(escapeLevel, previous.copy(stones = remote), 1,
+            emptyList(), remote, king.copy(x = 260.0))
+        assertEquals(RescueStatus.WON, arrived.status)
+        val unsupported = RescueRules.evaluate(escapeLevel, previous.copy(stones = remote), 1,
+            emptyList(), remote, king.copy(x = 260.0, floorY = king.floorY + 10))
+        assertEquals(RescueStatus.RUNNING, unsupported.status)
+    }
+
     @Test fun settlingIncludesRemoteStockAndRejectsBounceApexOrPositionCorrection() {
         val near = StoneState("near", 200.0, 675.0, 4.5)
         val upstream = StoneState("upstream", 40.0, 100.0, 4.5)

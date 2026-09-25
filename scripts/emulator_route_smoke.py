@@ -39,6 +39,14 @@ def adb(*args, check=True):
     return result.stdout
 
 
+def viewport():
+    sizes = re.findall(r"(?:Physical|Override) size: (\d+)x(\d+)",
+                       adb("shell", "wm", "size").decode(errors="replace"))
+    if not sizes:
+        raise RuntimeError("Could not read emulator display size")
+    return tuple(map(int, sizes[-1]))
+
+
 def screen():
     for _ in range(4):
         adb("shell", "uiautomator", "dump", "/sdcard/window.xml", check=False)
@@ -104,6 +112,10 @@ def wait_for_detail():
 
 
 def open_detail(name):
+    width, height = viewport()
+    x = width * 48 // 100
+    top = height * 25 // 100
+    bottom = height * 79 // 100
     adb("shell", "am", "force-stop", PACKAGE)
     adb("shell", "am", "start", "-n", f"{PACKAGE}/.MainActivity")
     time.sleep(1.5)
@@ -111,12 +123,13 @@ def open_detail(name):
     # to its top before scanning downward, including when the previous game
     # was near the end of the catalog.
     for _ in range(4):
-        adb("shell", "input", "swipe", "520", "590", "520", "1840", "180")
+        adb("shell", "input", "swipe", str(x), str(top), str(x), str(bottom), "180")
     for _ in range(16):
         root = screen()
         nodes = list(root.iter("node"))
         heading = next((i for i, node in enumerate(nodes) if node.get("text") == "All Puzzles"), -1)
         matching = [node for i, node in enumerate(nodes) if node.get("text") == name and
+                    node.get("bounds") != "[0,0][0,0]" and
                     (name not in ("Sudoku", "Bonza", "Constellations") or heading >= 0 and i > heading)]
         if matching:
             if os.environ.get("PUZZLEVERSE_DEBUG"):
@@ -137,7 +150,7 @@ def open_detail(name):
                     return wait_for_detail()
                 time.sleep(0.4)
             adb("shell", "input", "keyevent", "4")
-        adb("shell", "input", "swipe", "520", "1840", "520", "590", "290")
+        adb("shell", "input", "swipe", str(x), str(bottom), str(x), str(top), "290")
     raise RuntimeError(f"Could not open detail menu for {name}")
 
 

@@ -33,9 +33,17 @@ internal object BurialProbe {
 /** Evaluates the observed world; separate from stepping so boundary cases can be tested directly. */
 internal object RescueRules {
     fun evaluate(level: RescueLevel, previous: RescueState, tick: Int,
-        pins: List<PinState>, stones: List<StoneState>): RescueState {
-        val burial = BurialProbe.measure(level.king, stones)
+        pins: List<PinState>, stones: List<StoneState>, king: KingGeometry = level.king): RescueState {
+        val burial = BurialProbe.measure(king, stones)
         val burialTicks = if (burial.covered) previous.burialTicks + 1 else 0
+        val bodyClear = stones.none { stone ->
+            stone.x + stone.radius > king.x - king.bodyWidth / 2 - 3 &&
+                stone.x - stone.radius < king.x + king.bodyWidth / 2 + 3 &&
+                stone.y + stone.radius > king.floorY - king.bodyHeight - 2 &&
+                stone.y - stone.radius < king.floorY - 3
+        }
+        val exitReached = level.exitX?.let { king.x >= it &&
+            kotlin.math.abs(king.floorY - level.king.floorY) <= 3.0 } ?: false
         // A sustained low-motion interval rejects bounce apexes without waiting forever on
         // dyn4j sleep flags for tiny stone/contact jitter. Check displacement as well as speed.
         val settled = stones.zip(previous.stones).all { (now, before) ->
@@ -50,11 +58,16 @@ internal object RescueRules {
             burialTicks >= RescueSession.BURIAL_GRACE_TICKS -> "The king's head is buried."
             else -> null
         }
+        val objectiveMet = when (level.objective) {
+            RescueObjective.SURVIVE -> settledTicks >= RescueSession.SETTLE_TICKS
+            RescueObjective.CLEAR -> settledTicks >= RescueSession.SETTLE_TICKS && bodyClear
+            RescueObjective.ESCAPE -> exitReached && bodyClear
+        }
         return RescueState(tick, when {
             loss != null -> RescueStatus.LOST
-            settledTicks >= RescueSession.SETTLE_TICKS && !burial.covered -> RescueStatus.WON
+            objectiveMet && !burial.covered -> RescueStatus.WON
             else -> RescueStatus.RUNNING
-        }, stones, pins, burial, burialTicks, settledTicks, loss)
+        }, stones, pins, burial, burialTicks, settledTicks, loss, king, exitReached, bodyClear)
     }
 }
 
@@ -67,7 +80,7 @@ class RescueSession(val level: RescueLevel) {
         private set
     internal var clockEpoch = 0
         private set
-    var state = RescueState(0, RescueStatus.READY, physics.snapshot(), level.pins.map { PinState(it) })
+    var state = RescueState(0, RescueStatus.READY, physics.snapshot(), level.pins.map { PinState(it) }, king = physics.kingSnapshot())
         private set
 
     fun start() {
@@ -101,7 +114,7 @@ class RescueSession(val level: RescueLevel) {
         }
         physics.step()
         val stones = physics.snapshot()
-        state = RescueRules.evaluate(level, state, tick, pins, stones)
+        state = RescueRules.evaluate(level, state, tick, pins, stones, physics.kingSnapshot())
     }
 
     companion object {

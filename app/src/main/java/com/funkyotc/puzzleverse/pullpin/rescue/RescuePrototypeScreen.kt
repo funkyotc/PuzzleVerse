@@ -41,6 +41,12 @@ private val StoneColor = Color(0xFFB6B8B6)
 private val WallColor = Color(0xFF536981)
 private val PinColor = Color(0xFFFFC45B)
 
+private fun objectiveText(objective: RescueObjective): String = when (objective) {
+    RescueObjective.SURVIVE -> "Keep the king's head clear until the stones settle."
+    RescueObjective.CLEAR -> "Clear the king's whole body before the stones settle."
+    RescueObjective.ESCAPE -> "Open the route and reach the blue exit safely."
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RescueCampaignScreen(navController: NavController, mode: String?, puzzleId: String?,
@@ -75,9 +81,12 @@ fun RescueCampaignScreen(navController: NavController, mode: String?, puzzleId: 
     }
 
     if (showHelp) AlertDialog(
-        onDismissRequest = {},
+        onDismissRequest = {
+            if (state.status == RescueStatus.READY) navController.popBackStack()
+            else showHelp = false
+        },
         title = { Text(level.title) },
-        text = { Text("${level.lesson}\n\nStones begin flowing when you start. Tap gold handles to remove pins. Keep the king's head clear until every stone settles. Pins cannot be replaced.") },
+        text = { Text("${level.lesson}\n\nGoal: ${objectiveText(level.objective)}\n\nStones begin flowing when you start. Tap gold handles to remove pins. Pins cannot be replaced.") },
         confirmButton = { TextButton(onClick = { showHelp = false; model.start() }) { Text("Start rescue") } }
     )
     if (hint != null) AlertDialog(onDismissRequest = { hint = null },
@@ -86,7 +95,7 @@ fun RescueCampaignScreen(navController: NavController, mode: String?, puzzleId: 
     if (state.status == RescueStatus.WON || state.status == RescueStatus.LOST) AlertDialog(
         onDismissRequest = {},
         title = { Text(if (state.status == RescueStatus.WON) "King rescued" else "King buried") },
-        text = { Text(if (state.status == RescueStatus.WON) "The stones have settled and his head is clear." else "The stones covered his head. Try another route.") },
+        text = { Text(if (state.status == RescueStatus.WON) objectiveText(level.objective) else (state.lossReason ?: "Try another route.")) },
         confirmButton = {
             if (state.status == RescueStatus.WON && model.canAdvance) {
                 TextButton(onClick = { model.advance(); showHelp = true }) { Text("Next level") }
@@ -116,11 +125,14 @@ fun RescueCampaignScreen(navController: NavController, mode: String?, puzzleId: 
         ) {
             Text(level.title, style = MaterialTheme.typography.titleMedium)
             Text(level.lesson, style = MaterialTheme.typography.bodySmall)
+            Text("Goal: ${objectiveText(level.objective)}", style = MaterialTheme.typography.labelMedium)
             val danger = when {
                 state.status == RescueStatus.LOST -> "The king's head is buried"
                 state.burial.covered -> "Head covered — clear the flow!"
                 maxOf(state.burial.left, state.burial.right, state.burial.above) >= .25 -> "Stones are rising near the king"
-                else -> "Keep the king's head clear"
+                level.objective == RescueObjective.CLEAR && !state.bodyClear -> "Clear stones from the king's body"
+                level.objective == RescueObjective.ESCAPE && !state.exitReached -> "Open the gate for the king"
+                else -> "King safe so far"
             }
             Text(danger, style = MaterialTheme.typography.labelMedium,
                 color = if (state.burial.covered) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
@@ -145,7 +157,7 @@ private fun RescueBoard(level: RescueLevel, state: RescueState, modifier: Modifi
         val left = (width - WORLD_W * boardScale) / 2f
         val top = (height - WORLD_H * boardScale) / 2f
         Box(Modifier.fillMaxSize().semantics {
-            contentDescription = "${level.title}. ${state.stones.size} stones. ${if (state.burial.covered) "King's head covered" else "King's head clear"}."
+            contentDescription = "${level.title}. Goal: ${objectiveText(level.objective)} ${state.stones.size} stones. ${if (state.burial.covered) "King's head covered" else "King's head clear"}."
             customActions = state.pins.filter { it.acceptedTick == null }.map { pin ->
                 CustomAccessibilityAction(pin.pin.label) { currentTap(pin.pin.id); true }
             }
@@ -177,7 +189,11 @@ private fun DrawScope.drawRescue(level: RescueLevel, state: RescueState) {
     for (wall in level.walls) rotate(wall.angle, Offset(wall.x + wall.w / 2, wall.y + wall.h / 2)) {
         drawRoundRect(WallColor, Offset(wall.x, wall.y), Size(wall.w, wall.h), CornerRadius(2f))
     }
-    val king = level.king
+    if (level.exitX != null) {
+        drawRoundRect(Color(0xFF48A6D9), Offset(level.exitX.toFloat() - 8f, 620f),
+            Size(22f, 70f), CornerRadius(4f), style = androidx.compose.ui.graphics.drawscope.Stroke(3f))
+    }
+    val king = state.king ?: level.king
     val kingColor = if (state.burial.covered) Color(0xFFF07868) else Color(0xFFF3B45F)
     drawRoundRect(kingColor, Offset((king.x - king.bodyWidth / 2).toFloat(),
         (king.floorY - king.bodyHeight).toFloat()), Size(king.bodyWidth.toFloat(), king.bodyHeight.toFloat()), CornerRadius(4f))
