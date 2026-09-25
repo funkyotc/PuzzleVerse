@@ -59,7 +59,8 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             all {
-                it.timeout.set(Duration.ofSeconds(60))
+                // The rescue suite runs several complete 352-body physics traces.
+                it.timeout.set(Duration.ofMinutes(3))
             }
         }
     }

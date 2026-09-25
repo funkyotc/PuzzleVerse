@@ -14,7 +14,9 @@ enum class RescueObjective { SURVIVE }
 data class RescueLevel(val id: String, val walls: List<WallSegment>, val pins: List<RescuePin>,
     val stones: List<StoneSpawn>, val king: KingGeometry,
     val objective: RescueObjective = RescueObjective.SURVIVE,
-    val solution: List<TimedPull> = emptyList()) {
+    val solution: List<TimedPull> = emptyList(),
+    val title: String = "Divert the stones",
+    val lesson: String = "Open a catch basin before stones bury the king.") {
     init {
         require(stones.isNotEmpty() && stones.map { it.id }.distinct().size == stones.size)
         require(pins.map { it.id }.distinct().size == pins.size)

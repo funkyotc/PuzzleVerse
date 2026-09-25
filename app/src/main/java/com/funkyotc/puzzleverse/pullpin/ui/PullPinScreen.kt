@@ -96,6 +96,10 @@ fun PullPinScreen(
     puzzleId: String? = null,
     forceNewGame: Boolean = false
 ) {
+    if (mode == "standard" && puzzleId == null) {
+        com.funkyotc.puzzleverse.pullpin.rescue.RescuePrototypeScreen(navController)
+        return
+    }
     val soundManager = LocalSoundManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
 

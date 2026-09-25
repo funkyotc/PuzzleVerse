@@ -4,7 +4,7 @@ import com.funkyotc.puzzleverse.pullpin.data.WallSegment
 import kotlin.math.atan2
 import kotlin.math.hypot
 
-/** Phase 1 fixture, deliberately separate from the production ball campaign and its progress. */
+/** Handcrafted playable rescue slice, separate from the production ball campaign and progress. */
 object RescuePrototype {
     private fun ramp(x1: Double, y1: Double, x2: Double, y2: Double, thickness: Float = 8f): WallSegment {
         val length = hypot(x2 - x1, y2 - y1).toFloat()
@@ -28,6 +28,35 @@ object RescuePrototype {
             StoneSpawn("stone_${row}_$col", 22.0 + col * 10.0, 25.0 + row * 10.0)
         } }.flatten(),
         king = KingGeometry(334.0, 690.0),
-        solution = listOf(TimedPull(180, "divert"))
+        solution = listOf(TimedPull(180, "divert")),
+        title = "1 · Divert",
+        lesson = "Tap the gold pin to open the basin below the stream."
     )
+
+    private val receivingWall = listOf(
+        WallSegment(200f, 520f, 8f, 65f),
+        WallSegment(200f, 645f, 8f, 45f)
+    )
+    val prepare = divert.copy(
+        id = "pullpin_rescue_prototype_002",
+        walls = divert.walls + receivingWall,
+        pins = divert.pins + RescuePin("prepare", WallSegment(200f, 585f, 8f, 60f), "Open receiving chamber"),
+        solution = listOf(TimedPull(90, "prepare"), TimedPull(180, "divert")),
+        title = "2 · Prepare, then divert",
+        lesson = "Open the lower chamber first, then divert the stream."
+    )
+
+    val choose = divert.copy(
+        id = "pullpin_rescue_prototype_003",
+        walls = divert.walls.filterNot { it.x == 260f && it.y == 496.67f } + listOf(
+            WallSegment(260f, 496.67f, 8f, 83.33f),
+            WallSegment(260f, 645f, 8f, 45f)
+        ),
+        pins = divert.pins + RescuePin("spill", WallSegment(260f, 580f, 8f, 65f), "Open route toward king"),
+        solution = listOf(TimedPull(180, "divert")),
+        title = "3 · Choose the safe route",
+        lesson = "One opening catches stones. The other leads back to the king."
+    )
+
+    val levels = listOf(divert, prepare, choose)
 }
