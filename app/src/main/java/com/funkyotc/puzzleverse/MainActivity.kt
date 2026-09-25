@@ -60,7 +60,8 @@ import com.funkyotc.puzzleverse.woodnuts.data.WoodNutsPregenerated
 import com.funkyotc.puzzleverse.watersort.ui.WaterSortScreen
 import com.funkyotc.puzzleverse.watersort.data.WaterSortPregenerated
 import com.funkyotc.puzzleverse.pullpin.ui.PullPinScreen
-import com.funkyotc.puzzleverse.pullpin.data.PullPinPregenerated
+import com.funkyotc.puzzleverse.pullpin.rescue.RescueCampaign
+import com.funkyotc.puzzleverse.pullpin.rescue.RescueMigration
 import com.funkyotc.puzzleverse.hexasort.ui.HexaSortScreen
 import com.funkyotc.puzzleverse.hexasort.data.HexaSortPregenerated
 import com.funkyotc.puzzleverse.hexastack.ui.HexaStackScreen
@@ -103,7 +104,9 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val settingsRepository = remember { SettingsRepository(context) }
             val streakRepository = remember { StreakRepository(context) }
-            val saveStateRepository = remember { SaveStateRepository(context) }
+            val saveStateRepository = remember {
+                SaveStateRepository(context).also { RescueMigration.forContext(context, it).migrate() }
+            }
             val activeTheme by settingsRepository.activeTheme.collectAsState(initial = "default")
 
             PuzzleVerseTheme(activeTheme = activeTheme) {
@@ -256,6 +259,9 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
 
             if (gameId != null) {
                 androidx.compose.runtime.LaunchedEffect(gameId, mode) {
+                    if (gameId == "pullpin" && mode == "daily") {
+                        streakRepository.markActiveDailyRun(gameId, daySource.epochDay())
+                    }
                     saveStateRepo.clearSaveState(gameId, onlyMode = if (mode == "daily") "daily" else null)
                     saveStateRepo.saveGameState(gameId, mode ?: "standard")
                 }
@@ -272,7 +278,7 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 "flowfree" -> FlowFreeScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 "shikaku" -> ShikakuScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 "cubeshooter" -> CubeShooterScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
-                "pullpin" -> PullPinScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
+                "pullpin" -> PullPinScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 "watersort" -> WaterSortScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 "woodnuts" -> WoodNutsScreen(navController = navController, mode = mode, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
                 "hexasort" -> HexaSortScreen(navController = navController, mode = mode, forceNewGame = true, streakRepository = routeStreakRepository, settingsRepository = settingsRepository)
@@ -357,8 +363,8 @@ fun PuzzleVerseNavHost(settingsRepository: SettingsRepository, streakRepository:
                 title = "Pull the Pin Puzzles",
                 gameName = "PullPin",
                 navController = navController,
-                puzzlesByDifficulty = PullPinPregenerated.PUZZLES_BY_DIFFICULTY as Map<String, List<BrowseablePuzzle>>,
-                difficultyOrder = listOf("Easy", "Medium", "Hard", "Expert"),
+                puzzlesByDifficulty = RescueCampaign.byDifficulty,
+                difficultyOrder = listOf("Rescue"),
                 initialDifficulty = initialDifficulty,
                 onPuzzleClick = { puzzle -> navController.navigate("game/pullpin/puzzle/${puzzle.id}") }
             )

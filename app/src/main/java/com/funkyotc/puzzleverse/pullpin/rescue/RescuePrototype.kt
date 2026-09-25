@@ -4,7 +4,7 @@ import com.funkyotc.puzzleverse.pullpin.data.WallSegment
 import kotlin.math.atan2
 import kotlin.math.hypot
 
-/** Handcrafted playable rescue slice, separate from the production ball campaign and progress. */
+/** Original three-level rescue geometry; Phase 3 gives these levels stable campaign IDs. */
 object RescuePrototype {
     private fun ramp(x1: Double, y1: Double, x2: Double, y2: Double, thickness: Float = 8f): WallSegment {
         val length = hypot(x2 - x1, y2 - y1).toFloat()

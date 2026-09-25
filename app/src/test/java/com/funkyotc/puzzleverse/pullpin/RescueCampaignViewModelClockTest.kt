@@ -1,13 +1,14 @@
 package com.funkyotc.puzzleverse.pullpin
 
-import com.funkyotc.puzzleverse.pullpin.rescue.RescuePrototypeViewModel
+import com.funkyotc.puzzleverse.pullpin.rescue.RescueCampaign
+import com.funkyotc.puzzleverse.pullpin.rescue.RescueCampaignViewModel
 import com.funkyotc.puzzleverse.pullpin.rescue.RescueStatus
 import org.junit.Assert.*
 import org.junit.Test
 
-class RescuePrototypeViewModelTest {
+class RescueCampaignViewModelClockTest {
     @Test fun overlaysBackgroundRetryAndSelectionPreserveTheRescueClock() {
-        val model = RescuePrototypeViewModel()
+        val model = RescueCampaignViewModel("standard", null, true, null)
         model.frame(0)
         assertEquals(RescueStatus.READY, model.ui.value.state.status)
         model.frame(10_000_000_000L)
@@ -37,9 +38,9 @@ class RescuePrototypeViewModelTest {
         assertEquals(0, model.ui.value.state.tick)
         assertEquals(RescueStatus.RUNNING, model.ui.value.state.status)
         assertTrue(model.ui.value.state.pins.none { it.acceptedTick != null })
-        model.selectLevel(1)
-        assertEquals(RescueStatus.READY, model.ui.value.state.status)
-        assertEquals(1, model.ui.value.levelIndex)
-        assertFalse(model.pull("prepare"))
+        val exact = RescueCampaignViewModel("puzzle", RescueCampaign.levels[1].id, false, null)
+        assertEquals(RescueStatus.READY, exact.ui.value.state.status)
+        assertEquals(1, exact.ui.value.levelIndex)
+        assertFalse(exact.pull("prepare"))
     }
 }

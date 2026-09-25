@@ -4,7 +4,7 @@ import com.funkyotc.puzzleverse.pullpin.rescue.*
 import org.junit.Assert.*
 import org.junit.Test
 
-class RescueSliceTest {
+class RescueCampaignTest {
     private fun play(level: RescueLevel, actions: List<TimedPull>, limit: Int = 4500): RescueState {
         val session = RescueSession(level)
         session.start()
@@ -18,7 +18,10 @@ class RescueSliceTest {
     }
 
     @Test fun everyLevelHasATimedRescueAndNoInputBurial() {
-        for (level in RescuePrototype.levels) {
+        assertEquals(3, RescueCampaign.levels.size)
+        assertEquals(RescueCampaign.levels.map { it.id }.toSet().size, RescueCampaign.levels.size)
+        assertTrue(RescueCampaign.levels.all { it.id.startsWith("pullpin_rescue_v1_") })
+        for (level in RescueCampaign.levels) {
             val noInput = play(level, emptyList())
             assertEquals(RescueStatus.LOST, noInput.status)
             assertTrue("No-input burial outside target: ${level.id} at ${noInput.tick}",
@@ -31,7 +34,7 @@ class RescueSliceTest {
     }
 
     @Test fun receivingChamberMustBeOpenedButPromptRecoveryWorks() {
-        val level = RescuePrototype.prepare
+        val level = RescueCampaign.levels[1]
         assertEquals(RescueStatus.LOST, play(level, listOf(TimedPull(180, "divert"))).status)
         assertEquals(RescueStatus.WON, play(level,
             listOf(TimedPull(180, "divert"), TimedPull(300, "prepare"))).status)
@@ -39,8 +42,13 @@ class RescueSliceTest {
             listOf(TimedPull(180, "prepare"), TimedPull(181, "divert"))).status)
     }
 
+    @Test fun lateDiversionCannotRescueTheFirstCampaignLevel() {
+        assertEquals(RescueStatus.LOST, play(RescueCampaign.levels[0],
+            listOf(TimedPull(1080, "divert"))).status)
+    }
+
     @Test fun visibleRouteBackToKingIsDangerous() {
-        val level = RescuePrototype.choose
+        val level = RescueCampaign.levels[2]
         assertEquals(RescueStatus.LOST, play(level,
             listOf(TimedPull(120, "spill"), TimedPull(180, "divert"))).status)
         assertEquals(RescueStatus.WON, play(level, listOf(TimedPull(240, "divert"))).status)
